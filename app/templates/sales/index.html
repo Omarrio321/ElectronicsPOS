@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Sales - Electronics POS System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-receipt"></i> Sales</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
+        <a href="{{ url_for('sales.reports') }}" class="btn btn-primary">
+            <i class="bi bi-graph-up"></i> Reports
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Start Date</label>
+                <input type="date" name="start_date" class="form-control"
+                    value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">End Date</label>
+                <input type="date" name="end_date" class="form-control"
+                    value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Cashier</label>
+                <select name="user_id" class="form-select">
+                    <option value="">All Cashiers</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if user_id==user.id %}selected{% endif %}>
+                        {{ user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Filter
+                </button>
+                <a href="{{ url_for('sales.index') }}" class="btn btn-secondary w-100 ms-2">
+                    <i class="bi bi-arrow-clockwise"></i> Reset
+                </a>
+            </div>
+        </form>
+    </div>
+    <div class="card-footer bg-white border-top-0 pt-0 pb-3">
+        <div class="d-flex justify-content-end">
+            <a href="{{ url_for('sales.recent_pdf', start_date=start_date.strftime('%Y-%m-%d') if start_date else '', end_date=end_date.strftime('%Y-%m-%d') if end_date else '', user_id=user_id if user_id else '') }}"
+                class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-file-earmark-pdf"></i> Print List PDF
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Sales Table -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Date</th>
+                        <th>Cashier</th>
+                        <th>Items</th>
+                        <th>Subtotal</th>
+                        <th>Tax</th>
+                        <th>Discount</th>
+                        <th>Total</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if sales.items %}
+                    {% for sale in sales.items %}
+                    <tr>
+                        <td>{{ sale.id }}</td>
+                        <td>{{ sale.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ sale.user.username }}</td>
+                        <td>{{ sale.sale_items|length }}</td>
+                        <td>{{ format_currency(sale.subtotal) }}</td>
+                        <td>{{ format_currency(sale.tax_amount) }}</td>
+                        <td>{{ format_currency(sale.discount) }}</td>
+                        <td>{{ format_currency(sale.grand_total) }}</td>
+                        <td>
+                            {% if sale.payment_method == PaymentMethod.CASH %}
+                            <span class="badge bg-secondary text-white">Cash</span>
+                            {% elif sale.payment_method == PaymentMethod.MOBILE_MONEY %}
+                            <span class="badge bg-success text-white">Mobile</span>
+                            {% elif sale.payment_method == PaymentMethod.CARD %}
+                            <span class="badge bg-info text-white">Card</span>
+                            {% else %}
+                            <span class="badge bg-dark text-white">Unknown</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span
+                                class="badge bg-{{ 'success' if sale.sale_status == SaleStatus.COMPLETED else 'warning' }}">
+                                {{ sale.sale_status.value }}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('sales.detail', sale_id=sale.id) }}"
+                                    class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                                <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}"
+                                    class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-printer"></i> Print
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="11" class="text-center py-4 text-muted">No sales found for this period.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if sales.pages > 1 %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {% if sales.has_prev %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('sales.index', page=sales.prev_num, start_date=start_date, end_date=end_date, user_id=user_id) }}">
+                        Previous
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for page_num in sales.iter_pages() %}
+                {% if page_num %}
+                {% if page_num != sales.page %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('sales.index', page=page_num, start_date=start_date, end_date=end_date, user_id=user_id) }}">
+                        {{ page_num }}
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_num }}</span>
+                </li>
+                {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if sales.has_next %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('sales.index', page=sales.next_num, start_date=start_date, end_date=end_date, user_id=user_id) }}">
+                        Next
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

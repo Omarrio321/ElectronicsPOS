@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Sales List</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #333;
+            line-height: 1.4;
+            font-size: 12px;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .header {
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .report-title {
+            font-size: 18px;
+            margin-bottom: 5px;
+            color: #7f8c8d;
+        }
+
+        .meta-info {
+            font-size: 10px;
+            color: #95a5a6;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #fcfcfc;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .badge-success {
+            background-color: #28a745;
+        }
+
+        .badge-secondary {
+            background-color: #6c757d;
+        }
+
+        .badge-info {
+            background-color: #17a2b8;
+        }
+
+        .badge-warning {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        .badge-dark {
+            background-color: #343a40;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            font-size: 10px;
+            color: #999;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="company-name">{{ company_name }}</div>
+        <div class="report-title">Sales Transaction List</div>
+        <div class="meta-info">
+            Generated on: {{ generated_at }}
+            {% if start_date or end_date %}
+            | Period: {{ start_date if start_date else 'Beginning' }} to {{ end_date if end_date else 'Now' }}
+            {% endif %}
+            {% if user_filter %}
+            | Cashier: {{ user_filter }}
+            {% endif %}
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Cashier</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th class="text-right">Subtotal</th>
+                <th class="text-right">Tax</th>
+                <th class="text-right">Disc.</th>
+                <th class="text-right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sale in sales %}
+            <tr>
+                <td>{{ sale.id }}</td>
+                <td>{{ sale.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ sale.user.username }}</td>
+                <td>
+                    {% if sale.payment_method == PaymentMethod.CASH %}
+                    <span class="badge badge-secondary">Cash</span>
+                    {% elif sale.payment_method == PaymentMethod.MOBILE_MONEY %}
+                    <span class="badge badge-success">Mobile</span>
+                    {% elif sale.payment_method == PaymentMethod.CARD %}
+                    <span class="badge badge-info">Card</span>
+                    {% else %}
+                    <span class="badge badge-dark">{{ sale.payment_method }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span
+                        class="badge {{ 'badge-success' if sale.sale_status == SaleStatus.COMPLETED else 'badge-warning' }}">
+                        {{ sale.sale_status.value }}
+                    </span>
+                </td>
+                <td class="text-right">{{ format_currency(sale.subtotal) }}</td>
+                <td class="text-right">{{ format_currency(sale.tax_amount) }}</td>
+                <td class="text-right">{{ format_currency(sale.discount) }}</td>
+                <td class="text-right" style="font-weight:bold;">{{ format_currency(sale.grand_total) }}</td>
+            </tr>
+            {% endfor %}
+            <!-- Summary Row -->
+            <tr style="background-color: #eee; font-weight: bold;">
+                <td colspan="5" class="text-right">TOTALS</td>
+                <td class="text-right">{{ format_currency(total_subtotal) }}</td>
+                <td class="text-right">{{ format_currency(total_tax) }}</td>
+                <td class="text-right">{{ format_currency(total_discount) }}</td>
+                <td class="text-right">{{ format_currency(total_grand) }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        Confidential Report - Internal Use Only
+    </div>
+</body>
+
+</html>

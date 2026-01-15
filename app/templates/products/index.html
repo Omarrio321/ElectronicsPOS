@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Products - Electronics POS System{% endblock %}
+
+{% block head %}
+<style>
+    /* Professional Action Buttons */
+    .btn-sm {
+        border-radius: 6px;
+        font-weight: 500;
+        padding: 2px 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+    }
+
+    /* Edit button - blue gradient */
+    .btn-primary {
+        background: #0d6efd;
+        border: none;
+        color: #fff;
+        box-shadow: 0 3px 6px rgba(13, 110, 253, 0.2);
+    }
+
+    .btn-primary:hover {
+        background: #0b5ed7;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 12px rgba(13, 110, 253, 0.3);
+    }
+
+    /* Delete button - red gradient */
+    .btn-danger {
+        background: #dc3545;
+        border: none;
+        color: #fff;
+        box-shadow: 0 3px 6px rgba(220, 53, 69, 0.2);
+    }
+
+    .btn-danger:hover {
+        background: #bb2d3b;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 12px rgba(220, 53, 69, 0.3);
+    }
+
+    /* Add Product button - green gradient */
+    .btn-add {
+        background: #0d6efd;
+        border: none;
+        color: #fff;
+        font-weight: 600;
+        box-shadow: 0 3px 6px rgba(25, 135, 84, 0.2);
+    }
+
+    .btn-add:hover {
+        background: #0b5ed7;
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 12px rgba(25, 135, 84, 0.3);
+    }
+
+    /* Low Stock button - orange gradient */
+    .btn-warning {
+        background: linear-gradient(135deg, #ffc107, #ffcd39);
+        border: none;
+        color: #212529;
+        font-weight: 600;
+        box-shadow: 0 3px 6px rgba(255, 193, 7, 0.2);
+    }
+
+    .btn-warning:hover {
+        background: linear-gradient(135deg, #e0a800, #ffb84d);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(255, 193, 7, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-box"></i> Products</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
+        <a href="{{ url_for('products.categories') }}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-tags"></i> Categories
+        </a>
+        <a href="{{ url_for('products.add') }}" class="btn btn-add">
+            <i class="bi bi-plus-circle"></i> Add Product
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Search and Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" name="search" class="form-control" placeholder="Search products..."
+                    value="{{ search }}">
+            </div>
+            <div class="col-md-3">
+                <select name="category_id" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category_id==category.id %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="bi bi-search"></i> Search
+                </button>
+                <a href="{{ url_for('products.index') }}" class="btn btn-secondary flex-grow-1">
+                    <i class="bi bi-arrow-clockwise"></i> Reset
+                </a>
+            </div>
+            <div class="col-md-2 text-end">
+                <a href="{{ url_for('products.low_stock') }}" class="btn btn-warning">
+                    <i class="bi bi-exclamation-triangle"></i> Low Stock
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Products Table -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>SKU</th>
+                        <th>Barcode</th>
+                        <th>Cost Price</th>
+                        <th>Selling Price</th>
+                        <th>Stock</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products.items %}
+                    <tr>
+                        <td>{{ product.id }}</td>
+                        <td>{{ product.name }}</td>
+                        <td>{{ product.category.name if product.category else '-' }}</td>
+                        <td>{{ product.sku }}</td>
+                        <td>{{ product.barcode or '-' }}</td>
+                        <td>{{ format_currency(product.cost_price) }}</td>
+                        <td>{{ format_currency(product.selling_price) }}</td>
+                        <td>{{ product.quantity_in_stock }}</td>
+                        <td>
+                            {% if product.is_low_stock %}
+                            <span class="badge bg-warning">Low Stock</span>
+                            {% else %}
+                            <span class="badge bg-success">In Stock</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
+                            <a href="{{ url_for('products.edit', product_id=product.id) }}"
+                                class="btn btn-sm btn-primary me-1">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form action="{{ url_for('products.delete', product_id=product.id) }}" method="POST"
+                                class="d-inline"
+                                onsubmit="return confirm('Are you sure you want to delete this product?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center text-muted">No products found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if products.pages > 1 %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {% if products.has_prev %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('products.index', page=products.prev_num, search=search, category_id=category_id) }}">Previous</a>
+                </li>
+                {% endif %}
+                {% for page_num in products.iter_pages() %}
+                {% if page_num %}
+                {% if page_num != products.page %}
+                <li class="page-item"><a class="page-link"
+                        href="{{ url_for('products.index', page=page_num, search=search, category_id=category_id) }}">{{
+                        page_num }}</a></li>
+                {% else %}
+                <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                {% endif %}
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% endif %}
+                {% endfor %}
+                {% if products.has_next %}
+                <li class="page-item"><a class="page-link"
+                        href="{{ url_for('products.index', page=products.next_num, search=search, category_id=category_id) }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Optional: any JS for table actions -->
+{% endblock %}

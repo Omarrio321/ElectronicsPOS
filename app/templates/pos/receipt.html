@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Receipt #{{ sale.id }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        /* === GENERAL VARIABLES === */
+        :root {
+            --receipt-screen-width: 380px;
+        }
+
+        /* === BOX-SIZING (helps widths behave predictably) === */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        /* === BODY & LAYOUT (SCREEN MODE) === */
+        body {
+            background-color: #e9ecef;
+            margin: 0;
+            padding: 20px;
+            font-family: 'Courier Prime', Courier, monospace;
+            color: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .receipt-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .receipt-paper {
+            background: white;
+            width: var(--receipt-screen-width);
+            padding: 25px 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        /* === TYPOGRAPHY === */
+        h2 {
+            margin: 0 0 15px 0;
+            text-transform: uppercase;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.4rem;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-muted {
+            color: #555;
+            font-size: 13px;
+        }
+
+        .fw-bold {
+            font-weight: 700;
+        }
+
+        /* === HELPERS === */
+        .row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+
+        .divider {
+            border-bottom: 1px dashed #999;
+            margin: 12px 0;
+        }
+
+        .double-divider {
+            border-bottom: 2px dashed #000;
+            margin: 12px 0;
+        }
+
+        /* === TABLE === */
+        .items-table {
+            width: 100%;
+            font-size: 12px;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .items-table th {
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+            text-transform: uppercase;
+            font-size: 10px;
+            color: #444;
+            text-align: left;
+        }
+
+        .items-table td {
+            padding: 6px 0;
+            vertical-align: top;
+        }
+
+        .qty-col {
+            width: 12%;
+            text-align: center;
+        }
+
+        .name-col {
+            width: 50%;
+            padding-right: 10px;
+        }
+
+        .price-col {
+            width: 19%;
+            text-align: right;
+        }
+
+        .total-col {
+            width: 19%;
+            text-align: right;
+        }
+
+        /* === BUTTONS (SCREEN ONLY) === */
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 35px;
+            font-family: 'Segoe UI', sans-serif;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            text-decoration: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: #0d6efd;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0b5ed7;
+        }
+
+        .btn-secondary {
+            background: #ffffff;
+            color: #333;
+            border: 1px solid #ccc;
+        }
+
+        .btn-secondary:hover {
+            background: #f8f9fa;
+        }
+
+
+        /* ========================================= */
+        /* === PRINT STYLES (THE CRITICAL PART) === */
+        /* ========================================= */
+        @media print {
+
+            /* Reset body for printing */
+            body {
+                background: white;
+                display: block;
+                margin: 0;
+                padding: 0;
+                width: 100%;
+            }
+
+            /* Use a defined thermal page size and small safe margins.
+               80mm is a common thermal roll width; tune to your printer if needed. */
+            @page {
+                margin: 3mm;
+                size: 80mm auto;
+            }
+
+            /* Layout reset for print */
+            .receipt-wrapper {
+                display: block;
+                height: auto;
+            }
+
+            /* The Paper itself - use slightly narrower inner width so nothing is clipped */
+            .receipt-paper {
+                box-shadow: none;
+                margin: 0 auto;
+                width: 100%;
+                max-width: 74mm;
+                /* makes a safe inner width inside 80mm paper */
+                padding: 6px 6px;
+                /* reduced padding for print */
+                border: none;
+                page-break-inside: avoid;
+                font-size: 12px;
+            }
+
+            /* Hide buttons */
+            .actions {
+                display: none !important;
+            }
+
+            /* Allow table cells and inline content to overflow visibly if needed,
+               but avoid clipping caused by a global overflow rule. */
+            .items-table,
+            .items-table th,
+            .items-table td,
+            .receipt-paper,
+            .row,
+            .text-center,
+            .text-right {
+                overflow: visible !important;
+                white-space: normal !important;
+                word-break: break-word;
+            }
+
+            /* Reduce right padding on the name column for print to avoid pushing totals out */
+            .items-table .name-col {
+                padding-right: 4px;
+            }
+
+            /* Tighten column gaps to help numbers fit */
+            .qty-col {
+                width: 12%;
+            }
+
+            .name-col {
+                width: 52%;
+            }
+
+            .price-col {
+                width: 18%;
+            }
+
+            .total-col {
+                width: 18%;
+            }
+
+            /* Make numeric cells align properly */
+            .price-col,
+            .total-col {
+                text-align: right;
+            }
+
+            /* Keep fonts consistent when printing */
+            h2 {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="receipt-wrapper">
+        <div class="receipt-paper">
+            <!-- Header -->
+            <div class="text-center">
+                <i class="fas fa-microchip fa-lg" style="margin-bottom: 8px; color: #333;"></i>
+                <h2>Electronics POS</h2>
+                <p class="text-muted" style="margin: 5px 0; line-height: 1.4; font-size: 11px;">
+                    123 Tech Street, Hargeisa<br>
+                    Tel: +252 63 444444
+                </p>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Meta Info -->
+            <div style="margin-bottom: 15px;">
+                <div class="row">
+                    <span class="text-muted">Receipt #:</span>
+                    <span class="fw-bold">{{ sale.id }}</span>
+                </div>
+                <div class="row">
+                    <span class="text-muted">Date:</span>
+                    <span>{{ sale.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                </div>
+                <div class="row">
+                    <span class="text-muted">Cashier:</span>
+                    <span>{{ sale.user.username if sale.user else 'Unknown' }}</span>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Items -->
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th class="qty-col text-center">Qty</th>
+                        <th class="name-col">Item</th>
+                        <th class="price-col text-right">Price</th>
+                        <th class="total-col text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td class="qty-col text-center">{{ item.quantity_sold }}</td>
+                        <td class="name-col">
+                            <div>{{ item.product.name }}</div>
+                            {% if item.product.sku %}
+                            <div class="text-muted" style="font-size: 10px;">{{ item.product.sku }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="price-col text-right">${{ "%.2f"|format(item.unit_price_at_time) }}</td>
+                        <td class="total-col text-right fw-bold">${{ "%.2f"|format(item.total_price) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="divider"></div>
+
+            <!-- Totals -->
+            <div style="margin-bottom: 20px;">
+                <div class="row">
+                    <span>Subtotal:</span>
+                    <span>${{ "%.2f"|format(sale.subtotal) }}</span>
+                </div>
+                {% if sale.discount > 0 %}
+                <div class="row" style="color: #d63384;">
+                    <span>Discount:</span>
+                    <span>-${{ "%.2f"|format(sale.discount) }}</span>
+                </div>
+                {% endif %}
+                <div class="row">
+                    <span>Tax ({{ (sale.tax_rate * 100)|int }}%):</span>
+                    <span>${{ "%.2f"|format(sale.tax_amount) }}</span>
+                </div>
+
+                <div class="double-divider"></div>
+
+                <div class="row" style="font-size: 1.2rem; font-weight: bold; margin-top: 5px;">
+                    <span>TOTAL PAID:</span>
+                    <span>${{ "%.2f"|format(sale.grand_total) }}</span>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Payment Info -->
+            <div style="margin-bottom: 20px;">
+                <div class="row">
+                    <span class="text-muted">Method:</span>
+                    <span class="fw-bold">{{ sale.payment_method.value }}</span>
+                </div>
+                <div class="row">
+                    <span class="text-muted">Paid:</span>
+                    <span>${{ "%.2f"|format(sale.amount_paid) }}</span>
+                </div>
+                {% if sale.change_given > 0 %}
+                <div class="row">
+                    <span class="text-muted">Change:</span>
+                    <span>${{ "%.2f"|format(sale.change_given) }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Footer -->
+            <div class="text-center">
+                <p class="fw-bold" style="margin: 0 0 5px 0;">Thank you for shopping!</p>
+                <p class="text-muted" style="margin: 0; font-size: 10px;">No returns without receipt</p>
+            </div>
+        </div>
+
+        <!-- Actions (Screen Only) -->
+        <div class="actions">
+            <a href="{{ url_for('pos.index') }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i>New Sale
+            </a>
+            <button onclick="window.print()" class="btn btn-secondary">
+                <i class="fas fa-print me-2"></i>Print
+            </button>
+        </div>
+    </div>
+
+    <!-- Auto Print Script -->
+    <script>
+        window.onload = function () {
+            // Small delay to ensure fonts render
+            setTimeout(function () {
+                window.print();
+            }, 500);
+        };
+    </script>
+</body>
+
+</html>

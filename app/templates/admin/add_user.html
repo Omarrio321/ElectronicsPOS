@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Add New User - Electronics POS System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h4 class="card-title mb-0 fw-bold text-dark">
+                        <i class="bi bi-person-plus text-primary me-2"></i> Add New User
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('admin.add_user') }}" novalidate>
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Username</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i
+                                        class="bi bi-person text-muted"></i></span>
+                                {{ form.username(class="form-control border-start-0", placeholder="Enter username") }}
+                            </div>
+                            {% if form.username.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.username.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i
+                                        class="bi bi-envelope text-muted"></i></span>
+                                {{ form.email(class="form-control border-start-0", placeholder="Enter email") }}
+                            </div>
+                            {% if form.email.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.email.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i
+                                        class="bi bi-shield-lock text-muted"></i></span>
+                                {{ form.password(class="form-control border-start-0", placeholder="Minimum 6
+                                characters") }}
+                            </div>
+                            {% if form.password.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.password.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Access Level / Role</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i
+                                        class="bi bi-shield-shaded text-muted"></i></span>
+                                {{ form.role_id(class="form-select border-start-0") }}
+                            </div>
+                            {% if form.role_id.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.role_id.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check form-switch card p-3 bg-light border-0">
+                                {{ form.is_active(class="form-check-input ms-0", checked=True) }}
+                                <label class="form-check-label ms-2 fw-semibold" for="{{ form.is_active.id }}">
+                                    Account Status: Active
+                                </label>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('admin.users') }}" class="btn btn-link text-decoration-none text-muted">
+                                <i class="bi bi-arrow-left"></i> Back to List
+                            </a>
+                            <button type="submit" class="btn btn-primary px-5 py-2 fw-bold rounded-3 shadow-sm">
+                                <i class="bi bi-person-plus-fill me-1"></i> Create User
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+env/
+.env
+.venv/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+! .env.example
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+.cursor/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Output
+uploads/
+*.pdf

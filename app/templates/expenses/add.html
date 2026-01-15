@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-receipt me-2"></i>{{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Expense Title *</label>
+                            <input type="text" name="title" class="form-control" required
+                                value="{{ expense.title if expense else '' }}" placeholder="e.g. Office Rent">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Category *</label>
+                            <div class="input-group">
+                                <select name="category_id" class="form-select" required>
+                                    <option value="">Select Category</option>
+                                    {% for c in categories %}
+                                    <option value="{{ c.id }}" {% if expense and expense.category_id==c.id %}selected{%
+                                        endif %}>{{ c.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <a href="{{ url_for('expenses.categories') }}" class="btn btn-outline-secondary"
+                                    title="Manage Categories"><i class="fas fa-plus"></i></a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Amount *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" name="amount" class="form-control" step="0.01" required
+                                    value="{{ expense.amount if expense else '' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date *</label>
+                            <input type="date" name="date" class="form-control" required
+                                value="{{ expense.date if expense else '' }}">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Expense Type</label>
+                            <div class="d-flex gap-3">
+                                {% for t in ExpenseType %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="type" id="type_{{ t.name }}"
+                                        value="{{ t.name }}" {% if expense and expense.expense_type==t %}checked{% elif
+                                        not expense and t.name=='INDIVIDUAL' %}checked{% endif %}>
+                                    <label class="form-check-label" for="type_{{ t.name }}">
+                                        {{ t.value }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                {% for s in ExpenseStatus %}
+                                <option value="{{ s.name }}" {% if expense and expense.status==s %}selected{% endif %}>
+                                    {{ s.value }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control"
+                            rows="3">{{ expense.notes if expense else '' }}</textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('expenses.index') }}" class="btn btn-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary">{{ btn_text }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

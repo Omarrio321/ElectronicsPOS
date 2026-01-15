@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt #{{ sale.id }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+
+        .store-info {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .receipt-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .items-table th,
+        .items-table td {
+            border-bottom: 1px solid #ddd;
+            padding: 5px;
+            text-align: left;
+        }
+
+        .items-table th {
+            font-weight: bold;
+        }
+
+        .totals {
+            text-align: right;
+        }
+
+        .totals div {
+            margin-bottom: 5px;
+        }
+
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 10px;
+            color: #777;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="store-info">Electronics Store POS</div>
+        <div>123 Tech Street, Silicon Valley, CA 94025</div>
+        <div>Phone: (555) 123-4567</div>
+    </div>
+
+    <div class="receipt-info">
+        <div>
+            <div>Receipt #: {{ sale.id }}</div>
+            <div>Date: {{ sale.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+            <div>Cashier: {{ sale.user.username }}</div>
+        </div>
+        <div>
+            <div>Payment: {{ sale.payment_method }}</div>
+        </div>
+    </div>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in sale.sale_items %}
+            <tr>
+                <td>{{ item.product.name }}</td>
+                <td>{{ item.quantity_sold }}</td>
+                <td>{{ format_currency(item.unit_price_at_time) }}</td>
+                <td>{{ format_currency(item.total_price) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <div>Subtotal: {{ format_currency(sale.subtotal) }}</div>
+        <div>Tax: {{ format_currency(sale.tax_amount) }}</div>
+        <div>Discount: {{ format_currency(sale.discount) }}</div>
+        <div style="font-weight: bold; font-size: 14px; border-top: 1px solid #ddd; padding-top: 5px;">
+            Total: {{ format_currency(sale.grand_total) }}
+        </div>
+        <div>Amount Paid: {{ format_currency(sale.amount_paid) }}</div>
+        <div>Change: {{ format_currency(sale.change_given) }}</div>
+    </div>
+
+    <div class="footer">
+        <div>Thank you for your business!</div>
+        <div>For returns, please present this receipt within 30 days.</div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt #{{ sale.id }}</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+
+        .receipt {
+            max-width: 300px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px dashed #000;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+
+        .items {
+            margin: 10px 0;
+        }
+
+        .item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .summary {
+            border-top: 2px dashed #000;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+
+        .summary .row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            border-top: 2px dashed #000;
+            padding-top: 10px;
+        }
+
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+
+            .receipt {
+                box-shadow: none;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="receipt">
+        <div class="header">
+            <h3>{{ receipt_header }}</h3>
+            <p>{{ company_name }}</p>
+            <p>Receipt #{{ sale.id }}</p>
+            <p>{{ sale.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+        </div>
+
+        <div class="items">
+            {% for item in sale.sale_items %}
+            <div class="item">
+                <span>{{ item.product.name }} ({{ item.quantity }})</span>
+                <span>{{ format_currency(item.total_price) }}</span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="summary">
+            <div class="row">
+                <span>Subtotal:</span>
+                <span>{{ format_currency(sale.subtotal) }}</span>
+            </div>
+            <div class="row">
+                <span>Tax ({{ (sale.tax_rate * 100)|round(2) }}%):</span>
+                <span>{{ format_currency(sale.tax_amount) }}</span>
+            </div>
+            {% if sale.discount > 0 %}
+            <div class="row">
+                <span>Discount:</span>
+                <span>-{{ format_currency(sale.discount) }}</span>
+            </div>
+            {% endif %}
+            <div class="row">
+                <strong>Total:</strong>
+                <strong>{{ format_currency(sale.grand_total) }}</strong>
+            </div>
+            <div class="row">
+                <span>Payment:</span>
+                <span>{{ sale.payment_method }}</span>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>{{ receipt_footer }}</p>
+            <p>Cashier: {{ sale.user.username }}</p>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function () {
+            window.print();
+            setTimeout(function () {
+                window.close();
+            }, 1000);
+        };
+    </script>
+</body>
+
+</html>

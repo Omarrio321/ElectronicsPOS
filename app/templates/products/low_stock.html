@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Low Stock Products - Electronics POS System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-exclamation-triangle"></i> Low Stock Products</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('products.index') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Products
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if products %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Current Stock</th>
+                        <th>Threshold</th>
+                        <th>Needed</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td>{{ product.id }}</td>
+                        <td>{{ product.name }}</td>
+                        <td>{{ product.category.name if product.category else '-' }}</td>
+                        <td>{{ product.quantity_in_stock }}</td>
+                        <td>{{ product.low_stock_threshold }}</td>
+                        <td>{{ product.low_stock_threshold - product.quantity_in_stock }}</td>
+                        <td>
+                            <a href="{{ url_for('products.edit', product_id=product.id) }}"
+                                class="btn btn-sm btn-primary">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle"></i> All products are well stocked!
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

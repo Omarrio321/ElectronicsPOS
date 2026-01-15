@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Business Performance Report</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #333;
+            line-height: 1.4;
+            font-size: 11px;
+            margin: 0;
+            padding: 20px;
+            letter-spacing: 1px;
+        }
+
+        .header {
+            margin-bottom: 25px;
+            border-bottom: 2px solid #34495e;
+            padding-bottom: 10px;
+        }
+
+        .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .report-title {
+            font-size: 16px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .meta-info {
+            font-size: 10px;
+            color: #95a5a6;
+            margin-top: 5px;
+        }
+
+        .section-title {
+            background-color: #f1f3f4;
+            color: #2c3e50;
+            padding: 6px 10px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            border-left: 4px solid #3498db;
+        }
+
+        .summary-table {
+            width: 100%;
+            margin-bottom: 20px;
+            border-collapse: collapse;
+        }
+
+        .summary-table td {
+            width: 25%;
+            padding: 12px;
+            background-color: #fff;
+            border: 1px solid #eee;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 9px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .profit-pos {
+            color: #27ae60;
+        }
+
+        .profit-neg {
+            color: #e74c3c;
+        }
+
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        table.data-table th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            padding: 8px;
+            text-align: left;
+            font-size: 10px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+
+        table.data-table td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .fw-bold {
+            font-weight: bold;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            font-size: 9px;
+            color: #bdc3c7;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="company-name">{{ company_name }}</div>
+        <div class="report-title">Business Performance Report</div>
+        <div class="meta-info">
+            Generated: {{ generated_at }} |
+            Period: {{ start_date }} to {{ end_date }} |
+            Type: {{ report_type|capitalize }}
+        </div>
+    </div>
+
+    <div class="section-title">Executive Summary</div>
+    <table class="summary-table">
+        <tr>
+            <td>
+                <div class="stat-label">Transactions</div>
+                <div class="stat-value">{{ total_sales }}</div>
+            </td>
+            <td>
+                <div class="stat-label">Total Revenue</div>
+                <div class="stat-value" style="color: #27ae60;">{{ format_currency(total_revenue) }}</div>
+            </td>
+            <td>
+                <div class="stat-label">COGS</div>
+                <div class="stat-value" style="color: #7f8c8d;">{{ format_currency(cogs) }}</div>
+            </td>
+            <td>
+                <div class="stat-label">Gross Profit</div>
+                <div class="stat-value" style="color: #3498db;">{{ format_currency(gross_profit) }}</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div class="stat-label">Paid Expenses</div>
+                <div class="stat-value" style="color: #e74c3c;">{{ format_currency(paid_expenses) }}</div>
+            </td>
+            <td>
+                <div class="stat-label">Pending Expenses</div>
+                <div class="stat-value" style="color: #f39c12;">{{ format_currency(pending_expenses) }}</div>
+            </td>
+            <td>
+                <div class="stat-label">Net Profit</div>
+                <div class="stat-value {{ 'profit-pos' if net_profit >= 0 else 'profit-neg' }}">
+                    {{ format_currency(net_profit) }}
+                </div>
+            </td>
+            <td>
+                <div class="stat-label">Avg Order Value</div>
+                <div class="stat-value">{{ format_currency(avg_order_value) }}</div>
+            </td>
+        </tr>
+    </table>
+    <p style="font-size: 9px; color: #7f8c8d; margin-top: -10px; margin-bottom: 15px;">
+        <em>Net Profit = Revenue - COGS - Paid Expenses. Pending expenses not yet deducted.</em>
+    </p>
+
+    <div style="width: 100%;">
+        <div style="width: 48%; float: left;">
+            <div class="section-title">Top Products</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th class="text-center">Qty</th>
+                        <th class="text-right">Revenue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in top_products %}
+                    <tr>
+                        <td>{{ p[0] }}</td>
+                        <td class="text-center">{{ p[1] }}</td>
+                        <td class="text-right">{{ format_currency(p[2]) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div style="width: 48%; float: right;">
+            <div class="section-title">Cashier Performance</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Cashier</th>
+                        <th class="text-center">Sales</th>
+                        <th class="text-right">Revenue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in user_sales %}
+                    <tr>
+                        <td>{{ u[0] }}</td>
+                        <td class="text-center">{{ u[1] }}</td>
+                        <td class="text-right">{{ format_currency(u[2]) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div style="clear: both;"></div>
+    </div>
+
+    <div class="section-title">Expense Details</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th class="text-center">Status</th>
+                <th class="text-right">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exp in period_expenses %}
+            <tr>
+                <td>{{ exp.date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ exp.title }}</td>
+                <td>{{ exp.category.name }}</td>
+                <td class="text-center">
+                    {% if exp.status.value == 'Paid' %}
+                    <span style="color: #27ae60; font-weight: bold;">Paid</span>
+                    {% else %}
+                    <span style="color: #f39c12; font-weight: bold;">Pending</span>
+                    {% endif %}
+                </td>
+                <td class="text-right fw-bold" style="color: #c0392b;">{{ format_currency(exp.amount) }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="text-center">No expenses recorded for this period.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        {% if period_expenses %}
+        <tfoot>
+            <tr style="background-color: #f8f9fa; font-weight: bold;">
+                <td colspan="3">TOTALS</td>
+                <td class="text-center" style="color: #27ae60;">Paid: {{ format_currency(paid_expenses) }}</td>
+                <td class="text-right" style="color: #f39c12;">Pending: {{ format_currency(pending_expenses) }}</td>
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+
+    <div class="footer">
+        ElectroPOS Business Management System - Confidential Report
+    </div>
+</body>
+
+</html>

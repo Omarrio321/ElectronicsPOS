@@ -1,0 +1,17 @@
+{% macro alert(category, message) %}
+<div class="alert alert-{{ category }} fade-in glass-panel d-flex align-items-center border-0 mb-3" role="alert">
+    {% if category == 'success' %}
+    <i class="fas fa-check-circle me-3 text-success fa-lg"></i>
+    {% elif category == 'danger' %}
+    <i class="fas fa-exclamation-circle me-3 text-danger fa-lg"></i>
+    {% elif category == 'warning' %}
+    <i class="fas fa-exclamation-triangle me-3 text-warning fa-lg"></i>
+    {% else %}
+    <i class="fas fa-info-circle me-3 text-primary fa-lg"></i>
+    {% endif %}
+    <div>
+        {{ message }}
+    </div>
+    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endmacro %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from 'components/card.html' import card %}
+
+{% block title %}My Profile - Electronics POS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="d-flex align-items-center mb-4">
+            <h1 class="h2 mb-0"><i class="fas fa-user-circle me-2"></i> My Profile</h1>
+        </div>
+
+        {% call card(title="Edit Profile", icon="fas fa-edit") %}
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.username.label(class="form-label") }}
+                {{ form.username(class="form-control") }}
+                {% if form.username.errors %}
+                {% for error in form.username.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control") }}
+                {% if form.email.errors %}
+                {% for error in form.email.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+                {% endif %}
+            </div>
+
+            <hr class="my-4">
+            <h5 class="mb-3 text-muted">Change Password</h5>
+            <p class="text-muted small mb-3">Leave blank if you don't want to change your password.</p>
+
+            <div class="mb-3">
+                {{ form.password.label(class="form-label") }}
+                {{ form.password(class="form-control") }}
+                {% if form.password.errors %}
+                {% for error in form.password.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.password_confirm.label(class="form-label") }}
+                {{ form.password_confirm(class="form-control") }}
+                {% if form.password_confirm.errors %}
+                {% for error in form.password_confirm.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+                {% endif %}
+            </div>
+
+            <div class="d-grid gap-2">
+                {{ form.submit(class="btn btn-primary") }}
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+        {% endcall %}
+    </div>
+</div>
+{% endblock %}

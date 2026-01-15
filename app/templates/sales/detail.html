@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Sale #{{ sale.id }} - Electronics POS System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1><i class="bi bi-receipt"></i> Sale #{{ sale.id }}</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-list-ul"></i> Sale Items</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>SKU</th>
+                                <th>Quantity</th>
+                                <th>Unit Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in sale.sale_items %}
+                            <tr>
+                                <td>{{ item.product.name }}</td>
+                                <td>{{ item.product.sku }}</td>
+                                <td>{{ item.quantity_sold }}</td>
+                                <td>{{ format_currency(item.unit_price_at_time) }}</td>
+                                <td>{{ format_currency(item.total_price) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> Sale Details</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-5">Date:</dt>
+                    <dd class="col-sm-7">{{ sale.created_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+
+                    <dt class="col-sm-5">Cashier:</dt>
+                    <dd class="col-sm-7">{{ sale.user.username }}</dd>
+
+                    <dt class="col-sm-5">Payment Method:</dt>
+                    <dd class="col-sm-7">
+                        <!-- FIX: Robust display of payment method (Enum or String) -->
+                        {% if sale.payment_method.value is defined %}
+                        <span class="badge bg-{{ 'success' if sale.payment_method.value == 'CASH' else 'warning' }}">
+                            {{ sale.payment_method.value }}
+                        </span>
+                        {% elif sale.payment_method is string %}
+                        <span class="badge bg-{{ 'success' if sale.payment_method == 'Cash' else 'warning' }}">
+                            {{ sale.payment_method }}
+                        </span>
+                        {% else %}
+                        <span class="badge bg-secondary">Unknown</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-5">Status:</dt>
+                    <dd class="col-sm-7">
+                        <span class="badge bg-{{ 'success' if sale.sale_status.value == 'COMPLETED' else 'warning' }}">
+                            {{ sale.sale_status.value if sale.sale_status.value is defined else sale.sale_status }}
+                        </span>
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-calculator"></i> Summary</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-5">Subtotal:</dt>
+                    <dd class="col-sm-7">{{ format_currency(sale.subtotal) }}</dd>
+
+                    <dt class="col-sm-5">Tax ({{ (sale.tax_rate * 100)|round(2) }}%):</dt>
+                    <dd class="col-sm-7">{{ format_currency(sale.tax_amount) }}</dd>
+
+                    <dt class="col-sm-5">Discount:</dt>
+                    <dd class="col-sm-7">{{ format_currency(sale.discount) }}</dd>
+
+                    <dt class="col-sm-5">Total:</dt>
+                    <dd class="col-sm-7"><strong>{{ format_currency(sale.grand_total) }}</strong></dd>
+                </dl>
+
+                {% if sale.notes %}
+                <hr>
+                <h6>Notes:</h6>
+                <p>{{ sale.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="d-grid gap-2">
+            <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}" class="btn btn-primary">
+                <i class="bi bi-receipt"></i> Print Receipt
+            </a>
+
+            <a href="{{ url_for('sales.index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Sales
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

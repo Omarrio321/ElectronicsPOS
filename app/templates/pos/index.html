@@ -1,0 +1,811 @@
+{% extends "base.html" %}
+
+{% block title %}POS Terminal - Electronics POS{% endblock %}
+
+{% block head %}
+<style>
+    :root {
+        --cart-width: 400px;
+        --gutter: 20px;
+    }
+
+    /* Keep main content full height and remove extra padding that base adds */
+    .pos-root {
+        display: flex;
+        gap: var(--gutter);
+        height: calc(100vh - 2rem);
+        /* consistent with base padding */
+        align-items: stretch;
+    }
+
+    /* Product area (left) */
+    .pos-products {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        background: transparent;
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: none;
+    }
+
+    .category-nav {
+        flex: 1 1 auto;
+        background: transparent;
+        padding: 0;
+        border-bottom: none;
+        overflow-x: auto;
+        white-space: nowrap;
+        scrollbar-width: none;
+        /* Firefox */
+    }
+
+    .category-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Chrome/Safari */
+
+    .pos-top-bar {
+        flex: 0 0 auto;
+        background: #fff;
+        padding: 10px 18px;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .search-container {
+        flex: 0 0 320px;
+    }
+
+    .search-input-group {
+        background: #f1f3f5;
+        border-radius: 8px;
+        padding: 4px 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+    }
+
+    .search-input-group:focus-within {
+        background: #fff;
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+    }
+
+    .search-input-group input {
+        border: none;
+        background: transparent;
+        outline: none;
+        padding: 6px 0;
+        width: 100%;
+        font-size: 0.9rem;
+    }
+
+    .category-pill {
+        display: inline-block;
+        cursor: pointer;
+        border-radius: 20px;
+        padding: 8px 18px;
+        margin-right: 10px;
+        border: 1px solid #e9ecef;
+        background: #fff;
+        color: #333;
+        transition: all .14s ease;
+        font-size: 0.9rem;
+    }
+
+    .category-pill:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+    }
+
+    .category-pill.active {
+        background: #0d6efd;
+        color: #fff;
+        border-color: #0d6efd;
+    }
+
+    .product-grid {
+        flex: 1 1 auto;
+        padding: 18px;
+        background: #f8fafc;
+        overflow: auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 14px;
+    }
+
+    .product-card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 12px;
+        cursor: pointer;
+        border: 1px solid #f1f3f5;
+        box-shadow: 0 6px 18px rgba(13, 110, 253, 0.03);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform .15s ease, box-shadow .15s ease;
+        min-height: 92px;
+    }
+
+    .product-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 30px rgba(13, 110, 253, 0.06);
+        border-left: 4px solid #0d6efd;
+    }
+
+    .product-card.out-of-stock {
+        opacity: .55;
+        filter: grayscale(.6);
+        pointer-events: none;
+    }
+
+    .product-name {
+        font-weight: 700;
+        font-size: 1rem;
+        margin-bottom: 6px;
+    }
+
+    .product-sku {
+        font-size: 0.78rem;
+        color: #6c757d;
+        text-transform: uppercase;
+    }
+
+    .product-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .badge-stock {
+        font-size: .78rem;
+        padding: .25rem .45rem;
+        border-radius: 8px;
+    }
+
+    /* Cart (right) */
+    .pos-cart {
+        width: var(--cart-width);
+        background: #fff;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #eef1f4;
+        box-shadow: 0 6px 20px rgba(2, 6, 23, 0.04);
+        overflow: hidden;
+    }
+
+    .cart-header {
+        padding: 18px;
+        border-bottom: 1px solid #f1f3f5;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .cart-items {
+        flex: 1 1 auto;
+        overflow: auto;
+        padding: 0;
+        background: #fff;
+    }
+
+    .cart-item-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid #f6f7f9;
+    }
+
+    .cart-item-info {
+        max-width: 160px;
+    }
+
+    .cart-item-info .name {
+        font-weight: 700;
+        font-size: .95rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .cart-item-info .meta {
+        font-size: .78rem;
+        color: #6c757d;
+    }
+
+    .qty-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .qty-btn {
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        border: 1px solid #e9ecef;
+        background: #fff;
+        cursor: pointer;
+    }
+
+    .qty-btn:hover {
+        background: #f8f9fa;
+    }
+
+    .cart-footer {
+        padding: 16px;
+        background: #fbfcfd;
+        border-top: 1px solid #eef1f4;
+    }
+
+    .cart-footer .totals {
+        margin-bottom: 12px;
+    }
+
+    .cart-footer .totals .row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 6px;
+        color: #222;
+    }
+
+    .cart-footer .totals .total {
+        font-size: 1.15rem;
+        font-weight: 800;
+    }
+
+    /* Payment buttons base */
+    .payment-methods {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .payment-method-btn {
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease;
+        min-width: 0;
+        flex: 1 1 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Specific colors (non-active) - softer / neutral */
+    /* Specific colors (non-active) - now white-based to show logos */
+    .btn-zaad,
+    .btn-edahab,
+    .btn-cash {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        color: #333;
+        height: 60px;
+        /* Fixed height for consistency */
+        position: relative;
+        overflow: hidden;
+    }
+
+    .payment-logo {
+        height: 32px;
+        width: auto;
+        max-width: 90%;
+        object-fit: contain;
+        pointer-events: none;
+        transition: transform 0.2s ease;
+    }
+
+    /* Adjust specific logos to balance visual weight */
+    .btn-cash .payment-logo {
+        height: 32px;
+        /* Keep Cash as preferred reference */
+    }
+
+    .btn-zaad .payment-logo {
+        height: 25px;
+        /* Reduce height for wide/heavy logos */
+    }
+
+    .btn-edahab .payment-logo {
+        height: 55px;
+        /* Significantly increase for small logos */
+        /* If the SVG has padding, we might need even more scale */
+        transform: scale(1.1);
+    }
+
+    /* Hover states */
+    .btn-zaad:hover {
+        border-color: #66bb6a;
+        background: #f0fdf4;
+    }
+
+    .btn-edahab:hover {
+        border-color: #ffca28;
+        background: #fffbf0;
+    }
+
+    .btn-cash:hover {
+        border-color: #88909a;
+        background: #f8f9fa;
+    }
+
+    .btn-zaad:hover .payment-logo,
+    .btn-cash:hover .payment-logo {
+        transform: scale(1.1);
+    }
+
+    .btn-edahab:hover .payment-logo {
+        /* Maintain the base scale and add hover effect */
+        transform: scale(1.2);
+    }
+
+    /* Active states - brighter border and subtle background */
+    .payment-method-btn.active {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-width: 2px;
+    }
+
+    .btn-zaad.active {
+        border-color: #2e7d32;
+        background: #e8f5e9;
+        /* Light green tint */
+    }
+
+    .btn-edahab.active {
+        border-color: #ff8f00;
+        background: #fff8e1;
+        /* Light amber tint */
+    }
+
+    .btn-cash.active {
+        border-color: #0d6efd;
+        background: #f0f7ff;
+        /* Light blue tint */
+    }
+
+    /* Responsive: stack cart below products on small screens */
+    @media (max-width: 1000px) {
+        .pos-root {
+            flex-direction: column;
+            height: auto;
+        }
+
+        .pos-cart {
+            width: 100%;
+            order: 2;
+        }
+
+        .pos-products {
+            order: 1;
+        }
+
+        .product-grid {
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        }
+    }
+
+    /* Printing safety: prevent base page-level overflow from clipping print preview */
+    @media print {
+        body {
+            overflow: visible !important;
+            height: auto !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pos-root">
+    <!-- PRODUCTS (left) -->
+    <div class="pos-products">
+        <div class="pos-top-bar">
+            <div class="category-nav" id="categoryList" aria-label="Categories"></div>
+            <div class="search-container">
+                <div class="search-input-group">
+                    <i class="fas fa-search text-muted"></i>
+                    <input type="text" id="productSearch" placeholder="Search products (Name, SKU, Barcode)..."
+                        autocomplete="off">
+                    <button id="clearSearch" class="btn btn-link btn-sm p-0 text-muted" style="display:none"><i
+                            class="fas fa-times-circle"></i></button>
+                </div>
+            </div>
+        </div>
+        <div class="product-grid" id="productGrid" aria-live="polite"></div>
+    </div>
+
+    <!-- CART (right) -->
+    <div class="pos-cart" role="region" aria-label="Cart">
+        <div class="cart-header">
+            <div>
+                <h5 class="mb-0"><i class="fas fa-shopping-cart me-2"></i> Current Sale</h5>
+                <small class="text-muted">Tap items to add — quantities adjustable</small>
+            </div>
+            <div>
+                <span class="badge bg-secondary" id="itemCount">0 Items</span>
+            </div>
+        </div>
+
+        <div id="cartList" class="cart-items">
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-basket-shopping fa-3x mb-3 opacity-25"></i>
+                <p class="mb-1">Cart is empty</p>
+                <p class="small mb-0">Click products to add them</p>
+            </div>
+        </div>
+
+        <div class="cart-footer">
+            <div class="totals">
+                <div class="row"><span>Subtotal</span><span id="subtotalDisplay">$0.00</span></div>
+                <div class="row"><span>Tax</span><span id="taxDisplay">$0.00</span></div>
+                <div class="row total"><span>Total</span><span id="totalDisplay">$0.00</span></div>
+            </div>
+
+            <div class="mb-2">
+                <input id="discountInput" type="number" class="form-control form-control-sm"
+                    placeholder="Discount (0.00)" min="0" />
+            </div>
+
+            <div class="mb-3">
+                <div class="payment-methods" role="tablist" aria-label="Payment methods">
+                    <button class="payment-method-btn btn-cash" data-method="Cash" onclick="setPayment('Cash', this)"
+                        aria-pressed="false" aria-label="Pay with Cash">
+                        <img src="{{ url_for('static', filename='images/cash.svg') }}" alt="Cash" class="payment-logo">
+                    </button>
+                    <button class="payment-method-btn btn-zaad" data-method="Zaad" onclick="setPayment('Zaad', this)"
+                        aria-pressed="false" aria-label="Pay with Zaad">
+                        <img src="{{ url_for('static', filename='images/Zaad.svg') }}" alt="Zaad" class="payment-logo">
+                    </button>
+                    <button class="payment-method-btn btn-edahab" data-method="E-Dahab"
+                        onclick="setPayment('E-Dahab', this)" aria-pressed="false" aria-label="Pay with E-Dahab">
+                        <img src="{{ url_for('static', filename='images/E-Dahab.svg') }}" alt="E-Dahab"
+                            class="payment-logo">
+                    </button>
+                </div>
+                <div id="paymentError" class="text-danger small" style="display:none">Select payment method</div>
+            </div>
+
+            <button class="btn btn-primary w-100 py-2 fw-bold" onclick="processCheckout()">
+                <i class="fas fa-check-circle me-2"></i> Complete Sale
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 start-50 translate-middle-x mb-3" style="z-index:1200;">
+    <div id="liveToast" class="toast align-items-center text-white bg-danger border-0" role="alert"
+        aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="toastMessage">Error</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    /* ---------- API helpers ---------- */
+    const API = {
+        getData: async () => {
+            try {
+                const res = await fetch('/pos/api/data', { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) throw new Error('Failed to load data');
+                return await res.json();
+            } catch (e) { console.error(e); showToast(e.message); throw e; }
+        },
+
+        checkout: async (payload) => {
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                if (!csrfToken) throw new Error("CSRF Token missing");
+
+                const res = await fetch('/pos/api/checkout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    const txt = await res.text();
+                    let err = "Checkout failed";
+                    try { const j = JSON.parse(txt); err = j.message || err; } catch (e) { err = txt.substring(0, 200); }
+                    throw new Error(err);
+                }
+                return await res.json();
+            } catch (e) { console.error(e); throw e; }
+        }
+    };
+
+    /* ---------- State ---------- */
+    let state = {
+        products: [],
+        categories: [],
+        cart: [],
+        taxRate: 0,
+        activeCategory: 'all',
+        searchQuery: '',
+        selectedPaymentMethod: null
+    };
+
+    /* ---------- Init ---------- */
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadInitialData();
+        renderCategories();
+        renderProducts();
+
+        // Event Listeners
+        document.getElementById('discountInput').addEventListener('input', updateTotals);
+
+        const searchInput = document.getElementById('productSearch');
+        searchInput.addEventListener('input', (e) => {
+            state.searchQuery = e.target.value.toLowerCase();
+            document.getElementById('clearSearch').style.display = state.searchQuery ? 'block' : 'none';
+            renderProducts();
+        });
+
+        // Barcode Scanning Support
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const barcode = searchInput.value.trim();
+                if (!barcode) return;
+
+                const product = state.products.find(p => p.barcode === barcode);
+                if (product) {
+                    if (product.stock <= 0) {
+                        showToast(`Product ${product.name} is out of stock`, 'danger');
+                    } else {
+                        addToCart(product.id);
+                        showToast(`Scanned: ${product.name}`, 'success');
+
+                        // Clear search and refocus
+                        searchInput.value = '';
+                        state.searchQuery = '';
+                        document.getElementById('clearSearch').style.display = 'none';
+                        renderProducts();
+                        searchInput.focus();
+                    }
+                } else {
+                    showToast(`No product found with barcode: ${barcode}`, 'danger');
+                }
+            }
+        });
+
+        document.getElementById('clearSearch').addEventListener('click', () => {
+            searchInput.value = '';
+            state.searchQuery = '';
+            document.getElementById('clearSearch').style.display = 'none';
+            renderProducts();
+            searchInput.focus();
+        });
+    });
+
+    /* ---------- Load ---------- */
+    async function loadInitialData() {
+        try {
+            const data = await API.getData();
+            if (data.success) {
+                state.products = data.products || [];
+                state.categories = data.categories || [];
+                state.taxRate = parseFloat(data.tax_rate || 0);
+            } else {
+                showToast(data.message || "Failed to load POS data");
+            }
+        } catch (e) {
+            showToast("Network Error: " + e.message);
+        }
+    }
+
+    /* ---------- Render categories & products ---------- */
+    function renderCategories() {
+        const el = document.getElementById('categoryList');
+        if (!state.categories.length) {
+            el.innerHTML = `<span class="category-pill active" onclick="filter('all', this)">All Items</span>`;
+            return;
+        }
+        el.innerHTML = `<span class="category-pill active" onclick="filter('all', this)">All Items</span>` +
+            state.categories.map(c => `<span class="category-pill" onclick="filter(${c.id}, this)">${escapeHtml(c.name)}</span>`).join('');
+    }
+
+    function filter(id, el) {
+        state.activeCategory = id;
+        document.querySelectorAll('.category-pill').forEach(x => x.classList.remove('active'));
+        el.classList.add('active');
+        renderProducts();
+    }
+
+    function renderProducts() {
+        let list = state.activeCategory === 'all'
+            ? state.products
+            : state.products.filter(p => p.category_id === state.activeCategory);
+
+        // Apply search filter
+        if (state.searchQuery) {
+            list = list.filter(p =>
+                p.name.toLowerCase().includes(state.searchQuery) ||
+                (p.sku && p.sku.toLowerCase().includes(state.searchQuery)) ||
+                (p.barcode && p.barcode.toLowerCase().includes(state.searchQuery))
+            );
+        }
+
+        const grid = document.getElementById('productGrid');
+        if (!list.length) {
+            grid.innerHTML = `
+      <div class="col-12 text-center py-5">
+        <i class="fas fa-search fa-3x mb-3 text-muted opacity-25"></i>
+        <h5 class="text-muted">No products found</h5>
+        <p class="text-muted small">Try adjusting your search or category filter</p>
+      </div>
+    `;
+            return;
+        }
+        grid.innerHTML = list.map(p => `
+    <div class="product-card ${p.stock <= 0 ? 'out-of-stock' : ''}" onclick="addToCart(${p.id})" title="${escapeHtml(p.name)}">
+      <div>
+        <div class="product-name">${escapeHtml(p.name)}</div>
+        <div class="product-sku">${escapeHtml(p.sku || '')}</div>
+      </div>
+      <div class="product-bottom">
+        <div class="text-primary fw-bold">$${Number(p.price).toFixed(2)}</div>
+        <div><span class="badge badge-stock ${p.stock < 5 ? 'bg-danger' : 'bg-secondary'}">Stock: ${p.stock}</span></div>
+      </div>
+    </div>
+  `).join('');
+    }
+
+    /* ---------- Cart functions ---------- */
+    function addToCart(id) {
+        const p = state.products.find(x => x.id === id);
+        if (!p) return showToast("Product not found");
+        const existing = state.cart.find(x => x.id === id);
+        if (existing) {
+            if (existing.quantity < p.stock) existing.quantity++;
+            else return showToast("Stock limit reached");
+        } else {
+            state.cart.push({ id: p.id, name: p.name, price: Number(p.price), quantity: 1, max: p.stock });
+        }
+        renderCart();
+    }
+
+    function renderCart() {
+        const container = document.getElementById('cartList');
+        if (!state.cart.length) {
+            container.innerHTML = `<div class="text-center text-muted py-5"><i class="fas fa-basket-shopping fa-3x mb-3 opacity-25"></i><p class="mb-1">Cart is empty</p><p class="small mb-0">Click products to add them</p></div>`;
+            updateTotals();
+            document.getElementById('itemCount').innerText = `0 Items`;
+            return;
+        }
+
+        container.innerHTML = state.cart.map((i, idx) => `
+    <div class="cart-item-row" role="group" aria-label="${escapeHtml(i.name)}">
+      <div class="cart-item-info">
+        <div class="name">${escapeHtml(i.name)}</div>
+        <div class="meta">$${Number(i.price).toFixed(2)} × ${i.quantity}</div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="qty-controls">
+          <button class="qty-btn" onclick="chgQty(${idx}, -1)">−</button>
+          <span aria-live="polite">${i.quantity}</span>
+          <button class="qty-btn" onclick="chgQty(${idx}, 1)">+</button>
+        </div>
+        <div style="font-weight:700; min-width:80px; text-align:right;">$${(i.price * i.quantity).toFixed(2)}</div>
+      </div>
+    </div>
+  `).join('');
+
+        document.getElementById('itemCount').innerText = `${state.cart.reduce((a, b) => a + b.quantity, 0)} Items`;
+        updateTotals();
+    }
+
+    function chgQty(idx, delta) {
+        const item = state.cart[idx];
+        if (!item) return;
+        const newQ = item.quantity + delta;
+        if (newQ <= 0) {
+            state.cart.splice(idx, 1);
+        } else if (newQ > item.max) {
+            return showToast("Max stock reached");
+        } else {
+            item.quantity = newQ;
+        }
+        renderCart();
+    }
+
+    function updateTotals() {
+        const sub = state.cart.reduce((a, b) => a + (b.price * b.quantity), 0);
+        const disc = parseFloat(document.getElementById('discountInput').value) || 0;
+        const tax = Math.max(0, sub - disc) * (state.taxRate || 0);
+        const total = sub - disc + tax;
+        document.getElementById('subtotalDisplay').innerText = `$${sub.toFixed(2)}`;
+        document.getElementById('taxDisplay').innerText = `$${tax.toFixed(2)}`;
+        document.getElementById('totalDisplay').innerText = `$${total.toFixed(2)}`;
+    }
+
+    /* ---------- Payment & Checkout ---------- */
+    function setPayment(method, el) {
+        state.selectedPaymentMethod = method;
+        // toggle active classes & aria-pressed for accessibility
+        document.querySelectorAll('.payment-method-btn').forEach(b => {
+            b.classList.remove('active');
+            b.setAttribute('aria-pressed', 'false');
+        });
+        el.classList.add('active');
+        el.setAttribute('aria-pressed', 'true');
+        document.getElementById('paymentError').style.display = 'none';
+    }
+
+    async function processCheckout() {
+        if (!state.cart.length) return showToast("Cart is empty");
+        if (!state.selectedPaymentMethod) return document.getElementById('paymentError').style.display = 'block';
+
+        const payload = {
+            items: state.cart.map(i => ({ product_id: i.id, quantity: i.quantity, price: i.price })),
+            discount: parseFloat(document.getElementById('discountInput').value) || 0,
+            payment_method: state.selectedPaymentMethod
+        };
+
+        try {
+            const res = await API.checkout(payload);
+            if (res.success) {
+                // open receipt in new tab to avoid print clipping and preserve POS state
+                window.open(`/pos/receipt/${res.sale_id}`, '_blank', 'noopener,noreferrer');
+                // clear cart locally (optional)
+                state.cart = [];
+                state.selectedPaymentMethod = null;
+                document.getElementById('discountInput').value = '';
+                document.querySelectorAll('.payment-method-btn').forEach(b => {
+                    b.classList.remove('active');
+                    b.setAttribute('aria-pressed', 'false');
+                });
+                renderCart();
+            } else {
+                showToast(res.message || "Checkout failed");
+            }
+        } catch (e) {
+            showToast("Checkout Error: " + e.message);
+        }
+    }
+
+    /* ---------- UI helpers ---------- */
+    function showToast(msg, type = 'danger') {
+        const t = document.getElementById('liveToast');
+        const toastBody = document.getElementById('toastMessage');
+
+        // Set alert type
+        t.classList.remove('bg-danger', 'bg-success', 'bg-primary');
+        t.classList.add(`bg-${type}`);
+
+        toastBody.innerText = msg;
+        new bootstrap.Toast(t).show();
+    }
+
+    function escapeHtml(str = '') {
+        return String(str).replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": "&#39;" }[s]));
+    }
+
+</script>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}System Audit Logs - Electronics POS System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="fw-bold"><i class="bi bi-journal-text me-2"></i> System Audit Logs</h1>
+            <p class="text-muted">Track all administrative and system actions for security and accountability.</p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">Timestamp</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Target</th>
+                            <th>Details</th>
+                            <th class="pe-4 text-end">IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if logs.items %}
+                        {% for log in logs.items %}
+                        <tr>
+                            <td class="ps-4">
+                                <span class="text-nowrap">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                            </td>
+                            <td>
+                                {% if log.user %}
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm bg-primary-soft rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                        style="width: 32px; height: 32px; background: rgba(13, 110, 253, 0.1);">
+                                        <i class="bi bi-person text-primary"></i>
+                                    </div>
+                                    <span class="fw-medium">{{ log.user.username }}</span>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">System</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% set badge_class = 'bg-secondary' %}
+                                {% if 'CREATE' in log.action %}{% set badge_class = 'bg-success' %}
+                                {% elif 'UPDATE' in log.action %}{% set badge_class = 'bg-info text-dark' %}
+                                {% elif 'DELETE' in log.action %}{% set badge_class = 'bg-danger' %}
+                                {% elif 'LOGIN' in log.action %}{% set badge_class = 'bg-primary' %}
+                                {% endif %}
+                                <span class="badge {{ badge_class }}">{{ log.action }}</span>
+                            </td>
+                            <td>
+                                {% if log.target_type %}
+                                <span class="text-muted small text-uppercase fw-bold">{{ log.target_type }}</span>
+                                {% if log.target_id %}
+                                <span class="badge bg-light text-dark border ms-1">ID: {{ log.target_id }}</span>
+                                {% endif %}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="text-muted small"
+                                    style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                                    title="{{ log.details | tojson if log.details else '' }}">
+                                    {% if log.details %}
+                                    {% if log.details is mapping %}
+                                    {% for k, v in log.details.items() %}
+                                    <strong>{{ k }}:</strong> {{ v }}{% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                    {% else %}
+                                    {{ log.details }}
+                                    {% endif %}
+                                    {% else %}
+                                    <span class="fst-italic">No details</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="pe-4 text-end">
+                                <code class="text-muted small">{{ log.ip_address or 'Unknown' }}</code><br>
+                                <small class="text-muted d-block"
+                                    style="font-size: 10px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; display: inline-block;"
+                                    title="{{ log.user_agent }}">{{ log.user_agent }}</small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <i class="bi bi-journal-x display-4 text-muted d-block mb-3"></i>
+                                <h5 class="text-muted">No audit logs found.</h5>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if logs.pages > 1 %}
+        <div class="card-footer bg-white py-3">
+            <nav aria-label="Logs pagination">
+                <ul class="pagination pagination-sm mb-0 justify-content-center">
+                    <li class="page-item {{ 'disabled' if not logs.has_prev }}">
+                        <a class="page-link"
+                            href="{{ url_for('admin.logs', page=logs.prev_num) if logs.has_prev else '#' }}">Previous</a>
+                    </li>
+                    {% for page in logs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page %}
+                    <li class="page-item {{ 'active' if page == logs.page }}">
+                        <a class="page-link" href="{{ url_for('admin.logs', page=page) }}">{{ page }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                    {% endfor %}
+                    <li class="page-item {{ 'disabled' if not logs.has_next }}">
+                        <a class="page-link"
+                            href="{{ url_for('admin.logs', page=logs.next_num) if logs.has_next else '#' }}">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
