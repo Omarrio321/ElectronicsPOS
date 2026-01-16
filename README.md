@@ -42,8 +42,8 @@ A professional, feature-rich Point of Sale (POS) and Inventory Management system
 ### 2. Setup Procedure
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/electronics_pos.git
-cd electronics_pos
+git clone https://github.com/Omarrio321/ElectronicsPOS.git
+cd ElectronicsPOS
 
 # Create a virtual environment
 python -m venv venv
@@ -57,15 +57,14 @@ pip install -r requirements.txt
 Create a `.env` file in the root directory:
 ```env
 SECRET_KEY=your-secret-key
-DATABASE_URL=mysql+pymysql://user:password@localhost/electronics_pos
+DATABASE_URL=mysql+pymysql://user:password@localhost/ElectroPOS
 ADMIN_PASSWORD=your-secure-password
 ```
 
 ### 4. Database Setup
 ```bash
 flask db upgrade
-python seed_settings.py
-python seed_admin.py
+python scripts/seed_admin.py
 ```
 
 ### 5. Running the Application

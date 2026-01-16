@@ -5,8 +5,8 @@
 {% block head %}
 <style>
     :root {
-        --cart-width: 400px;
-        --gutter: 20px;
+        --cart-width: 500px;
+        --gutter: 16px;
     }
 
     /* Keep main content full height and remove extra padding that base adds */
@@ -112,26 +112,29 @@
 
     .product-grid {
         flex: 1 1 auto;
-        padding: 18px;
+        padding: 12px;
         background: #f8fafc;
         overflow: auto;
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 14px;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 8px;
+        align-content: start;
     }
 
     .product-card {
         background: #fff;
-        border-radius: 10px;
-        padding: 12px;
+        border-radius: 8px;
+        padding: 10px;
         cursor: pointer;
         border: 1px solid #f1f3f5;
-        box-shadow: 0 6px 18px rgba(13, 110, 253, 0.03);
+        box-shadow: 0 2px 8px rgba(13, 110, 253, 0.03);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         transition: transform .15s ease, box-shadow .15s ease;
-        min-height: 92px;
+        min-height: 100px;
+        max-height: 120px;
+        overflow: hidden;
     }
 
     .product-card:hover {
@@ -147,33 +150,47 @@
     }
 
     .product-name {
-        font-weight: 700;
-        font-size: 1rem;
-        margin-bottom: 6px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        margin-bottom: 4px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        line-height: 1.2;
     }
 
     .product-sku {
-        font-size: 0.78rem;
+        font-size: 0.65rem;
         color: #6c757d;
         text-transform: uppercase;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .product-bottom {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 8px;
+        gap: 4px;
+        margin-top: auto;
+    }
+
+    .product-bottom .text-primary {
+        font-size: 0.85rem;
     }
 
     .badge-stock {
-        font-size: .78rem;
-        padding: .25rem .45rem;
-        border-radius: 8px;
+        font-size: .6rem;
+        padding: .15rem .35rem;
+        border-radius: 6px;
     }
 
     /* Cart (right) */
     .pos-cart {
         width: var(--cart-width);
+        min-width: var(--cart-width);
+        flex-shrink: 0;
         background: #fff;
         border-radius: 10px;
         display: flex;
@@ -184,11 +201,22 @@
     }
 
     .cart-header {
-        padding: 18px;
+        padding: 14px 16px;
         border-bottom: 1px solid #f1f3f5;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-shrink: 0;
+    }
+
+    .cart-header h5 {
+        font-size: 1rem;
+        margin: 0;
+    }
+
+    .cart-header small {
+        display: block;
+        font-size: 0.75rem;
     }
 
     .cart-items {
@@ -202,75 +230,95 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 12px 16px;
+        padding: 10px 14px;
         border-bottom: 1px solid #f6f7f9;
+        gap: 8px;
     }
 
     .cart-item-info {
-        max-width: 160px;
+        flex: 1;
+        min-width: 0;
+        max-width: 140px;
     }
 
     .cart-item-info .name {
-        font-weight: 700;
-        font-size: .95rem;
+        font-weight: 600;
+        font-size: .85rem;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
     .cart-item-info .meta {
-        font-size: .78rem;
+        font-size: .72rem;
         color: #6c757d;
     }
 
     .qty-controls {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
+        flex-shrink: 0;
     }
 
     .qty-btn {
-        width: 30px;
-        height: 30px;
+        width: 28px;
+        height: 28px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         border-radius: 6px;
-        border: 1px solid #e9ecef;
-        background: #fff;
+        border: 1px solid #dee2e6;
+        background: #f8f9fa;
         cursor: pointer;
+        font-weight: 600;
+        font-size: 1rem;
+        color: #333;
+        transition: all 0.15s ease;
     }
 
     .qty-btn:hover {
-        background: #f8f9fa;
+        background: #e9ecef;
+        border-color: #0d6efd;
+        color: #0d6efd;
+    }
+
+    .cart-item-total {
+        font-weight: 700;
+        font-size: 0.85rem;
+        min-width: 65px;
+        text-align: right;
+        flex-shrink: 0;
     }
 
     .cart-footer {
-        padding: 16px;
+        padding: 14px;
         background: #fbfcfd;
         border-top: 1px solid #eef1f4;
+        flex-shrink: 0;
     }
 
     .cart-footer .totals {
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }
 
     .cart-footer .totals .row {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
         color: #222;
+        font-size: 0.9rem;
     }
 
     .cart-footer .totals .total {
-        font-size: 1.15rem;
+        font-size: 1.1rem;
         font-weight: 800;
     }
 
     /* Payment buttons base */
     .payment-methods {
         display: flex;
-        gap: 8px;
+        gap: 6px;
         margin-bottom: 10px;
     }
 
@@ -705,15 +753,12 @@
         <div class="name">${escapeHtml(i.name)}</div>
         <div class="meta">$${Number(i.price).toFixed(2)} × ${i.quantity}</div>
       </div>
-
-      <div style="display:flex; align-items:center; gap:12px;">
-        <div class="qty-controls">
-          <button class="qty-btn" onclick="chgQty(${idx}, -1)">−</button>
-          <span aria-live="polite">${i.quantity}</span>
-          <button class="qty-btn" onclick="chgQty(${idx}, 1)">+</button>
-        </div>
-        <div style="font-weight:700; min-width:80px; text-align:right;">$${(i.price * i.quantity).toFixed(2)}</div>
+      <div class="qty-controls">
+        <button class="qty-btn" onclick="chgQty(${idx}, -1)" aria-label="Decrease quantity">−</button>
+        <span aria-live="polite">${i.quantity}</span>
+        <button class="qty-btn" onclick="chgQty(${idx}, 1)" aria-label="Increase quantity">+</button>
       </div>
+      <div class="cart-item-total">$${(i.price * i.quantity).toFixed(2)}</div>
     </div>
   `).join('');
 
