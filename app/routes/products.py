@@ -6,6 +6,15 @@ from app.forms import ProductForm
 from app.services.audit_service import AuditService
 from sqlalchemy import or_, desc
 import json
+import pdfkit
+from io import BytesIO
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from datetime import datetime
+from flask import send_file, Response, current_app
+from app.models import SystemSetting
+from app.utils import format_currency
+
 
 products_bp = Blueprint('products', __name__, url_prefix='/products')
 
@@ -277,3 +286,152 @@ def delete_category(id):
         flash(f'Error deleting category: {str(e)}', 'danger')
         
     return redirect(url_for('products.categories'))
+
+
+@products_bp.route('/export/pdf')
+@login_required
+def export_pdf():
+    if not current_user.has_role('Admin') and not current_user.has_role('Manager'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('products.index'))
+
+    # Get filters
+    search = request.args.get('search', '')
+    category_id = request.args.get('category_id', type=int)
+
+    # Build query
+    query = Product.query
+    if search:
+        query = query.filter(or_(
+            Product.name.contains(search),
+            Product.sku.contains(search),
+            Product.barcode.contains(search)
+        ))
+    if category_id:
+        query = query.filter(Product.category_id == category_id)
+
+    products = query.order_by(desc(Product.created_at)).all()
+
+    # Context for template
+    company_name = SystemSetting.get('company_name', 'Electronics Store')
+    category_name = None
+    if category_id:
+        cat = Category.query.get(category_id)
+        if cat:
+            category_name = cat.name
+
+    html = render_template(
+        'products/pdf_export.html',
+        products=products,
+        company_name=company_name,
+        generated_at=datetime.now().strftime('%Y-%m-%d %H:%M'),
+        category_filter=category_name,
+        search_query=search,
+        format_currency=format_currency
+    )
+
+    try:
+        path_wkhtmltopdf = current_app.config.get('WKHTMLTOPDF_PATH')
+        config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
+        pdf_bytes = pdfkit.from_string(html, False, configuration=config)
+    except Exception as e:
+        current_app.logger.exception("pdfkit failed to generate inventory PDF")
+        flash(f"PDF generation failed: {str(e)}", "danger")
+        return redirect(url_for('products.index'))
+
+    pdf_io = BytesIO(pdf_bytes)
+    pdf_io.seek(0)
+    filename = f"inventory_report_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+
+    return send_file(
+        pdf_io,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=filename
+    )
+
+
+@products_bp.route('/export/excel')
+@login_required
+def export_excel():
+    if not current_user.has_role('Admin') and not current_user.has_role('Manager'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('products.index'))
+
+    # Get filters
+    search = request.args.get('search', '')
+    category_id = request.args.get('category_id', type=int)
+
+    # Build query
+    query = Product.query
+    if search:
+        query = query.filter(or_(
+            Product.name.contains(search),
+            Product.sku.contains(search),
+            Product.barcode.contains(search)
+        ))
+    if category_id:
+        query = query.filter(Product.category_id == category_id)
+
+    products = query.order_by(desc(Product.created_at)).all()
+
+    # Create Excel Workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Inventory"
+
+    # Headers
+    headers = ['ID', 'Name', 'Category', 'SKU', 'Barcode', 'Cost Price', 'Selling Price', 'Stock', 'Low Stock Threshold', 'Status']
+    ws.append(headers)
+
+    # Style Header
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+    for cell in ws[1]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center")
+
+    # Add Data
+    for p in products:
+        status = "Low Stock" if p.is_low_stock else "In Stock"
+        row = [
+            p.id,
+            p.name,
+            p.category.name if p.category else '-',
+            p.sku,
+            p.barcode,
+            p.cost_price,
+            p.selling_price,
+            p.quantity_in_stock,
+            p.low_stock_threshold,
+            status
+        ]
+        ws.append(row)
+
+    # Auto-width
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[column].width = adjusted_width
+
+    # Save to BytesIO
+    excel_io = BytesIO()
+    wb.save(excel_io)
+    excel_io.seek(0)
+    
+    filename = f"inventory_export_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+
+    return send_file(
+        excel_io,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )

@@ -35,8 +35,7 @@ def create_app(config_class=None):
     csrf.init_app(app)
     
     # Security Extensions
-    from flask_limiter import Limiter
-    from flask_limiter.util import get_remote_address
+
     from flask_talisman import Talisman
     
     # Register Blueprints
@@ -59,12 +58,7 @@ def create_app(config_class=None):
     app.register_blueprint(expenses_bp, url_prefix='/expenses')
 
     
-    limiter = Limiter(
-        get_remote_address,
-        app=app,
-        default_limits=["200 per day", "50 per hour"],
-        storage_uri="memory://"
-    )
+
     
     # Content Security Policy
     csp = {

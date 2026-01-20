@@ -97,9 +97,8 @@
 <div class="card mb-4">
     <div class="card-body">
         <form method="GET" class="row g-3">
-            <div class="col-md-4">
-                <input type="text" name="search" class="form-control" placeholder="Search products..."
-                    value="{{ search }}">
+            <div class="col-md-2">
+                <input type="text" name="search" class="form-control" placeholder="Search..." value="{{ search }}">
             </div>
             <div class="col-md-3">
                 <select name="category_id" class="form-select">
@@ -119,7 +118,19 @@
                     <i class="bi bi-arrow-clockwise"></i> Reset
                 </a>
             </div>
-            <div class="col-md-2 text-end">
+            <div class="col-md-4 text-end d-flex gap-2 justify-content-end">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                        <i class="bi bi-download"></i> Export
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="exportData('pdf'); return false;"><i
+                                    class="bi bi-file-earmark-pdf text-danger"></i> Export PDF</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="exportData('excel'); return false;"><i
+                                    class="bi bi-file-earmark-excel text-success"></i> Export Excel</a></li>
+                    </ul>
+                </div>
                 <a href="{{ url_for('products.low_stock') }}" class="btn btn-warning">
                     <i class="bi bi-exclamation-triangle"></i> Low Stock
                 </a>
@@ -227,5 +238,19 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Optional: any JS for table actions -->
+<script>
+    function exportData(type) {
+        const searchParams = new URLSearchParams(window.location.search);
+        let baseUrl = '';
+
+        if (type === 'pdf') {
+            baseUrl = "{{ url_for('products.export_pdf') }}";
+        } else if (type === 'excel') {
+            baseUrl = "{{ url_for('products.export_excel') }}";
+        }
+
+        // redirect to export url with current filters
+        window.location.href = `${baseUrl}?${searchParams.toString()}`;
+    }
+</script>
 {% endblock %}

@@ -8,18 +8,24 @@ A professional, feature-rich Point of Sale (POS) and Inventory Management system
 - **Interactive POS Terminal**: Quick product search, barcode ready, and intuitive cart management.
 - **Local Payment Methods**: Integrated support for Cash, **Zaad**, and **E-Dahab** with iconic visual indicators.
 - **Sale Detail Tracking**: Complete history of all transactions with easy navigation.
+- **Export**: Generate professional PDF reports and Excel spreadsheets of your sales with date and cashier filtering.
 
 ### 📦 Inventory & Products
-- **Real-time Stock Management**: Track quantities, set low-stock thresholds, and manage categories.
+- **Inventory Management**:
+    - Product tracking with SKU, Barcode, and Stock Levels.
+    - Low stock alerts and categorization.
+    - **Export**: Generate professional PDF reports and Excel spreadsheets of your inventory with selective filtering.
 - **Product Gallery**: Professional display of products with detailed information.
 
-### 💰 Expense Management (New)
+### 💰 Expense Management
 - **Comprehensive Tracking**: Manage business costs, categorize expenses (Rent, Utilities, Maintenance), and track payment status (Paid/Pending).
 - **Insightful Visuals**: Built-in charts (Chart.js) showing expense distribution by category.
 - **Net Profit Calculation**: Automatically integrates with sales data to provide a real-time view of business health.
 
 ### 📊 Reporting & Exports
 - **Dynamic PDF Generation**: Export professional PDF receipts, sales history summaries, and comprehensive business reports.
+- **Excel Exports**: Download Sales, Inventory, and Reports data as styled Excel spreadsheets for further analysis.
+- **Multi-Sheet Reports**: Export comprehensive report workbooks with Summary, Daily Sales, Top Products, and Cashier Performance sheets.
 - **Visual Dashboards**: Track revenue, sales volume, and top-performing products at a glance.
 
 ## 🛠️ Technology Stack

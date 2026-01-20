@@ -42,10 +42,18 @@
             <p class="text-muted mb-0">Overview of business performance and sales trends</p>
         </div>
         <div class="col-md-4 text-md-end mt-2">
-            <a href="{{ url_for('sales.reports_pdf', type=report_type, start_date=start_date.strftime('%Y-%m-%d') if start_date else '', end_date=end_date.strftime('%Y-%m-%d') if end_date else '') }}"
-                class="btn btn-outline-danger me-2">
-                <i class="bi bi-file-earmark-pdf"></i> Export PDF
-            </a>
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    <i class="bi bi-download"></i> Export
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="exportReport('pdf'); return false;"><i
+                                class="bi bi-file-earmark-pdf text-danger"></i> Export PDF</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="exportReport('excel'); return false;"><i
+                                class="bi bi-file-earmark-excel text-success"></i> Export Excel</a></li>
+                </ul>
+            </div>
             <a href="{{ url_for('sales.reports') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-clockwise"></i> Reset Filters
             </a>
@@ -335,6 +343,21 @@
         if (body) body.innerText = msg;
         const toast = new bootstrap.Toast(t);
         toast.show();
+    }
+
+    // --- Export Function ---
+    function exportReport(type) {
+        const searchParams = new URLSearchParams(window.location.search);
+        let baseUrl = '';
+
+        if (type === 'pdf') {
+            baseUrl = "{{ url_for('sales.reports_pdf') }}";
+        } else if (type === 'excel') {
+            baseUrl = "{{ url_for('sales.reports_excel') }}";
+        }
+
+        // redirect to export url with current filters
+        window.location.href = `${baseUrl}?${searchParams.toString()}`;
     }
 
     // --- Chart Variables ---

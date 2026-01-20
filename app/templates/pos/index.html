@@ -588,10 +588,11 @@
     };
 
     /* ---------- State ---------- */
+    /* ---------- State ---------- */
     let state = {
         products: [],
         categories: [],
-        cart: [],
+        cart: JSON.parse(localStorage.getItem('pos_cart') || '[]'),
         taxRate: 0,
         activeCategory: 'all',
         searchQuery: '',
@@ -603,6 +604,8 @@
         await loadInitialData();
         renderCategories();
         renderProducts();
+        renderCart(); // Render saved cart
+        document.getElementById('productSearch').focus();
 
         // Event Listeners
         document.getElementById('discountInput').addEventListener('input', updateTotals);
@@ -764,6 +767,7 @@
 
         document.getElementById('itemCount').innerText = `${state.cart.reduce((a, b) => a + b.quantity, 0)} Items`;
         updateTotals();
+        localStorage.setItem('pos_cart', JSON.stringify(state.cart));
     }
 
     function chgQty(idx, delta) {
@@ -820,6 +824,7 @@
                 window.open(`/pos/receipt/${res.sale_id}`, '_blank', 'noopener,noreferrer');
                 // clear cart locally (optional)
                 state.cart = [];
+                localStorage.removeItem('pos_cart');
                 state.selectedPaymentMethod = null;
                 document.getElementById('discountInput').value = '';
                 document.querySelectorAll('.payment-method-btn').forEach(b => {

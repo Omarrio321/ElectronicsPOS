@@ -20,17 +20,17 @@
 <div class="card mb-4">
     <div class="card-body">
         <form method="GET" class="row g-3">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Start Date</label>
                 <input type="date" name="start_date" class="form-control"
                     value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">End Date</label>
                 <input type="date" name="end_date" class="form-control"
                     value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Cashier</label>
                 <select name="user_id" class="form-select">
                     <option value="">All Cashiers</option>
@@ -41,23 +41,29 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary w-100">
+            <div class="col-md-3 d-flex gap-2 align-items-end">
+                <button type="submit" class="btn btn-primary flex-grow-1">
                     <i class="bi bi-search"></i> Filter
                 </button>
-                <a href="{{ url_for('sales.index') }}" class="btn btn-secondary w-100 ms-2">
+                <a href="{{ url_for('sales.index') }}" class="btn btn-secondary flex-grow-1">
                     <i class="bi bi-arrow-clockwise"></i> Reset
                 </a>
             </div>
+            <div class="col-md-3 text-end d-flex gap-2 justify-content-end align-items-end">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                        <i class="bi bi-download"></i> Export
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="exportData('pdf'); return false;"><i
+                                    class="bi bi-file-earmark-pdf text-danger"></i> Export PDF</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="exportData('excel'); return false;"><i
+                                    class="bi bi-file-earmark-excel text-success"></i> Export Excel</a></li>
+                    </ul>
+                </div>
+            </div>
         </form>
-    </div>
-    <div class="card-footer bg-white border-top-0 pt-0 pb-3">
-        <div class="d-flex justify-content-end">
-            <a href="{{ url_for('sales.recent_pdf', start_date=start_date.strftime('%Y-%m-%d') if start_date else '', end_date=end_date.strftime('%Y-%m-%d') if end_date else '', user_id=user_id if user_id else '') }}"
-                class="btn btn-outline-danger btn-sm">
-                <i class="bi bi-file-earmark-pdf"></i> Print List PDF
-            </a>
-        </div>
     </div>
 </div>
 
@@ -180,4 +186,22 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function exportData(type) {
+        const searchParams = new URLSearchParams(window.location.search);
+        let baseUrl = '';
+
+        if (type === 'pdf') {
+            baseUrl = "{{ url_for('sales.recent_pdf') }}";
+        } else if (type === 'excel') {
+            baseUrl = "{{ url_for('sales.export_excel') }}";
+        }
+
+        // redirect to export url with current filters
+        window.location.href = `${baseUrl}?${searchParams.toString()}`;
+    }
+</script>
 {% endblock %}

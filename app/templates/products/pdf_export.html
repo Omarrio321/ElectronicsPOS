@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Inventory Report</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #333;
+        }
+
+        .header {
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+        }
+
+        .header h1 {
+            margin: 0;
+            color: #444;
+            font-size: 24px;
+        }
+
+        .meta {
+            margin-top: 5px;
+            color: #777;
+            font-size: 11px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            text-align: left;
+            padding: 8px;
+            font-weight: bold;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #555;
+        }
+
+        td {
+            border-bottom: 1px solid #dee2e6;
+            padding: 8px;
+            vertical-align: middle;
+        }
+
+        tr:nth-child(even) {
+            background-color: #fcfcfc;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .badge {
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            display: inline-block;
+        }
+
+        .bg-success {
+            background-color: #198754;
+        }
+
+        .bg-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 10px;
+            color: #999;
+            text-align: center;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+
+        /* Utility for currency alignment */
+        .currency {
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Inventory Report</h1>
+        <div class="meta">
+            Generated on: {{ generated_at }}<br>
+            {{ company_name }}
+            {% if category_filter %} | Category: {{ category_filter }}{% endif %}
+            {% if search_query %} | Search: "{{ search_query }}"{% endif %}
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 5%">ID</th>
+                <th style="width: 25%">Name</th>
+                <th style="width: 15%">Category</th>
+                <th style="width: 15%">SKU</th>
+                <th style="width: 10%" class="text-right">Cost</th>
+                <th style="width: 10%" class="text-right">Price</th>
+                <th style="width: 10%" class="text-center">Stock</th>
+                <th style="width: 10%" class="text-center">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            <tr>
+                <td>{{ product.id }}</td>
+                <td>{{ product.name }}</td>
+                <td>{{ product.category.name if product.category else '-' }}</td>
+                <td>{{ product.sku }}</td>
+                <td class="text-right currency">{{ format_currency(product.cost_price) }}</td>
+                <td class="text-right currency">{{ format_currency(product.selling_price) }}</td>
+                <td class="text-center">{{ product.quantity_in_stock }}</td>
+                <td class="text-center">
+                    {% if product.is_low_stock %}
+                    <span class="badge bg-warning">Low</span>
+                    {% else %}
+                    <span class="badge bg-success">OK</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="text-center" style="padding: 20px;">No products found matching the criteria.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        Page <span class="page"></span> of <span class="topage"></span>
+    </div>
+</body>
+
+</html>
