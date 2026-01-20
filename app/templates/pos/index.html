@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}POS Terminal - Electronics POS{% endblock %}
+{% block title %}POS Terminal - {{ company_name }}{% endblock %}
 
 {% block head %}
 <style>
@@ -500,9 +500,9 @@
 
         <div class="cart-footer">
             <div class="totals">
-                <div class="row"><span>Subtotal</span><span id="subtotalDisplay">$0.00</span></div>
-                <div class="row"><span>Tax</span><span id="taxDisplay">$0.00</span></div>
-                <div class="row total"><span>Total</span><span id="totalDisplay">$0.00</span></div>
+                <div class="row"><span>Subtotal</span><span id="subtotalDisplay">{{ currency_symbol }}0.00</span></div>
+                <div class="row"><span>Tax</span><span id="taxDisplay">{{ currency_symbol }}0.00</span></div>
+                <div class="row total"><span>Total</span><span id="totalDisplay">{{ currency_symbol }}0.00</span></div>
             </div>
 
             <div class="mb-2">
@@ -720,7 +720,7 @@
         <div class="product-sku">${escapeHtml(p.sku || '')}</div>
       </div>
       <div class="product-bottom">
-        <div class="text-primary fw-bold">$${Number(p.price).toFixed(2)}</div>
+        <div class="text-primary fw-bold">${window.CURRENCY_SYMBOL}${Number(p.price).toFixed(2)}</div>
         <div><span class="badge badge-stock ${p.stock < 5 ? 'bg-danger' : 'bg-secondary'}">Stock: ${p.stock}</span></div>
       </div>
     </div>
@@ -754,14 +754,14 @@
     <div class="cart-item-row" role="group" aria-label="${escapeHtml(i.name)}">
       <div class="cart-item-info">
         <div class="name">${escapeHtml(i.name)}</div>
-        <div class="meta">$${Number(i.price).toFixed(2)} × ${i.quantity}</div>
+        <div class="meta">${window.CURRENCY_SYMBOL}${Number(i.price).toFixed(2)} × ${i.quantity}</div>
       </div>
       <div class="qty-controls">
         <button class="qty-btn" onclick="chgQty(${idx}, -1)" aria-label="Decrease quantity">−</button>
         <span aria-live="polite">${i.quantity}</span>
         <button class="qty-btn" onclick="chgQty(${idx}, 1)" aria-label="Increase quantity">+</button>
       </div>
-      <div class="cart-item-total">$${(i.price * i.quantity).toFixed(2)}</div>
+      <div class="cart-item-total">${window.CURRENCY_SYMBOL}${(i.price * i.quantity).toFixed(2)}</div>
     </div>
   `).join('');
 
@@ -789,9 +789,9 @@
         const disc = parseFloat(document.getElementById('discountInput').value) || 0;
         const tax = Math.max(0, sub - disc) * (state.taxRate || 0);
         const total = sub - disc + tax;
-        document.getElementById('subtotalDisplay').innerText = `$${sub.toFixed(2)}`;
-        document.getElementById('taxDisplay').innerText = `$${tax.toFixed(2)}`;
-        document.getElementById('totalDisplay').innerText = `$${total.toFixed(2)}`;
+        document.getElementById('subtotalDisplay').innerText = `${window.CURRENCY_SYMBOL}${sub.toFixed(2)}`;
+        document.getElementById('taxDisplay').innerText = `${window.CURRENCY_SYMBOL}${tax.toFixed(2)}`;
+        document.getElementById('totalDisplay').innerText = `${window.CURRENCY_SYMBOL}${total.toFixed(2)}`;
     }
 
     /* ---------- Payment & Checkout ---------- */

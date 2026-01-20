@@ -90,6 +90,10 @@ def create_app(config_class=None):
     app.jinja_env.filters['format_currency'] = format_currency
     app.jinja_env.globals.update(format_currency=format_currency) # Register as global function
     
+    # Register context processors
+    from app.context_processors import inject_global_context
+    app.context_processor(inject_global_context)
+    
     # Register CLI commands
     from app.cli import cli
     app.cli.add_command(cli)

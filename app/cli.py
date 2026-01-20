@@ -6,7 +6,7 @@ from app.models import User, Role
 
 @click.group()
 def cli():
-    """Management commands for the Electronics POS application."""
+    """Management commands for the POS application."""
     pass
 
 @cli.command()

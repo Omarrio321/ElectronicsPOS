@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Electronics POS{% endblock %}</title>
+    <title>{% block title %}{{ company_name }}{% endblock %}</title>
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Bootstrap CSS -->
@@ -26,7 +26,7 @@
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <a class="navbar-brand fw-bold" href="#">ElectroPOS</a>
+            <a class="navbar-brand fw-bold" href="#">{{ company_name }}</a>
         </div>
     </nav>
 
@@ -39,7 +39,7 @@
                 <div class="position-sticky pt-3">
                     <div class="px-3 mb-4 d-flex align-items-center">
                         <i class="fas fa-bolt fa-2x text-primary me-2"></i>
-                        <span class="h4 fw-bold mb-0">ElectroPOS</span>
+                        <span class="h4 fw-bold mb-0">{{ company_name }}</span>
                     </div>
 
                     <ul class="nav flex-column">
@@ -166,6 +166,9 @@
     <!-- Bootstrap JS -->
     <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script>
+        // Global configuration
+        window.CURRENCY_SYMBOL = "{{ currency_symbol }}";
+
         // Auto-dismiss alerts
         document.querySelectorAll('.alert').forEach(alert => {
             setTimeout(() => {

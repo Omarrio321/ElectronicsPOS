@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from 'components/card.html' import card, kpi_card %}
 
-{% block title %}Dashboard - ElectroPOS{% endblock %}
+{% block title %}Dashboard - {{ company_name }}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-4 border-bottom">
@@ -151,7 +151,7 @@
             data: {
                 labels: salesData.map(d => d.date),
                 datasets: [{
-                    label: 'Sales ($)',
+                    label: `Sales (${window.CURRENCY_SYMBOL})`,
                     data: salesData.map(d => d.sales),
                     borderColor: '#6c5ce7',
                     backgroundColor: gradient,
@@ -181,7 +181,7 @@
                     y: {
                         beginAtZero: true,
                         grid: { borderDash: [2, 4], color: '#e9ecef' },
-                        ticks: { callback: function (value) { return '$' + value; } }
+                        ticks: { callback: function (value) { return window.CURRENCY_SYMBOL + value; } }
                     },
                     x: {
                         grid: { display: false }

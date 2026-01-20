@@ -313,7 +313,7 @@ def export_pdf():
     products = query.order_by(desc(Product.created_at)).all()
 
     # Context for template
-    company_name = SystemSetting.get('company_name', 'Electronics Store')
+    # Context for template
     category_name = None
     if category_id:
         cat = Category.query.get(category_id)
@@ -323,7 +323,6 @@ def export_pdf():
     html = render_template(
         'products/pdf_export.html',
         products=products,
-        company_name=company_name,
         generated_at=datetime.now().strftime('%Y-%m-%d %H:%M'),
         category_filter=category_name,
         search_query=search,

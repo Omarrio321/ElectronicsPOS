@@ -2,10 +2,9 @@
 
 // Utility Functions
 function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD'
-    }).format(amount);
+    const symbol = window.CURRENCY_SYMBOL || '$';
+    // Format with commas and 2 decimal places
+    return symbol + Number(amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
 function formatDate(dateString) {

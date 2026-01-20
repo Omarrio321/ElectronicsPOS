@@ -279,7 +279,7 @@
             <!-- Header -->
             <div class="text-center">
                 <i class="fas fa-microchip fa-lg" style="margin-bottom: 8px; color: #333;"></i>
-                <h2>Electronics POS</h2>
+                <h2>{{ company_name }}</h2>
                 <p class="text-muted" style="margin: 5px 0; line-height: 1.4; font-size: 11px;">
                     123 Tech Street, Hargeisa<br>
                     Tel: +252 63 444444
@@ -326,8 +326,8 @@
                             <div class="text-muted" style="font-size: 10px;">{{ item.product.sku }}</div>
                             {% endif %}
                         </td>
-                        <td class="price-col text-right">${{ "%.2f"|format(item.unit_price_at_time) }}</td>
-                        <td class="total-col text-right fw-bold">${{ "%.2f"|format(item.total_price) }}</td>
+                        <td class="price-col text-right">{{ item.unit_price_at_time | format_currency }}</td>
+                        <td class="total-col text-right fw-bold">{{ item.total_price | format_currency }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -339,24 +339,24 @@
             <div style="margin-bottom: 20px;">
                 <div class="row">
                     <span>Subtotal:</span>
-                    <span>${{ "%.2f"|format(sale.subtotal) }}</span>
+                    <span>{{ sale.subtotal | format_currency }}</span>
                 </div>
                 {% if sale.discount > 0 %}
                 <div class="row" style="color: #d63384;">
                     <span>Discount:</span>
-                    <span>-${{ "%.2f"|format(sale.discount) }}</span>
+                    <span>-{{ sale.discount | format_currency }}</span>
                 </div>
                 {% endif %}
                 <div class="row">
                     <span>Tax ({{ (sale.tax_rate * 100)|int }}%):</span>
-                    <span>${{ "%.2f"|format(sale.tax_amount) }}</span>
+                    <span>{{ sale.tax_amount | format_currency }}</span>
                 </div>
 
                 <div class="double-divider"></div>
 
                 <div class="row" style="font-size: 1.2rem; font-weight: bold; margin-top: 5px;">
                     <span>TOTAL PAID:</span>
-                    <span>${{ "%.2f"|format(sale.grand_total) }}</span>
+                    <span>{{ sale.grand_total | format_currency }}</span>
                 </div>
             </div>
 
@@ -370,12 +370,12 @@
                 </div>
                 <div class="row">
                     <span class="text-muted">Paid:</span>
-                    <span>${{ "%.2f"|format(sale.amount_paid) }}</span>
+                    <span>{{ sale.amount_paid | format_currency }}</span>
                 </div>
                 {% if sale.change_given > 0 %}
                 <div class="row">
                     <span class="text-muted">Change:</span>
-                    <span>${{ "%.2f"|format(sale.change_given) }}</span>
+                    <span>{{ sale.change_given | format_currency }}</span>
                 </div>
                 {% endif %}
             </div>
