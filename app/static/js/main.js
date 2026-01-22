@@ -4,7 +4,7 @@
 function formatCurrency(amount) {
     const symbol = window.CURRENCY_SYMBOL || '$';
     // Format with commas and 2 decimal places
-    return symbol + Number(amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    return symbol + Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function formatDate(dateString) {
@@ -22,10 +22,10 @@ function formatDate(dateString) {
 function validateForm(formId) {
     const form = document.getElementById(formId);
     if (!form) return true;
-    
+
     const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
     let isValid = true;
-    
+
     inputs.forEach(input => {
         if (!input.value.trim()) {
             input.classList.add('is-invalid');
@@ -34,12 +34,12 @@ function validateForm(formId) {
             input.classList.remove('is-invalid');
         }
     });
-    
+
     return isValid;
 }
 
 // Auto-hide Alerts
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
         setTimeout(() => {
@@ -71,9 +71,9 @@ async function apiRequest(url, options = {}) {
             'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
         }
     };
-    
+
     const mergedOptions = { ...defaultOptions, ...options };
-    
+
     try {
         const response = await fetch(url, mergedOptions);
         if (!response.ok) {
@@ -91,16 +91,16 @@ function setupSearchAutoComplete(inputId, resultsId, searchUrl) {
     const input = document.getElementById(inputId);
     const results = document.getElementById(resultsId);
     let debounceTimer;
-    
-    input.addEventListener('input', function() {
+
+    input.addEventListener('input', function () {
         clearTimeout(debounceTimer);
         const query = this.value.trim();
-        
+
         if (query.length < 2) {
             results.innerHTML = '';
             return;
         }
-        
+
         debounceTimer = setTimeout(async () => {
             try {
                 const data = await apiRequest(`${searchUrl}?q=${encodeURIComponent(query)}`);
@@ -114,15 +114,15 @@ function setupSearchAutoComplete(inputId, resultsId, searchUrl) {
 
 function displaySearchResults(items, container) {
     container.innerHTML = '';
-    
+
     if (items.length === 0) {
         container.innerHTML = '<div class="text-muted">No results found</div>';
         return;
     }
-    
+
     const list = document.createElement('div');
     list.className = 'list-group';
-    
+
     items.forEach(item => {
         const listItem = document.createElement('a');
         listItem.href = item.url || '#';
@@ -136,17 +136,17 @@ function displaySearchResults(items, container) {
                 ${item.price ? `<span class="text-primary">${formatCurrency(item.price)}</span>` : ''}
             </div>
         `;
-        
-        listItem.addEventListener('click', function(e) {
+
+        listItem.addEventListener('click', function (e) {
             if (item.onClick) {
                 e.preventDefault();
                 item.onClick(item);
             }
         });
-        
+
         list.appendChild(listItem);
     });
-    
+
     container.appendChild(list);
 }
 
@@ -156,10 +156,10 @@ class ShoppingCart {
         this.items = [];
         this.listeners = [];
     }
-    
+
     addItem(product, quantity = 1) {
         const existingItem = this.items.find(item => item.id === product.id);
-        
+
         if (existingItem) {
             existingItem.quantity += quantity;
         } else {
@@ -170,15 +170,15 @@ class ShoppingCart {
                 quantity: quantity
             });
         }
-        
+
         this.notifyListeners();
     }
-    
+
     removeItem(productId) {
         this.items = this.items.filter(item => item.id !== productId);
         this.notifyListeners();
     }
-    
+
     updateQuantity(productId, quantity) {
         const item = this.items.find(item => item.id === productId);
         if (item) {
@@ -186,24 +186,24 @@ class ShoppingCart {
             this.notifyListeners();
         }
     }
-    
+
     clear() {
         this.items = [];
         this.notifyListeners();
     }
-    
+
     getTotal() {
         return this.items.reduce((total, item) => total + (item.price * item.quantity), 0);
     }
-    
+
     getItemCount() {
         return this.items.reduce((count, item) => count + item.quantity, 0);
     }
-    
+
     subscribe(listener) {
         this.listeners.push(listener);
     }
-    
+
     notifyListeners() {
         this.listeners.forEach(listener => listener(this.items));
     }
@@ -226,9 +226,9 @@ function createChart(canvasId, type, data, options = {}) {
 function setupDateRangePicker(startId, endId, presetButtons) {
     const startDate = document.getElementById(startId);
     const endDate = document.getElementById(endId);
-    
+
     presetButtons.forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             const range = this.dataset.range;
             const dates = getDateRange(range);
             startDate.value = dates.start;
@@ -241,7 +241,7 @@ function getDateRange(range) {
     const today = new Date();
     const start = new Date(today);
     const end = new Date(today);
-    
+
     switch (range) {
         case 'today':
             break;
@@ -266,7 +266,7 @@ function getDateRange(range) {
             end.setDate(new Date(today.getFullYear(), today.getMonth(), 0).getDate());
             break;
     }
-    
+
     return {
         start: start.toISOString().split('T')[0],
         end: end.toISOString().split('T')[0]
@@ -278,7 +278,7 @@ function exportToCSV(data, filename) {
     const csv = convertToCSV(data);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    
+
     if (link.download !== undefined) {
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
@@ -292,13 +292,13 @@ function exportToCSV(data, filename) {
 
 function convertToCSV(data) {
     if (data.length === 0) return '';
-    
+
     const headers = Object.keys(data[0]);
     const csvRows = [
         headers.join(','),
         ...data.map(row => headers.map(header => `"${row[header]}"`).join(','))
     ];
-    
+
     return csvRows.join('\n');
 }
 
@@ -306,7 +306,7 @@ function convertToCSV(data) {
 function printElement(elementId) {
     const element = document.getElementById(elementId);
     const printWindow = window.open('', '_blank');
-    
+
     printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -323,21 +323,21 @@ function printElement(elementId) {
         </body>
         </html>
     `);
-    
+
     printWindow.document.close();
     printWindow.print();
     printWindow.close();
 }
 
 // Keyboard Shortcuts
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
     // Ctrl/Cmd + K for search
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         const searchInput = document.querySelector('input[type="search"]');
         if (searchInput) searchInput.focus();
     }
-    
+
     // Escape to close modals
     if (e.key === 'Escape') {
         const modals = document.querySelectorAll('.modal.show');
@@ -349,9 +349,27 @@ document.addEventListener('keydown', function(e) {
 });
 
 // Initialize Tooltips
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function(tooltipTriggerEl) {
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+});
+
+// Sidebar Toggle Logic
+document.addEventListener('DOMContentLoaded', function () {
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const body = document.body;
+
+    // Check local storage
+    if (localStorage.getItem('sidebar-collapsed') === 'true') {
+        body.classList.add('sidebar-collapsed');
+    }
+
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function () {
+            body.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('sidebar-collapsed', body.classList.contains('sidebar-collapsed'));
+        });
+    }
 });
