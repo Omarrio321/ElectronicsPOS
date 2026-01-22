@@ -75,6 +75,12 @@
             font-weight: 700;
         }
 
+        .logo-img {
+            max-height: 50px;
+            max-width: 150px;
+            margin-bottom: 8px;
+        }
+
         /* === HELPERS === */
         .row {
             display: flex;
@@ -278,7 +284,11 @@
         <div class="receipt-paper">
             <!-- Header -->
             <div class="text-center">
+                {% if company_logo %}
+                <img src="{{ url_for('static', filename=company_logo) }}" alt="{{ company_name }}" class="logo-img">
+                {% else %}
                 <i class="fas fa-microchip fa-lg" style="margin-bottom: 8px; color: #333;"></i>
+                {% endif %}
                 <h2>{{ company_name }}</h2>
                 <p class="text-muted" style="margin: 5px 0; line-height: 1.4; font-size: 11px;">
                     123 Tech Street, Hargeisa<br>

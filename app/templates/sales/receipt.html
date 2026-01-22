@@ -30,6 +30,12 @@
             margin-bottom: 10px;
         }
 
+        .header img.logo {
+            max-height: 60px;
+            max-width: 150px;
+            margin-bottom: 8px;
+        }
+
         .items {
             margin: 10px 0;
         }
@@ -76,6 +82,9 @@
 <body>
     <div class="receipt">
         <div class="header">
+            {% if company_logo %}
+            <img src="{{ url_for('static', filename=company_logo) }}" alt="{{ company_name }}" class="logo">
+            {% endif %}
             <h3>{{ receipt_header }}</h3>
             <p>{{ company_name }}</p>
             <p>Receipt #{{ sale.id }}</p>

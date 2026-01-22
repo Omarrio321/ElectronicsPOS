@@ -18,8 +18,37 @@
                     <h5 class="card-title mb-0 fw-bold">General Configuration</h5>
                 </div>
                 <div class="card-body p-4">
-                    <form method="POST">
+                    <form method="POST" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
+
+                        <!-- Company Logo Upload Section -->
+                        <div class="mb-4 p-3 bg-light rounded border">
+                            <label class="form-label fw-bold text-uppercase small text-muted">
+                                <i class="bi bi-image me-1"></i> Company Logo
+                            </label>
+
+                            {% if current_logo %}
+                            <div class="mb-3 text-center">
+                                <p class="text-muted small mb-2">Current Logo:</p>
+                                <img src="{{ url_for('static', filename=current_logo) }}" alt="Company Logo"
+                                    class="img-thumbnail" style="max-height: 100px; max-width: 200px;">
+                            </div>
+                            {% else %}
+                            <div class="mb-3 text-center">
+                                <p class="text-muted small mb-0"><i class="bi bi-image text-secondary"></i> No logo
+                                    uploaded</p>
+                            </div>
+                            {% endif %}
+
+                            <input type="file" name="company_logo" class="form-control"
+                                accept=".png,.jpg,.jpeg,.gif,.webp">
+                            <div class="form-text small">
+                                <i class="bi bi-info-circle me-1"></i> Upload PNG, JPG, JPEG, GIF, or WEBP. Recommended:
+                                500x500px for best print quality.
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
 
                         {% for setting in settings %}
                         <div class="mb-4">
@@ -78,6 +107,9 @@
                         <li class="mb-0">
                             <strong>Currency:</strong> Changing the currency symbol updates all price displays across
                             the system.
+                        </li>
+                        <li class="mt-3">
+                            <strong>Company Logo:</strong> Your logo will appear on receipts, reports, and the sidebar.
                         </li>
                     </ul>
                 </div>

@@ -26,7 +26,14 @@
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
                 <span class="navbar-toggler-icon"></span>
             </button>
+            {% if company_logo %}
+            <a class="navbar-brand" href="{{ url_for('main.dashboard') }}">
+                <img src="{{ url_for('static', filename=company_logo) }}" alt="{{ company_name }}"
+                    style="max-height: 32px;">
+            </a>
+            {% else %}
             <a class="navbar-brand fw-bold" href="#">{{ company_name }}</a>
+            {% endif %}
         </div>
     </nav>
 
@@ -39,8 +46,17 @@
                 <div class="position-sticky pt-3 d-flex flex-column h-100">
                     <div class="px-3 mb-4 d-flex align-items-start justify-content-between header-branding">
                         <div class="d-flex align-items-center">
+                            {% if company_logo %}
+                            <a href="{{ url_for('main.dashboard') }}"
+                                class="d-flex align-items-center text-decoration-none">
+                                <img src="{{ url_for('static', filename=company_logo) }}" alt="{{ company_name }}"
+                                    class="flex-shrink-0"
+                                    style="max-height: 40px; max-width: 150px; object-fit: contain;">
+                            </a>
+                            {% else %}
                             <i class="fas fa-bolt fa-2x text-primary flex-shrink-0 mt-1"></i>
                             <span class="h5 fw-bold mb-0 ms-2 brand-text lh-sm">{{ company_name }}</span>
+                            {% endif %}
                         </div>
                         <button id="sidebarToggle" class="btn btn-link link-secondary p-0 d-none d-md-block ms-2">
                             <i class="fas fa-chevron-left"></i>

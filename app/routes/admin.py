@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required, current_user
 from app.models import User, Role, SystemSetting, Sale, Product, Category, SaleItem
 from app import db
@@ -7,7 +7,18 @@ from app.decorators import role_required
 from app.services.audit_service import AuditService
 from sqlalchemy import func, desc
 from datetime import datetime, timedelta
+from werkzeug.utils import secure_filename
 import json
+import os
+import uuid
+
+# Allowed file extensions for logo upload
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+def allowed_file(filename):
+    """Check if the file extension is allowed."""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -138,12 +149,52 @@ def edit_user(user_id):
 @login_required
 @role_required('Admin')
 def settings():
-    settings = SystemSetting.query.all()
-    form = SystemSettingsForm() # Corrected class name from SystemSettingForm to SystemSettingsForm
+    settings_list = SystemSetting.query.all()
+    form = SystemSettingsForm()
+    
+    # Get current logo for display
+    current_logo = SystemSetting.get('company_logo', '')
     
     if form.validate_on_submit():
         updated_keys = []
-        for setting in settings:
+        
+        # Handle logo file upload
+        if 'company_logo' in request.files:
+            file = request.files['company_logo']
+            if file and file.filename:
+                if allowed_file(file.filename):
+                    # Create upload directory if it doesn't exist
+                    upload_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'logos')
+                    os.makedirs(upload_folder, exist_ok=True)
+                    
+                    # Generate unique filename to avoid overwrites
+                    original_ext = file.filename.rsplit('.', 1)[1].lower()
+                    unique_filename = f"company_logo_{uuid.uuid4().hex[:8]}.{original_ext}"
+                    safe_filename = secure_filename(unique_filename)
+                    file_path = os.path.join(upload_folder, safe_filename)
+                    
+                    # Delete old logo if exists
+                    old_logo = SystemSetting.get('company_logo', '')
+                    if old_logo:
+                        old_logo_path = os.path.join(current_app.root_path, 'static', old_logo)
+                        if os.path.exists(old_logo_path):
+                            try:
+                                os.remove(old_logo_path)
+                            except OSError:
+                                pass  # Ignore deletion errors
+                    
+                    # Save new logo
+                    file.save(file_path)
+                    
+                    # Store relative path in database
+                    relative_path = f"uploads/logos/{safe_filename}"
+                    SystemSetting.set('company_logo', relative_path, 'Company logo image path')
+                    updated_keys.append('company_logo')
+                else:
+                    flash('Invalid file type. Please upload PNG, JPG, JPEG, GIF, or WEBP.', 'danger')
+        
+        # Handle other settings
+        for setting in settings_list:
             new_value = request.form.get(setting.key)
             if new_value is not None:
                 if setting.value != new_value:
@@ -165,7 +216,7 @@ def settings():
             
         return redirect(url_for('admin.settings'))
     
-    return render_template('admin/settings.html', settings=settings, form=form)
+    return render_template('admin/settings.html', settings=settings_list, form=form, current_logo=current_logo)
 
 @admin_bp.route('/logs')
 @login_required
