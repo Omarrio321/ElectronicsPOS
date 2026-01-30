@@ -1,0 +1,474 @@
+/* =================================================================
+   POS Terminal Styles
+   Electronics POS System
+   ================================================================= */
+
+:root {
+    --cart-width: 500px;
+    --gutter: 16px;
+}
+
+/* =================================================================
+   Layout: Main Container
+   ================================================================= */
+.pos-root {
+    display: flex;
+    gap: var(--gutter);
+    height: calc(100vh - 2rem);
+    align-items: stretch;
+}
+
+/* =================================================================
+   Product Area (Left Panel)
+   ================================================================= */
+.pos-products {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    background: transparent;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: none;
+}
+
+/* Top Bar */
+.pos-top-bar {
+    flex: 0 0 auto;
+    background: #fff;
+    padding: 10px 18px;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Category Navigation */
+.category-nav {
+    flex: 1 1 auto;
+    background: transparent;
+    padding: 0;
+    border-bottom: none;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    /* Firefox */
+}
+
+.category-nav::-webkit-scrollbar {
+    display: none;
+    /* Chrome/Safari */
+}
+
+.category-pill {
+    display: inline-block;
+    cursor: pointer;
+    border-radius: 20px;
+    padding: 8px 18px;
+    margin-right: 10px;
+    border: 1px solid #e9ecef;
+    background: #fff;
+    color: #333;
+    transition: all .14s ease;
+    font-size: 0.9rem;
+}
+
+.category-pill:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+}
+
+.category-pill.active {
+    background: #0d6efd;
+    color: #fff;
+    border-color: #0d6efd;
+}
+
+/* Search */
+.search-container {
+    flex: 0 0 320px;
+}
+
+.search-input-group {
+    background: #f1f3f5;
+    border-radius: 8px;
+    padding: 4px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.search-input-group:focus-within {
+    background: #fff;
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+}
+
+.search-input-group input {
+    border: none;
+    background: transparent;
+    outline: none;
+    padding: 6px 0;
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+/* =================================================================
+   Product Grid
+   ================================================================= */
+.product-grid {
+    flex: 1 1 auto;
+    padding: 12px;
+    background: #f8fafc;
+    overflow: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px;
+    align-content: start;
+}
+
+.product-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    border: 1px solid #f1f3f5;
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.03);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform .15s ease, box-shadow .15s ease;
+    min-height: 100px;
+    max-height: 120px;
+    overflow: hidden;
+}
+
+.product-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 30px rgba(13, 110, 253, 0.06);
+    border-left: 4px solid #0d6efd;
+}
+
+.product-card.out-of-stock {
+    opacity: .55;
+    filter: grayscale(.6);
+    pointer-events: none;
+}
+
+.product-name {
+    font-weight: 600;
+    font-size: 0.8rem;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.product-sku {
+    font-size: 0.65rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.product-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+    margin-top: auto;
+}
+
+.product-bottom .text-primary {
+    font-size: 0.85rem;
+}
+
+.badge-stock {
+    font-size: .6rem;
+    padding: .15rem .35rem;
+    border-radius: 6px;
+}
+
+/* =================================================================
+   Cart (Right Panel)
+   ================================================================= */
+.pos-cart {
+    width: var(--cart-width);
+    min-width: var(--cart-width);
+    flex-shrink: 0;
+    background: #fff;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #eef1f4;
+    box-shadow: 0 6px 20px rgba(2, 6, 23, 0.04);
+    overflow: hidden;
+}
+
+.cart-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f3f5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.cart-header h5 {
+    font-size: 1rem;
+    margin: 0;
+}
+
+.cart-header small {
+    display: block;
+    font-size: 0.75rem;
+}
+
+.cart-items {
+    flex: 1 1 auto;
+    overflow: auto;
+    padding: 0;
+    background: #fff;
+}
+
+/* Cart Item Row */
+.cart-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f6f7f9;
+    gap: 8px;
+}
+
+.cart-item-info {
+    flex: 1;
+    min-width: 0;
+    max-width: 140px;
+}
+
+.cart-item-info .name {
+    font-weight: 600;
+    font-size: .85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cart-item-info .meta {
+    font-size: .72rem;
+    color: #6c757d;
+}
+
+/* Quantity Controls */
+.qty-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.qty-btn {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    background: #f8f9fa;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #333;
+    transition: all 0.15s ease;
+}
+
+.qty-btn:hover {
+    background: #e9ecef;
+    border-color: #0d6efd;
+    color: #0d6efd;
+}
+
+.cart-item-total {
+    font-weight: 700;
+    font-size: 0.85rem;
+    min-width: 65px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* Cart Footer */
+.cart-footer {
+    padding: 14px;
+    background: #fbfcfd;
+    border-top: 1px solid #eef1f4;
+    flex-shrink: 0;
+}
+
+.cart-footer .totals {
+    margin-bottom: 10px;
+}
+
+.cart-footer .totals .row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    color: #222;
+    font-size: 0.9rem;
+}
+
+.cart-footer .totals .total {
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+/* =================================================================
+   Payment Method Buttons
+   ================================================================= */
+.payment-methods {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.payment-method-btn {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease;
+    min-width: 0;
+    flex: 1 1 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-zaad,
+.btn-edahab,
+.btn-cash {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    color: #333;
+    height: 60px;
+    position: relative;
+    overflow: hidden;
+}
+
+.payment-logo {
+    height: 32px;
+    width: auto;
+    max-width: 90%;
+    object-fit: contain;
+    pointer-events: none;
+    transition: transform 0.2s ease;
+}
+
+.btn-cash .payment-logo {
+    height: 32px;
+}
+
+.btn-zaad .payment-logo {
+    height: 25px;
+}
+
+.btn-edahab .payment-logo {
+    height: 55px;
+    transform: scale(1.1);
+}
+
+/* Hover States */
+.btn-zaad:hover {
+    border-color: #66bb6a;
+    background: #f0fdf4;
+}
+
+.btn-edahab:hover {
+    border-color: #ffca28;
+    background: #fffbf0;
+}
+
+.btn-cash:hover {
+    border-color: #88909a;
+    background: #f8f9fa;
+}
+
+.btn-zaad:hover .payment-logo,
+.btn-cash:hover .payment-logo {
+    transform: scale(1.1);
+}
+
+.btn-edahab:hover .payment-logo {
+    transform: scale(1.2);
+}
+
+/* Active States */
+.payment-method-btn.active {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-width: 2px;
+}
+
+.btn-zaad.active {
+    border-color: #2e7d32;
+    background: #e8f5e9;
+}
+
+.btn-edahab.active {
+    border-color: #ff8f00;
+    background: #fff8e1;
+}
+
+.btn-cash.active {
+    border-color: #0d6efd;
+    background: #f0f7ff;
+}
+
+/* =================================================================
+   Responsive Design
+   ================================================================= */
+@media (max-width: 1000px) {
+    .pos-root {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .pos-cart {
+        width: 100%;
+        order: 2;
+    }
+
+    .pos-products {
+        order: 1;
+    }
+
+    .product-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+}
+
+/* =================================================================
+   Print Styles
+   ================================================================= */
+@media print {
+    body {
+        overflow: visible !important;
+    }
+}
+
+/* =================================================================
+   Modal Styling
+   Modal is now a direct child of body (via {% block modals %})
+   so standard Bootstrap z-index values work correctly
+   ================================================================= */
+
+/* Ensure modal content is clickable */
+#checkoutModal .modal-content {
+    pointer-events: auto;
+}

@@ -1,0 +1,147 @@
+{# Checkout Modal Partial - templates/pos/_modal.html #}
+<div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="checkoutModalLabel" aria-hidden="true"
+    data-bs-backdrop="true" data-bs-keyboard="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="checkoutModalLabel">
+                    <i class="fas fa-cash-register me-2"></i>Complete Your Sale
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="row g-0">
+                    {# Left: Order Summary #}
+                    <div class="col-md-5 bg-light p-4 border-end">
+                        <h6 class="fw-bold text-muted mb-3">
+                            <i class="fas fa-receipt me-2"></i>ORDER SUMMARY
+                        </h6>
+                        <div id="modalCartItems" class="mb-3" style="max-height: 200px; overflow-y: auto;"></div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Subtotal</span>
+                            <span id="modalSubtotal" class="fw-semibold">$0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Tax</span>
+                            <span id="modalTax">$0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Discount</span>
+                            <span id="modalDiscountDisplay" class="text-danger">-$0.00</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold fs-5">TOTAL</span>
+                            <span id="modalGrandTotal" class="fw-bold fs-5 text-primary">$0.00</span>
+                        </div>
+                    </div>
+
+                    {# Right: Payment #}
+                    <div class="col-md-7 p-4">
+                        <h6 class="fw-bold text-muted mb-3">
+                            <i class="fas fa-credit-card me-2"></i>PAYMENT
+                        </h6>
+
+                        {# Discount #}
+                        <div class="mb-3">
+                            <label class="form-label small text-muted mb-1">Discount Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-tag"></i></span>
+                                <input id="discountInput" type="number" class="form-control" placeholder="0.00" min="0"
+                                    step="0.01" oninput="updateTotals(); updatePaymentTotals();">
+                            </div>
+                        </div>
+
+                        <hr class="my-3">
+
+                        {# Payment Methods #}
+                        <label class="form-label small text-muted mb-2">Payment Method(s)</label>
+
+                        {# Cash #}
+                        <div class="input-group mb-2">
+                            <span class="input-group-text"
+                                style="width: 110px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                                <img src="{{ url_for('static', filename='images/cash.svg') }}" alt="Cash"
+                                    style="height: 20px;" class="me-2">
+                                <span class="fw-semibold">Cash</span>
+                            </span>
+                            <input type="number" class="form-control" id="payCash" step="0.01" min="0"
+                                placeholder="0.00" oninput="updatePaymentTotals()">
+                        </div>
+
+                        {# Card #}
+                        <div class="input-group mb-2">
+                            <span class="input-group-text"
+                                style="width: 110px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+                                <i class="fas fa-credit-card me-2 text-primary"></i>
+                                <span class="fw-semibold">Card</span>
+                            </span>
+                            <input type="number" class="form-control" id="payCard" step="0.01" min="0"
+                                placeholder="0.00" oninput="updatePaymentTotals()">
+                        </div>
+                        <input type="hidden" id="refCard" value="">
+
+                        {# E-Dahab #}
+                        <div class="input-group mb-2">
+                            <span class="input-group-text"
+                                style="width: 110px; background: linear-gradient(135deg, #fff8e1 0%, #ffe082 100%);">
+                                <img src="{{ url_for('static', filename='images/E-Dahab.svg') }}" alt="E-Dahab"
+                                    style="height: 28px;">
+                            </span>
+                            <input type="number" class="form-control" id="payEDahab" step="0.01" min="0"
+                                placeholder="0.00" oninput="updatePaymentTotals()">
+                        </div>
+                        <input type="hidden" id="refEDahab" value="">
+
+                        {# Zaad #}
+                        <div class="input-group mb-2">
+                            <span class="input-group-text"
+                                style="width: 110px; background: linear-gradient(135deg, #e8f5e9 0%, #a5d6a7 100%);">
+                                <img src="{{ url_for('static', filename='images/Zaad.svg') }}" alt="Zaad"
+                                    style="height: 18px;">
+                            </span>
+                            <input type="number" class="form-control" id="payZaad" step="0.01" min="0"
+                                placeholder="0.00" oninput="updatePaymentTotals()">
+                        </div>
+                        <input type="hidden" id="refZaad" value="">
+
+                        {# Payment Summary #}
+                        <div class="bg-dark bg-opacity-10 rounded p-3 mt-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Total Paid</span>
+                                <span id="totalPaidDisplay" class="fw-bold fs-5">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center" id="remainingRow">
+                                <span class="text-danger">Remaining</span>
+                                <span id="remainingDisplay" class="text-danger fw-bold fs-5">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center" id="changeRow"
+                                style="display: none;">
+                                <span class="text-success">Change Due</span>
+                                <span id="changeDisplay" class="text-success fw-bold fs-5">$0.00</span>
+                            </div>
+                        </div>
+
+                        <div id="paymentError" class="alert alert-danger py-2 mt-3 mb-0" style="display:none">
+                            <i class="fas fa-exclamation-circle me-2"></i>Please enter payment amount
+                        </div>
+                        <div id="digitalOverpayError" class="alert alert-warning py-2 mt-3 mb-0" style="display:none">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Digital payments cannot exceed total
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Cart
+                </button>
+                <button type="button" class="btn btn-success btn-lg px-4" id="completeBtn" onclick="processCheckout()"
+                    disabled>
+                    <i class="fas fa-check-circle me-2"></i>Complete Sale
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

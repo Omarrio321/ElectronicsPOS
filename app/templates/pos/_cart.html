@@ -1,0 +1,48 @@
+{# Cart Sidebar Partial - templates/pos/_cart.html #}
+<div class="pos-cart" role="region" aria-label="Cart">
+    <div class="cart-header">
+        <div>
+            <h5 class="mb-0"><i class="fas fa-shopping-cart me-2"></i> Current Sale</h5>
+            <small class="text-muted">Tap items to add — quantities adjustable</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            {# Held Sales Button #}
+            <button type="button" class="btn btn-outline-secondary btn-sm position-relative"
+                onclick="showHeldSalesModal()" title="View Held Sales">
+                <i class="fas fa-pause-circle"></i>
+                <span id="heldSalesBadge"
+                    class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark"
+                    style="display: none; font-size: 0.65rem;">0</span>
+            </button>
+            <span class="badge bg-secondary" id="itemCount">0 Items</span>
+        </div>
+    </div>
+
+    <div id="cartList" class="cart-items">
+        <div class="text-center text-muted py-5">
+            <i class="fas fa-basket-shopping fa-3x mb-3 opacity-25"></i>
+            <p class="mb-1">Cart is empty</p>
+            <p class="small mb-0">Click products to add them</p>
+        </div>
+    </div>
+
+    <div class="cart-footer">
+        <div class="totals">
+            <div class="row"><span>Subtotal</span><span id="subtotalDisplay">$0.00</span></div>
+            <div class="row"><span>Tax</span><span id="taxDisplay">$0.00</span></div>
+            <div class="row total"><span>Total</span><span id="totalDisplay">$0.00</span></div>
+        </div>
+
+        {# Action Buttons #}
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-warning flex-shrink-0" onclick="holdCurrentSale()"
+                title="Hold this sale for later">
+                <i class="fas fa-pause-circle"></i>
+            </button>
+            <button type="button" class="btn btn-primary flex-grow-1 py-3 fw-bold fs-5" id="checkoutBtn"
+                onclick="openCheckoutModal()">
+                <i class="fas fa-cash-register me-2"></i>Proceed to Checkout
+            </button>
+        </div>
+    </div>
+</div>

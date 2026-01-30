@@ -100,14 +100,20 @@
                         <td>{{ format_currency(sale.discount) }}</td>
                         <td>{{ format_currency(sale.grand_total) }}</td>
                         <td>
-                            {% if sale.payment_method == PaymentMethod.CASH %}
+                            {% if sale.payments|length > 1 %}
+                            <span class="badge bg-primary text-white" title="Split Payment">Split</span>
+                            {% elif sale.payment_method == PaymentMethod.CASH %}
                             <span class="badge bg-secondary text-white">Cash</span>
-                            {% elif sale.payment_method == PaymentMethod.MOBILE_MONEY %}
-                            <span class="badge bg-success text-white">Mobile</span>
                             {% elif sale.payment_method == PaymentMethod.CARD %}
                             <span class="badge bg-info text-white">Card</span>
+                            {% elif sale.payment_method == PaymentMethod.E_DAHAB %}
+                            <span class="badge text-white" style="background-color: #f59e0b;">E-Dahab</span>
+                            {% elif sale.payment_method == PaymentMethod.ZAAD %}
+                            <span class="badge text-white" style="background-color: #10b981;">Zaad</span>
+                            {% elif sale.payment_method == PaymentMethod.MOBILE_MONEY %}
+                            <span class="badge bg-success text-white">Mobile</span>
                             {% else %}
-                            <span class="badge bg-dark text-white">Unknown</span>
+                            <span class="badge bg-dark text-white">{{ sale.payment_method.value }}</span>
                             {% endif %}
                         </td>
                         <td>

@@ -87,7 +87,9 @@ class Product(db.Model):
 class PaymentMethod(enum.Enum):
     CASH = "Cash"
     CARD = "Card"
-    MOBILE_MONEY = "Mobile Money"
+    E_DAHAB = "E-Dahab"
+    ZAAD = "Zaad"
+    MOBILE_MONEY = "Mobile Money"  # Kept for backwards compatibility with existing sales
 
 class SaleStatus(enum.Enum):
     COMPLETED = "Completed"
@@ -111,6 +113,7 @@ class Sale(db.Model):
     
     # Relationships
     sale_items = db.relationship('SaleItem', backref='sale', lazy=True, cascade="all, delete-orphan")
+    payments = db.relationship('Payment', backref='sale', lazy=True, cascade="all, delete-orphan")
     
     def __repr__(self):
         return f'<Sale {self.id}>'
@@ -137,6 +140,19 @@ class SaleItem(db.Model):
         """Calculate total price"""
         self.total_price = self.quantity_sold * self.unit_price_at_time
         return self
+
+class Payment(db.Model):
+    """Individual payment record for split payment support"""
+    id = db.Column(db.Integer, primary_key=True)
+    sale_id = db.Column(db.Integer, db.ForeignKey('sale.id'), nullable=False, index=True)
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
+    payment_method = db.Column(db.Enum(PaymentMethod), nullable=False)
+    reference = db.Column(db.String(100), nullable=True)  # For digital payment transaction IDs
+    note = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<Payment {self.id}: {self.payment_method.value} ${self.amount}>'
 
 class SystemSetting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -217,3 +233,20 @@ class Expense(db.Model):
 
     def __repr__(self):
         return f'<Expense {self.id}: {self.title}>'
+
+
+class HeldSale(db.Model):
+    """Temporarily held cart for customer who will return later"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    customer_name = db.Column(db.String(100), nullable=True)  # Optional identifier
+    cart_data = db.Column(db.Text, nullable=False)  # JSON cart array
+    total_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    item_count = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    
+    # Relationships
+    user = db.relationship('User', backref='held_sales', lazy=True)
+    
+    def __repr__(self):
+        return f'<HeldSale {self.id}: {self.customer_name or "Anonymous"}>'

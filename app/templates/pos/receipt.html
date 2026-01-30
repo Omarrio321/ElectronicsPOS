@@ -364,18 +364,33 @@
 
             <!-- Payment Info -->
             <div style="margin-bottom: 20px;">
-                <div class="row">
-                    <span class="text-muted">Method:</span>
-                    <span class="fw-bold">{{ sale.payment_method.value }}</span>
+                <div class="row fw-bold" style="margin-bottom: 8px;">
+                    <span>PAYMENT BREAKDOWN</span>
                 </div>
+                {% if sale.payments %}
+                {% for payment in sale.payments %}
                 <div class="row">
-                    <span class="text-muted">Paid:</span>
+                    <span>{{ payment.payment_method.value }}{% if payment.reference %} <span class="text-muted">({{
+                            payment.reference }})</span>{% endif %}:</span>
+                    <span>${{ "%.2f"|format(payment.amount) }}</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <!-- Fallback for old sales without payment records -->
+                <div class="row">
+                    <span>{{ sale.payment_method.value }}:</span>
                     <span>${{ "%.2f"|format(sale.amount_paid) }}</span>
                 </div>
-                {% if sale.change_given > 0 %}
+                {% endif %}
+                <div class="divider"></div>
                 <div class="row">
-                    <span class="text-muted">Change:</span>
-                    <span>${{ "%.2f"|format(sale.change_given) }}</span>
+                    <span class="text-muted">Total Paid:</span>
+                    <span class="fw-bold">${{ "%.2f"|format(sale.amount_paid) }}</span>
+                </div>
+                {% if sale.change_given > 0 %}
+                <div class="row" style="color: #198754;">
+                    <span>Change Given:</span>
+                    <span class="fw-bold">${{ "%.2f"|format(sale.change_given) }}</span>
                 </div>
                 {% endif %}
             </div>

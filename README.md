@@ -55,6 +55,8 @@ cd ElectronicsPOS
 python -m venv venv
 .\venv\Scripts\activate
 
+flask run
+
 # Install dependencies
 pip install -r requirements.txt
 ```

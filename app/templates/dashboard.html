@@ -108,7 +108,13 @@
                         </td>
                         <td>{{ sale.sale_items|length }}</td>
                         <td class="fw-bold">{{ format_currency(sale.grand_total) }}</td>
-                        <td><span class="badge bg-light text-dark border">{{ sale.payment_method.value }}</span></td>
+                        <td>
+                            {% if sale.payments|length > 1 %}
+                            <span class="badge bg-primary text-white">Split</span>
+                            {% else %}
+                            <span class="badge bg-light text-dark border">{{ sale.payment_method.value }}</span>
+                            {% endif %}
+                        </td>
                         <td><span class="badge bg-success bg-opacity-10 text-success">Completed</span></td>
                         <td>
                             <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}"

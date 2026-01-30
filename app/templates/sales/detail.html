@@ -57,19 +57,14 @@
                     <dt class="col-sm-5">Cashier:</dt>
                     <dd class="col-sm-7">{{ sale.user.username }}</dd>
 
-                    <dt class="col-sm-5">Payment Method:</dt>
+                    <dt class="col-sm-5">Payment:</dt>
                     <dd class="col-sm-7">
-                        <!-- FIX: Robust display of payment method (Enum or String) -->
-                        {% if sale.payment_method.value is defined %}
-                        <span class="badge bg-{{ 'success' if sale.payment_method.value == 'CASH' else 'warning' }}">
-                            {{ sale.payment_method.value }}
-                        </span>
-                        {% elif sale.payment_method is string %}
-                        <span class="badge bg-{{ 'success' if sale.payment_method == 'Cash' else 'warning' }}">
-                            {{ sale.payment_method }}
-                        </span>
+                        {% if sale.payments|length > 1 %}
+                        <span class="badge bg-primary">Split Payment</span>
+                        {% elif sale.payments|length == 1 %}
+                        <span class="badge bg-success">{{ sale.payments[0].payment_method.value }}</span>
                         {% else %}
-                        <span class="badge bg-secondary">Unknown</span>
+                        <span class="badge bg-secondary">{{ sale.payment_method.value }}</span>
                         {% endif %}
                     </dd>
 
@@ -109,6 +104,42 @@
                 {% endif %}
             </div>
         </div>
+
+        <!-- Payment Breakdown Card -->
+        {% if sale.payments %}
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-credit-card"></i> Payment Breakdown</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for payment in sale.payments %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i
+                                class="bi bi-{% if payment.payment_method.value == 'Cash' %}cash{% elif payment.payment_method.value == 'Card' %}credit-card{% else %}phone{% endif %} me-2"></i>
+                            <strong>{{ payment.payment_method.value }}</strong>
+                            {% if payment.reference %}
+                            <small class="text-muted ms-2">({{ payment.reference }})</small>
+                            {% endif %}
+                        </div>
+                        <span class="fw-bold">{{ format_currency(payment.amount) }}</span>
+                    </li>
+                    {% endfor %}
+                    <li class="list-group-item d-flex justify-content-between bg-light">
+                        <strong>Total Paid</strong>
+                        <strong class="text-success">{{ format_currency(sale.amount_paid) }}</strong>
+                    </li>
+                    {% if sale.change_given > 0 %}
+                    <li class="list-group-item d-flex justify-content-between bg-warning bg-opacity-10">
+                        <strong>Change Given</strong>
+                        <strong class="text-warning">{{ format_currency(sale.change_given) }}</strong>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
 
         <div class="d-grid gap-2">
             <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}" class="btn btn-primary">
