@@ -27,6 +27,11 @@ def get_wkhtmltopdf_path():
 # GLOBAL SCOPE: Important for app.config.from_pyfile
 WKHTMLTOPDF_PATH = get_wkhtmltopdf_path()
 
+# Template settings - needed at module level for from_pyfile
+TEMPLATES_AUTO_RELOAD = True
+DEBUG = True
+
+
 class Config:
     """Base configuration class"""
     

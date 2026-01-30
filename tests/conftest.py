@@ -1,5 +1,5 @@
 """
-Test configuration and fixtures for Electronics POS
+Test configuration and fixtures for POS System
 Configured for MySQL database
 """
 import os

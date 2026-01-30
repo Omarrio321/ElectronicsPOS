@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Sales Reports - Electronics POS System{% endblock %}
+{% block title %}Sales Reports - {{ company_name }}{% endblock %}
 
 {% block head %}
 <style>
@@ -421,7 +421,7 @@
                         beginAtZero: true,
                         grid: { borderDash: [5, 5], color: '#e9ecef' },
                         ticks: {
-                            callback: function (value) { return '$' + value.toLocaleString(); }
+                            callback: function (value) { return window.CURRENCY_SYMBOL + value.toLocaleString(); }
                         }
                     },
                     x: {
@@ -487,7 +487,7 @@
                         callbacks: {
                             label: function (context) {
                                 let val = context.parsed || 0;
-                                return ' ' + context.label + ': $' + val.toLocaleString();
+                                return ' ' + context.label + ': ' + window.CURRENCY_SYMBOL + val.toLocaleString();
                             }
                         }
                     }

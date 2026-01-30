@@ -5,7 +5,16 @@ from flask_login import current_user
 
 def format_currency(amount):
     """Format currency amount"""
-    return f"${amount:,.2f}"
+    try:
+        from app.models import SystemSetting
+        currency = SystemSetting.get('currency_symbol', '$')
+    except ImportError:
+        currency = '$'
+    except Exception:
+        # Fallback if DB not ready or other error
+        currency = '$'
+        
+    return f"{currency}{amount:,.2f}"
 
 def format_datetime(dt):
     """Format datetime for display"""

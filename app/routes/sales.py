@@ -14,12 +14,7 @@ sales_bp = Blueprint('sales', __name__, url_prefix='/sales')
 # --------------------
 # Utilities
 # --------------------
-def format_currency(value):
-    """Format numeric value into currency string safely."""
-    try:
-        return "${:,.2f}".format(float(value))
-    except (TypeError, ValueError):
-        return "$0.00"
+from app.utils import format_currency
 
 # --------------------
 # Sales list
@@ -103,7 +98,6 @@ def receipt(sale_id):
     sale = Sale.query.get_or_404(sale_id)
     items = SaleItem.query.filter_by(sale_id=sale.id).order_by(SaleItem.id).all()
 
-    company_name = SystemSetting.get('company_name', 'Electronics Store')
     receipt_header = SystemSetting.get('receipt_header', 'Electronics Store POS System')
     receipt_footer = SystemSetting.get('receipt_footer', 'Thank you for your business!')
 
@@ -111,7 +105,6 @@ def receipt(sale_id):
         'sales/receipt.html',
         sale=sale,
         items=items,
-        company_name=company_name,
         receipt_header=receipt_header,
         receipt_footer=receipt_footer,
         format_currency=format_currency,
@@ -127,7 +120,6 @@ def receipt_pdf(sale_id):
     sale = Sale.query.get_or_404(sale_id)
     items = SaleItem.query.filter_by(sale_id=sale.id).order_by(SaleItem.id).all()
 
-    company_name = SystemSetting.get('company_name', 'Electronics Store')
     receipt_header = SystemSetting.get('receipt_header', 'Electronics Store POS System')
     receipt_footer = SystemSetting.get('receipt_footer', 'Thank you for your business!')
 
@@ -137,7 +129,6 @@ def receipt_pdf(sale_id):
         'sales/receipt_pdf.html',  # ensure this template exists and is printable
         sale=sale,
         items=items,
-        company_name=company_name,
         receipt_header=receipt_header,
         receipt_footer=receipt_footer,
         format_currency=format_currency,
@@ -212,7 +203,6 @@ def recent_pdf():
     total_discount = sum(s.discount for s in sales)
     total_grand = sum(s.grand_total for s in sales)
 
-    company_name = SystemSetting.get('company_name', 'Electronics Store')
     
     # Resolve user name for title if filtered
     user_filter_name = None
@@ -224,7 +214,6 @@ def recent_pdf():
     html = render_template(
         'sales/list_pdf.html',
         sales=sales,
-        company_name=company_name,
         generated_at=datetime.now().strftime('%Y-%m-%d %H:%M'),
         start_date=start_date_str,
         end_date=end_date_str,
@@ -776,11 +765,10 @@ def reports_pdf():
         Expense.date <= end_date
     ).order_by(Expense.date.desc()).all()
 
-    company_name = SystemSetting.get('company_name', 'Electronics Store')
+
 
     html = render_template(
         'sales/reports_pdf.html',
-        company_name=company_name,
         generated_at=datetime.now().strftime('%Y-%m-%d %H:%M'),
         start_date=start_date,
         end_date=end_date,
