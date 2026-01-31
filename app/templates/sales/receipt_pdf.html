@@ -3,128 +3,300 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt #{{ sale.id }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
+        /* PDF specific overrides for wkhtmltopdf */
+        :root {
+            --receipt-screen-width: 380px;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            line-height: 1.4;
+            background: white;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier Prime', Courier, monospace;
+            color: #000;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 10px;
-        }
-
-        .header img.logo {
-            max-height: 60px;
-            max-width: 180px;
-            margin-bottom: 10px;
-        }
-
-        .store-info {
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .receipt-info {
+        .receipt-wrapper {
+            width: 100%;
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
+            justify-content: center;
         }
 
+        .receipt-paper {
+            width: 100%;
+            max-width: 80mm;
+            padding: 10px;
+            font-size: 12px;
+        }
+
+        /* TYPOGRAPHY */
+        h2 {
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-muted {
+            color: #555;
+            font-size: 11px;
+        }
+
+        .fw-bold {
+            font-weight: 700;
+        }
+
+        .text-danger {
+            color: #dc3545;
+        }
+
+        .logo-img {
+            max-height: 50px;
+            max-width: 150px;
+            margin-bottom: 8px;
+        }
+
+        /* HELPERS */
+        .row {
+            display: flex;
+            /* wkhtmltopdf supports flex to some degree, but table might be safer if flex fails. stick to flex for now as it worked in pos */
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+
+        /* Fallback for float layout if flex fails in PDF */
+        .row::after {
+            content: "";
+            clear: both;
+            display: table;
+        }
+
+        .row span:first-child {
+            float: left;
+        }
+
+        .row span:last-child {
+            float: right;
+        }
+
+        .divider {
+            border-bottom: 1px dashed #999;
+            margin: 10px 0;
+            clear: both;
+        }
+
+        .double-divider {
+            border-bottom: 2px dashed #000;
+            margin: 10px 0;
+            clear: both;
+        }
+
+        /* TABLE */
         .items-table {
             width: 100%;
+            font-size: 11px;
             border-collapse: collapse;
             margin-bottom: 15px;
         }
 
-        .items-table th,
-        .items-table td {
-            border-bottom: 1px solid #ddd;
-            padding: 5px;
+        .items-table th {
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+            text-transform: uppercase;
+            font-size: 10px;
+            color: #444;
             text-align: left;
         }
 
-        .items-table th {
-            font-weight: bold;
+        .items-table td {
+            padding: 5px 0;
+            vertical-align: top;
         }
 
-        .totals {
+        .qty-col {
+            width: 10%;
+            text-align: center;
+        }
+
+        .name-col {
+            width: 55%;
+            padding-right: 5px;
+        }
+
+        .price-col {
+            width: 17%;
             text-align: right;
         }
 
-        .totals div {
-            margin-bottom: 5px;
-        }
-
-        .footer {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 10px;
-            color: #777;
+        .total-col {
+            width: 18%;
+            text-align: right;
         }
     </style>
 </head>
 
 <body>
-    <div class="header">
-        {% if company_logo %}
-        <img src="{{ url_for('static', filename=company_logo, _external=True) }}" alt="{{ company_name }}" class="logo">
-        {% endif %}
-        <div class="store-info">{{ company_name }}</div>
-        <div>{{ receipt_header }}</div>
-    </div>
+    <div class="receipt-wrapper">
+        <div class="receipt-paper">
+            <!-- Header -->
+            <div class="text-center" style="margin-bottom: 15px;">
+                {% if company_logo %}
+                <img src="{{ url_for('static', filename=company_logo, _external=True) }}" alt="{{ company_name }}"
+                    class="logo-img">
+                {% else %}
+                <!-- No icon fallback for PDF to avoid font issues -->
+                {% endif %}
+                <h2>{{ company_name }}</h2>
+                <div class="text-muted">
+                    {{ company_address }}<br>
+                    Tel: {{ company_phone }}
+                </div>
+            </div>
 
-    <div class="receipt-info">
-        <div>
-            <div>Receipt #: {{ sale.id }}</div>
-            <div>Date: {{ sale.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-            <div>Cashier: {{ sale.user.username }}</div>
+            <div class="divider"></div>
+
+            <!-- Meta Info -->
+            <div style="margin-bottom: 10px;">
+                <div class="row">
+                    <span class="text-muted">Receipt #:</span>
+                    <span class="fw-bold">{{ sale.id }}</span>
+                </div>
+                <div class="row">
+                    <span class="text-muted">Date:</span>
+                    <span>{{ sale.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                </div>
+                <div class="row">
+                    <span class="text-muted">Cashier:</span>
+                    <span>{{ sale.user.username if sale.user else 'Unknown' }}</span>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Items -->
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th class="qty-col text-center">Qty</th>
+                        <th class="name-col">Item</th>
+                        <th class="price-col text-right">Price</th>
+                        <th class="total-col text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td class="qty-col text-center">{{ item.quantity_sold }}</td>
+                        <td class="name-col">
+                            <div>{{ item.product.name }}</div>
+                            {% if item.product.sku %}
+                            <div class="text-muted" style="font-size: 9px;">{{ item.product.sku }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="price-col text-right">{{ item.unit_price_at_time | format_currency }}</td>
+                        <td class="total-col text-right fw-bold">{{ item.total_price | format_currency }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="divider"></div>
+
+            <!-- Totals -->
+            <div style="margin-bottom: 15px;">
+                <div class="row">
+                    <span>Subtotal:</span>
+                    <span>{{ sale.subtotal | format_currency }}</span>
+                </div>
+                {% if sale.discount > 0 %}
+                <div class="row" style="color: #d63384;">
+                    <span>Discount:</span>
+                    <span>-{{ sale.discount | format_currency }}</span>
+                </div>
+                {% endif %}
+                <div class="row">
+                    <span>Tax ({{ (sale.tax_rate * 100)|int }}%):</span>
+                    <span>{{ sale.tax_amount | format_currency }}</span>
+                </div>
+
+                <div class="double-divider"></div>
+
+                <div class="row" style="font-size: 1.1rem; font-weight: bold; margin-top: 5px;">
+                    <span>TOTAL:</span>
+                    <span>{{ sale.grand_total | format_currency }}</span>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Payment Info -->
+            <div style="margin-bottom: 15px;">
+                <div class="row fw-bold" style="margin-bottom: 5px;">
+                    <span>PAYMENT BREAKDOWN</span>
+                </div>
+                {% if sale.payments %}
+                {% for payment in sale.payments %}
+                <div class="row">
+                    <span>{{ payment.payment_method.value }}{% if payment.reference %} ({{ payment.reference }}){% endif
+                        %}:</span>
+                    <span>{{ format_currency(payment.amount) }}</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="row">
+                    <span>{{ sale.payment_method.value }}:</span>
+                    <span>{{ format_currency(sale.amount_paid) }}</span>
+                </div>
+                {% endif %}
+
+                <div class="divider"></div>
+
+                <div class="row">
+                    <span class="text-muted">Total Paid:</span>
+                    <span class="fw-bold">{{ format_currency(sale.amount_paid) }}</span>
+                </div>
+
+                {% if sale.invoice_status.value != 'Paid' %}
+                <div class="row">
+                    <span class="text-muted">Balance Due:</span>
+                    <span class="fw-bold text-danger">{{ format_currency(sale.amount_due) }}</span>
+                </div>
+                {% endif %}
+
+                {% if sale.change_given > 0 %}
+                <div class="row" style="color: #198754;">
+                    <span>Change Given:</span>
+                    <span class="fw-bold">{{ format_currency(sale.change_given) }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Footer -->
+            <div class="text-center" style="margin-top: 20px;">
+                <p class="fw-bold" style="margin: 0 0 5px 0;">{{ receipt_footer }}</p>
+                <div class="text-muted">{{ company_name }}</div>
+            </div>
         </div>
-        <div>
-            <div>Payment: {{ sale.payment_method }}</div>
-        </div>
-    </div>
-
-    <table class="items-table">
-        <thead>
-            <tr>
-                <th>Item</th>
-                <th>Qty</th>
-                <th>Price</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in sale.sale_items %}
-            <tr>
-                <td>{{ item.product.name }}</td>
-                <td>{{ item.quantity_sold }}</td>
-                <td>{{ format_currency(item.unit_price_at_time) }}</td>
-                <td>{{ format_currency(item.total_price) }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <div class="totals">
-        <div>Subtotal: {{ format_currency(sale.subtotal) }}</div>
-        <div>Tax: {{ format_currency(sale.tax_amount) }}</div>
-        <div>Discount: {{ format_currency(sale.discount) }}</div>
-        <div style="font-weight: bold; font-size: 14px; border-top: 1px solid #ddd; padding-top: 5px;">
-            Total: {{ format_currency(sale.grand_total) }}
-        </div>
-        <div>Amount Paid: {{ format_currency(sale.amount_paid) }}</div>
-        <div>Change: {{ format_currency(sale.change_given) }}</div>
-    </div>
-
-    <div class="footer">
-        <div>Thank you for your business!</div>
-        <div>For returns, please present this receipt within 30 days.</div>
     </div>
 </body>
 

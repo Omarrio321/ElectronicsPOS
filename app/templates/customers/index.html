@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Customers - {{ company_name }}{% endblock %}
+
+{% block head %}
+<style>
+    .customer-card {
+        transition: all 0.2s ease;
+    }
+
+    .customer-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .balance-positive {
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    .balance-zero {
+        color: #198754;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="fas fa-users me-2"></i>Customers</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('customers.create') }}" class="btn btn-primary">
+            <i class="fas fa-user-plus me-1"></i> Add Customer
+        </a>
+    </div>
+</div>
+
+<!-- Search and Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" name="search" class="form-control"
+                        placeholder="Search by name, phone, or email..." value="{{ search }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="Active" {% if status_filter=='Active' %}selected{% endif %}>Active</option>
+                    <option value="Inactive" {% if status_filter=='Inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search me-1"></i> Search
+                </button>
+                <a href="{{ url_for('customers.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-redo me-1"></i> Reset
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Customers Table -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th class="text-end">Outstanding</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in customers.items %}
+                    {% set debt = customer.get_current_debt() %}
+                    {% set credit = customer.get_available_credit() %}
+                    <tr class="customer-card">
+                        <td>
+                            <a href="{{ url_for('customers.profile', customer_id=customer.id) }}"
+                                class="text-decoration-none fw-semibold">
+                                {{ customer.full_name }}
+                            </a>
+                        </td>
+                        <td>{{ customer.phone or '-' }}</td>
+                        <td>{{ customer.email or '-' }}</td>
+                        <td class="text-end">
+                            {% if debt > 0 %}
+                            <span class="text-danger fw-semibold">{{ format_currency(debt) }}</span>
+                            {% elif credit > 0 %}
+                            <span class="text-success small fw-semibold">Credit: {{ format_currency(credit) }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if customer.status.value == 'Active' %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('customers.profile', customer_id=customer.id) }}"
+                                class="btn btn-sm btn-outline-primary me-1" title="View Profile">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{{ url_for('customers.edit', customer_id=customer.id) }}"
+                                class="btn btn-sm btn-outline-secondary me-1" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="fas fa-users fa-2x mb-2 d-block opacity-50"></i>
+                            No customers found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if customers.pages > 1 %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center mb-0">
+                {% if customers.has_prev %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('customers.index', page=customers.prev_num, search=search, status=status_filter) }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                {% for page_num in customers.iter_pages() %}
+                {% if page_num %}
+                {% if page_num != customers.page %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('customers.index', page=page_num, search=search, status=status_filter) }}">
+                        {{ page_num }}
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                {% endif %}
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% endif %}
+                {% endfor %}
+                {% if customers.has_next %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('customers.index', page=customers.next_num, search=search, status=status_filter) }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

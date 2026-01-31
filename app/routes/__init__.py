@@ -4,3 +4,4 @@ from app.routes.products import products_bp
 from app.routes.sales import sales_bp
 from app.routes.pos import pos_bp
 from app.routes.main import main_bp
+from app.routes.customers import customers_bp

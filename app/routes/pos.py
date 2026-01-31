@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, current_app
-from app.models import db, Product, Category, Sale, SaleItem, SystemSetting, Payment
-from app.models import PaymentMethod, SaleStatus  # Import Enums
+from app.models import db, Product, Category, Sale, SaleItem, SystemSetting, Payment, Customer, CustomerLedger
+from app.models import PaymentMethod, SaleStatus, SaleType, InvoiceStatus, PriceType, LedgerEntryType
 from flask_login import login_required, current_user
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
@@ -17,12 +17,54 @@ def index():
 @pos_bp.route('/api/data')
 @login_required
 def get_pos_data():
-    """Loads categories and products for the UI."""
+    """Loads categories and configuration for the UI (lightweight)."""
     try:
         categories = Category.query.all()
-        products = Product.query.filter_by(is_active=True).all()
-        
         tax_rate = float(SystemSetting.get('tax_rate', 0.08))
+        category_data = [{'id': c.id, 'name': c.name} for c in categories]
+
+        return jsonify({
+            'success': True,
+            'tax_rate': tax_rate,
+            'categories': category_data
+        })
+    except Exception as e:
+        current_app.logger.error(f"POS Data Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@pos_bp.route('/api/products')
+@login_required
+def get_products_api():
+    """Loads products with server-side pagination and filtering."""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('limit', 24, type=int) # 24 is good for grids (2,3,4,6 cols)
+        category_id = request.args.get('category_id', 'all')
+        search = request.args.get('q', '').strip()
+
+        query = Product.query.filter_by(is_active=True)
+
+        # Filter by Category
+        if category_id and category_id != 'all':
+            try:
+                query = query.filter_by(category_id=int(category_id))
+            except ValueError:
+                pass
+
+        # Filter by Search (Name, SKU, Barcode)
+        if search:
+            query = query.filter(db.or_(
+                Product.name.ilike(f'%{search}%'),
+                Product.sku.ilike(f'%{search}%'),
+                Product.barcode.ilike(f'%{search}%')
+            ))
+
+        # Order by name
+        query = query.order_by(Product.name.asc())
+
+        # Paginate
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        products = pagination.items
 
         product_data = []
         for p in products:
@@ -30,28 +72,31 @@ def get_pos_data():
                 'id': p.id,
                 'name': p.name,
                 'price': float(p.selling_price),
+                'wholesale_price': float(p.wholesale_price) if p.wholesale_price else None,
+                'min_wholesale_qty': p.min_wholesale_qty,
+                'allow_wholesale': p.allow_wholesale,
                 'stock': p.quantity_in_stock,
                 'category_id': p.category_id,
                 'sku': p.sku,
                 'barcode': p.barcode
             })
 
-        category_data = [{'id': c.id, 'name': c.name} for c in categories]
-
         return jsonify({
             'success': True,
-            'tax_rate': tax_rate,
-            'categories': category_data,
-            'products': product_data
+            'products': product_data,
+            'has_more': pagination.has_next,
+            'page': page,
+            'total': pagination.total
         })
+
     except Exception as e:
-        current_app.logger.error(f"POS Data Error: {e}")
+        current_app.logger.error(f"POS Product Load Error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @pos_bp.route('/api/checkout', methods=['POST'])
 @login_required
 def checkout():
-    """Processes the sale transaction with split payment support."""
+    """Processes the sale transaction with customer, wholesale, and partial payment support."""
     try:
         data = request.get_json()
         if not data:
@@ -60,23 +105,39 @@ def checkout():
         items = data.get('items', [])
         discount = Decimal(str(data.get('discount', 0)))
         payments_data = data.get('payments', [])
+        
+        # New fields
+        customer_id = data.get('customer_id')
+        sale_type_str = data.get('sale_type', 'RETAIL')
+        allow_partial = data.get('allow_partial_payment', False)
 
         if not items:
             return jsonify({'success': False, 'message': 'Cart is empty.'}), 400
-        if not payments_data:
-            return jsonify({'success': False, 'message': 'At least one payment method required.'}), 400
+        
+        # Partial payments require a customer
+        if allow_partial and not customer_id:
+            return jsonify({'success': False, 'message': 'Customer required for partial payment.'}), 400
+        
+        # Validate customer if provided
+        customer = None
+        if customer_id:
+            customer = Customer.query.get(customer_id)
+            if not customer:
+                return jsonify({'success': False, 'message': 'Customer not found.'}), 404
 
         # --- PAYMENT METHOD MAPPING ---
         PAYMENT_METHOD_MAP = {
             'Cash': PaymentMethod.CASH,
             'Card': PaymentMethod.CARD,
             'E-Dahab': PaymentMethod.E_DAHAB,
-            'Zaad': PaymentMethod.ZAAD
+            'Zaad': PaymentMethod.ZAAD,
+            'Store Credit': PaymentMethod.STORE_CREDIT
         }
 
         # --- VALIDATE PAYMENTS ---
         total_paid = Decimal('0')
         digital_paid = Decimal('0')
+        store_credit_used = Decimal('0')
         valid_payments = []
 
         for p in payments_data:
@@ -94,21 +155,39 @@ def checkout():
             total_paid += amount
 
             # Track digital payments (non-cash)
-            if db_method != PaymentMethod.CASH:
+            if db_method != PaymentMethod.CASH and db_method != PaymentMethod.STORE_CREDIT:
                 digital_paid += amount
+            
+            # Track store credit usage
+            if db_method == PaymentMethod.STORE_CREDIT:
+                store_credit_used += amount
 
             valid_payments.append({
                 'method': db_method,
                 'amount': amount,
                 'reference': reference
             })
+            
+        # Verify store credit availability
+        if store_credit_used > 0:
+            if not customer:
+                return jsonify({'success': False, 'message': 'Customer required for Store Credit.'}), 400
+            
+            available_credit = customer.get_available_credit()
+            if store_credit_used > available_credit:
+                 return jsonify({'success': False, 'message': f'Insufficient store credit. Available: ${available_credit:.2f}'}), 400
 
-        if not valid_payments:
+        # For non-partial sales, require payment
+        if not allow_partial and not valid_payments:
             return jsonify({'success': False, 'message': 'No valid payments provided.'}), 400
 
         # --- CALCULATE SUBTOTAL ---
         subtotal = Decimal('0')
         product_map = {}
+        sale_type = SaleType.RETAIL
+        
+        if sale_type_str == 'WHOLESALE':
+            sale_type = SaleType.WHOLESALE
 
         for item in items:
             product = Product.query.get(item['product_id'])
@@ -118,8 +197,14 @@ def checkout():
             if product.quantity_in_stock < item['quantity']:
                 return jsonify({'success': False, 'message': f'Insufficient stock for {product.name}.'}), 400
             
-            subtotal += Decimal(str(item['price'])) * item['quantity']
-            product_map[product.id] = product
+            # Use wholesale price if applicable
+            if sale_type == SaleType.WHOLESALE and product.wholesale_price and product.allow_wholesale:
+                price = product.wholesale_price
+            else:
+                price = Decimal(str(item['price']))
+            
+            subtotal += price * item['quantity']
+            product_map[product.id] = {'product': product, 'price': price}
 
         # --- CALCULATE TOTALS ---
         tax_rate = Decimal(str(SystemSetting.get('tax_rate', 0.08)))
@@ -127,26 +212,43 @@ def checkout():
         tax_amount = taxable_amount * tax_rate
         grand_total = taxable_amount + tax_amount
 
-        # --- VALIDATION: Ensure sufficient payment ---
-        if total_paid < grand_total:
-            shortage = grand_total - total_paid
-            return jsonify({'success': False, 'message': f'Insufficient payment. Short by ${shortage:.2f}.'}), 400
+        # --- VALIDATION ---
+        if not allow_partial:
+            if total_paid < grand_total:
+                shortage = grand_total - total_paid
+                return jsonify({'success': False, 'message': f'Insufficient payment. Short by ${shortage:.2f}.'}), 400
 
         # --- VALIDATION: Prevent digital overpayment ---
-        if digital_paid > grand_total:
-            overpayment = digital_paid - grand_total
-            return jsonify({'success': False, 'message': f'Digital payment cannot exceed total. Overpaid by ${overpayment:.2f}. Use Cash for overpayment.'}), 400
+        # Store Credit is effectively "digital" in this context (cannot return cash from it)
+        if (digital_paid + store_credit_used) > grand_total:
+             # Calculate allowable
+             over = (digital_paid + store_credit_used) - grand_total
+             return jsonify({'success': False, 'message': f'Digital/Credit payment cannot exceed total. Overpaid by ${over:.2f}.'}), 400
 
-        # --- CALCULATE CHANGE (only from cash) ---
-        change_given = total_paid - grand_total
+        # --- CALCULATE AMOUNTS ---
+        amount_due = max(Decimal('0'), grand_total - total_paid)
+        change_given = max(Decimal('0'), total_paid - grand_total)
+        
+        # Determine invoice status
+        if total_paid >= grand_total:
+            invoice_status = InvoiceStatus.PAID
+        elif total_paid > 0:
+            invoice_status = InvoiceStatus.PARTIAL
+        else:
+            invoice_status = InvoiceStatus.UNPAID
 
         # --- DETERMINE PRIMARY PAYMENT METHOD FOR SALE RECORD ---
-        # If multiple methods, use first non-zero or fallback
-        primary_method = valid_payments[0]['method'] if len(valid_payments) == 1 else PaymentMethod.CASH
+        primary_method = valid_payments[0]['method'] if valid_payments else PaymentMethod.CASH
+
+        # --- GENERATE INVOICE NUMBER ---
+        invoice_no = Sale.generate_invoice_no()
 
         # --- CREATE SALE ---
         new_sale = Sale(
+            invoice_no=invoice_no,
+            customer_id=customer_id,
             user_id=current_user.id,
+            sale_type=sale_type,
             subtotal=subtotal,
             tax_rate=tax_rate,
             tax_amount=tax_amount,
@@ -154,8 +256,10 @@ def checkout():
             grand_total=grand_total,
             payment_method=primary_method,
             amount_paid=total_paid,
+            amount_due=amount_due,
             change_given=change_given,
             sale_status=SaleStatus.COMPLETED,
+            invoice_status=invoice_status,
             created_at=datetime.utcnow()
         )
         
@@ -164,14 +268,22 @@ def checkout():
 
         # --- CREATE SALE ITEMS ---
         for item in items:
-            product = product_map[item['product_id']]
+            product_info = product_map[item['product_id']]
+            product = product_info['product']
+            price = product_info['price']
+            
+            # Determine price type
+            price_type = PriceType.WHOLESALE if (sale_type == SaleType.WHOLESALE and product.wholesale_price) else PriceType.RETAIL
             
             sale_item = SaleItem(
                 sale_id=new_sale.id,
                 product_id=product.id,
+                product_name=product.name,
+                product_sku=product.sku,
                 quantity_sold=item['quantity'],
-                unit_price_at_time=Decimal(str(item['price'])),
-                total_price=item['quantity'] * Decimal(str(item['price']))
+                unit_price_at_time=price,
+                total_price=item['quantity'] * price,
+                price_type=price_type
             )
             db.session.add(sale_item)
             product.quantity_in_stock -= item['quantity']
@@ -180,12 +292,66 @@ def checkout():
         for p in valid_payments:
             payment = Payment(
                 sale_id=new_sale.id,
+                customer_id=customer_id,
                 amount=p['amount'],
                 payment_method=p['method'],
                 reference=p['reference'] if p['reference'] else None,
+                created_by=current_user.id,
                 created_at=datetime.utcnow()
             )
             db.session.add(payment)
+
+        # --- HANDLE STORE CREDIT DEDUCTION ---
+        if store_credit_used > 0 and customer:
+            # Reduce cached credit balance (Negative balance gets closer to zero = Credit Used)
+            # Actually, credit_balance field is a positive number representing available credit (from get_available_credit)
+            # Wait, looking at model: credit_balance = db.Column(...) defaulting to 0. 
+            # In receive_payment: customer.credit_balance += remaining_payment.
+            # So it stores positive value.
+            current_credit = customer.credit_balance or Decimal('0')
+            customer.credit_balance = max(Decimal('0'), current_credit - store_credit_used)
+
+        # --- CREATE LEDGER ENTRIES (if customer) ---
+        if customer:
+            # Get current balance
+            last_entry = CustomerLedger.query.filter_by(customer_id=customer.id)\
+                .order_by(CustomerLedger.id.desc()).first()
+            running_balance = Decimal(str(last_entry.balance_after)) if last_entry else Decimal('0')
+            
+            # Invoice entry (debit - customer owes)
+            # This consumes the credit (Negative Balance + Invoice Amount -> Closer to Zero or Positive)
+            new_balance = running_balance + grand_total
+            invoice_ledger = CustomerLedger(
+                customer_id=customer.id,
+                entry_type=LedgerEntryType.INVOICE,
+                ref_type='Sale',
+                ref_id=new_sale.id,
+                debit=grand_total,
+                credit=Decimal('0'),
+                balance_after=new_balance,
+                note=f'Invoice {invoice_no}'
+            )
+            db.session.add(invoice_ledger)
+            running_balance = new_balance
+            
+            # Payment entry (credit - reduces what customer owes)
+            # CRITICAL: Do NOT create a Ledger Payment entry for Store Credit
+            # Store Credit payment simply means "We don't need to add a credit entry because the invoice entry already consumed the existing credit"
+            real_payment_amount = total_paid - store_credit_used
+            
+            if real_payment_amount > 0:
+                new_balance = running_balance - real_payment_amount
+                payment_ledger = CustomerLedger(
+                    customer_id=customer.id,
+                    entry_type=LedgerEntryType.PAYMENT,
+                    ref_type='Sale',
+                    ref_id=new_sale.id,
+                    debit=Decimal('0'),
+                    credit=real_payment_amount,
+                    balance_after=new_balance,
+                    note=f'Payment for {invoice_no}'
+                )
+                db.session.add(payment_ledger)
 
         # --- COMMIT ---
         db.session.commit()
@@ -197,7 +363,12 @@ def checkout():
             target_type='Sale',
             target_id=new_sale.id,
             details={
+                'invoice_no': invoice_no,
+                'customer_id': customer_id,
+                'sale_type': sale_type.value,
                 'grand_total': float(grand_total),
+                'amount_paid': float(total_paid),
+                'amount_due': float(amount_due),
                 'items_count': len(items),
                 'payments': [{'method': p['method'].value, 'amount': float(p['amount'])} for p in valid_payments],
                 'change_given': float(change_given)
@@ -207,8 +378,12 @@ def checkout():
         return jsonify({
             'success': True,
             'sale_id': new_sale.id,
+            'invoice_no': invoice_no,
             'total': float(grand_total),
-            'change': float(change_given)
+            'amount_paid': float(total_paid),
+            'amount_due': float(amount_due),
+            'change': float(change_given),
+            'invoice_status': invoice_status.value
         })
 
     except Exception as e:

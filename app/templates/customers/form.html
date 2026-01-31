@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if customer else 'Add' }} Customer - {{ company_name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('customers.index') }}">Customers</a></li>
+                <li class="breadcrumb-item active">{{ 'Edit' if customer else 'Add New' }}</li>
+            </ol>
+        </nav>
+        <h1>
+            <i class="fas fa-{{ 'user-edit' if customer else 'user-plus' }} me-2"></i>
+            {{ 'Edit Customer' if customer else 'Add New Customer' }}
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" id="customerForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Full Name -->
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="full_name" name="full_name"
+                            value="{{ customer.full_name if customer else '' }}" required
+                            placeholder="Enter customer's full name">
+                    </div>
+
+                    <div class="row">
+                        <!-- Phone -->
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input type="tel" class="form-control" id="phone" name="phone"
+                                    value="{{ customer.phone if customer else '' }}"
+                                    placeholder="e.g., +252 61 234 5678">
+                            </div>
+                            <div class="form-text">Must be unique if provided</div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input type="email" class="form-control" id="email" name="email"
+                                    value="{{ customer.email if customer else '' }}" placeholder="customer@example.com">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Address -->
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address</label>
+                        <textarea class="form-control" id="address" name="address" rows="2"
+                            placeholder="Street address, city, etc.">{{ customer.address if customer else '' }}</textarea>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2"
+                            placeholder="Any additional notes about this customer...">{{ customer.notes if customer else '' }}</textarea>
+                    </div>
+
+                    {% if customer %}
+                    <!-- Status (only for edit) -->
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="Active" {% if customer.status.value=='Active' %}selected{% endif %}>Active
+                            </option>
+                            <option value="Inactive" {% if customer.status.value=='Inactive' %}selected{% endif %}>
+                                Inactive</option>
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('customers.index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> {{ 'Update' if customer else 'Create' }} Customer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="card-title"><i class="fas fa-info-circle me-1"></i> Tips</h6>
+                <ul class="small mb-0 ps-3">
+                    <li>Full name is required</li>
+                    <li>Phone numbers must be unique</li>
+                    <li>Email is optional but useful for receipts</li>
+                    <li>Notes can store special preferences</li>
+                </ul>
+            </div>
+        </div>
+
+        {% if customer %}
+        <div class="card mt-3 border-warning">
+            <div class="card-header bg-warning text-dark">
+                <i class="fas fa-chart-line me-1"></i> Customer Stats
+            </div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Outstanding:</strong>
+                    <span
+                        class="{% if customer.get_outstanding_balance() > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ format_currency(customer.get_outstanding_balance()) }}
+                    </span>
+                </p>
+                <p class="mb-1"><strong>Credits:</strong> {{ format_currency(customer.credit_balance) }}</p>
+                <p class="mb-0"><strong>Member since:</strong> {{ customer.created_at.strftime('%b %d, %Y') }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

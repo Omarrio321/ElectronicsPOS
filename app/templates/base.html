@@ -88,6 +88,12 @@
                                 <i class="fas fa-box"></i> <span class="nav-label">Inventory</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint and 'customers' in request.endpoint }}"
+                                href="{{ url_for('customers.index') }}" title="Customers">
+                                <i class="fas fa-users"></i> <span class="nav-label">Customers</span>
+                            </a>
+                        </li>
                         {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
                         <li class="nav-item">
                             <a class="nav-link {{ 'active' if request.endpoint and 'expenses' in request.endpoint }}"

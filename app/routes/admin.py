@@ -149,6 +149,21 @@ def edit_user(user_id):
 @login_required
 @role_required('Admin')
 def settings():
+    # Ensure default settings exist
+    defaults = {
+        'tax_rate': ('0.08', 'Default tax rate (decimal)'),
+        'company_name': ('Electronics POS', 'Company Name'),
+        'company_address': ('123 Main St', 'Address'),
+        'company_phone': ('555-0123', 'Phone'),
+        'currency_symbol': ('$', 'Currency Symbol'),
+        'receipt_header': ('Thank you for shopping with us!', 'Receipt Header'),
+        'receipt_footer': ('No returns without receipt.', 'Receipt Footer')
+    }
+    
+    for key, (val, desc_text) in defaults.items():
+        if not SystemSetting.query.filter_by(key=key).first():
+            SystemSetting.set(key, val, desc_text)
+
     settings_list = SystemSetting.query.all()
     form = SystemSettingsForm()
     
@@ -215,6 +230,10 @@ def settings():
             flash('No changes detected', 'info')
             
         return redirect(url_for('admin.settings'))
+    
+    if request.method == 'POST' and not form.validate():
+        print(f"DEBUG: Form validation failed. Errors: {form.errors}", flush=True)
+        flash(f'Error updating settings: {form.errors}', 'danger')
     
     return render_template('admin/settings.html', settings=settings_list, form=form, current_logo=current_logo)
 

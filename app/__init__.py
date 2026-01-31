@@ -47,6 +47,7 @@ def create_app(config_class=None):
     from app.routes.admin import admin_bp
     from app.routes.api import api_bp
     from app.routes.expenses import expenses_bp
+    from app.routes.customers import customers_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -56,6 +57,7 @@ def create_app(config_class=None):
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(api_bp)
     app.register_blueprint(expenses_bp, url_prefix='/expenses')
+    app.register_blueprint(customers_bp, url_prefix='/customers')
 
     
 

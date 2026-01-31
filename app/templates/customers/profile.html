@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}{{ customer.full_name }} - Customer Profile{% endblock %}
+
+{% block head %}
+<style>
+    .stat-card {
+        border-left: 4px solid;
+    }
+
+    .stat-card.outstanding {
+        border-color: #dc3545;
+    }
+
+    .stat-card.credit {
+        border-color: #198754;
+    }
+
+    .stat-card.invoices {
+        border-color: #0d6efd;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .ledger-debit {
+        color: #dc3545;
+    }
+
+    .ledger-credit {
+        color: #198754;
+    }
+
+    .tab-content {
+        min-height: 300px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('customers.index') }}">Customers</a></li>
+                <li class="breadcrumb-item active">{{ customer.full_name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<!-- Customer Header -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                    style="width: 64px; height: 64px; font-size: 1.5rem; font-weight: 600;">
+                    {{ customer.full_name[0].upper() }}
+                </div>
+            </div>
+            <div class="col">
+                <h3 class="mb-1">{{ customer.full_name }}</h3>
+                <div class="text-muted">
+                    {% if customer.phone %}<i class="fas fa-phone me-1"></i> {{ customer.phone }} &nbsp;{% endif %}
+                    {% if customer.email %}<i class="fas fa-envelope me-1"></i> {{ customer.email }}{% endif %}
+                </div>
+                {% if customer.address %}
+                <div class="text-muted small mt-1"><i class="fas fa-map-marker-alt me-1"></i> {{ customer.address }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-auto">
+                <span
+                    class="badge {% if customer.status.value == 'Active' %}bg-success{% else %}bg-secondary{% endif %} fs-6">
+                    {{ customer.status.value }}
+                </span>
+            </div>
+            <div class="col-auto">
+                <a href="{{ url_for('customers.receive_payment', customer_id=customer.id) }}"
+                    class="btn btn-success me-2">
+                    <i class="fas fa-money-bill-wave me-1"></i> Receive Payment
+                </a>
+                <a href="{{ url_for('customers.edit', customer_id=customer.id) }}" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-edit me-1"></i> Edit
+                </a>
+                <form action="{{ url_for('customers.recalculate_balance', customer_id=customer.id) }}" method="POST"
+                    class="d-inline"
+                    onsubmit="return confirm('Recalculate balance based on all invoices and payments?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-warning" title="Recalculate Ledger">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card stat-card outstanding">
+            <div class="card-body">
+                <div class="text-muted small">Outstanding Balance</div>
+                <div
+                    class="stat-value {% if customer.get_current_debt() > 0 %}text-danger{% else %}text-success{% endif %}">
+                    {{ format_currency(customer.get_current_debt()) }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card credit">
+            <div class="card-body">
+                <div class="text-muted small">Credit Balance</div>
+                <div class="stat-value text-success">
+                    {{ format_currency(customer.get_available_credit()) }}
+                </div>
+                <div class="text-muted small">Available for future use</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card invoices">
+            <div class="card-body">
+                <div class="text-muted small">Unpaid Invoices</div>
+                <div class="stat-value text-primary">
+                    {{ unpaid_invoices|length }}
+                </div>
+                <div class="text-muted small">Pending payment</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs" id="customerTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="invoices-tab" data-bs-toggle="tab" data-bs-target="#invoices" type="button"
+            role="tab">
+            <i class="fas fa-file-invoice me-1"></i> Invoices
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button"
+            role="tab">
+            <i class="fas fa-money-bill-wave me-1"></i> Payments
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="ledger-tab" data-bs-toggle="tab" data-bs-target="#ledger" type="button" role="tab">
+            <i class="fas fa-book me-1"></i> Ledger
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content border border-top-0 rounded-bottom" id="customerTabsContent">
+    <!-- Invoices Tab -->
+    <div class="tab-pane fade show active p-3" id="invoices" role="tabpanel">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-end">Paid</th>
+                        <th class="text-end">Due</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in invoices %}
+                    <tr>
+                        <td><strong>{{ sale.invoice_no or sale.id }}</strong></td>
+                        <td>{{ sale.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                        <td>
+                            {% if sale.sale_type %}
+                            <span
+                                class="badge bg-{% if sale.sale_type.value == 'Wholesale' %}warning text-dark{% else %}info{% endif %}">
+                                {{ sale.sale_type.value }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-info">Retail</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">{{ format_currency(sale.grand_total) }}</td>
+                        <td class="text-end">{{ format_currency(sale.amount_paid) }}</td>
+                        <td class="text-end">{{ format_currency(sale.amount_due or 0) }}</td>
+                        <td>
+                            {% if sale.invoice_status %}
+                            <span
+                                class="badge bg-{% if sale.invoice_status.value == 'Paid' %}success{% elif sale.invoice_status.value == 'Partial' %}warning text-dark{% else %}danger{% endif %}">
+                                {{ sale.invoice_status.value }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-success">Paid</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}"
+                                class="btn btn-sm btn-outline-secondary" target="_blank">
+                                <i class="fas fa-receipt"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">No invoices found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Payments Tab -->
+    <div class="tab-pane fade p-3" id="payments" role="tabpanel">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Invoice</th>
+                        <th>Method</th>
+                        <th class="text-end">Amount</th>
+                        <th>Reference</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr>
+                        <td>{{ payment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                        <td>
+                            {% if payment.sale %}
+                            <a href="{{ url_for('sales.receipt', sale_id=payment.sale_id) }}" target="_blank">
+                                {{ payment.sale.invoice_no or payment.sale_id }}
+                            </a>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>{{ payment.payment_method.value }}</td>
+                        <td class="text-end text-success fw-semibold">{{ format_currency(payment.amount) }}</td>
+                        <td>{{ payment.reference or '-' }}</td>
+                        <td>{{ payment.note or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No payments found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Ledger Tab -->
+    <div class="tab-pane fade p-3" id="ledger" role="tabpanel">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th class="text-end">Debit</th>
+                        <th class="text-end">Credit</th>
+                        <th class="text-end">Balance</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in ledger_entries %}
+                    <tr>
+                        <td class="small">{{ entry.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                        <td>
+                            <span
+                                class="badge bg-{% if entry.entry_type.value == 'Invoice' %}primary{% elif entry.entry_type.value == 'Payment' %}success{% else %}secondary{% endif %}">
+                                {{ entry.entry_type.value }}
+                            </span>
+                        </td>
+                        <td class="text-end ledger-debit">
+                            {% if entry.debit > 0 %}{{ format_currency(entry.debit) }}{% endif %}
+                        </td>
+                        <td class="text-end ledger-credit">
+                            {% if entry.credit > 0 %}{{ format_currency(entry.credit) }}{% endif %}
+                        </td>
+                        <td class="text-end fw-semibold">{{ format_currency(entry.balance_after) }}</td>
+                        <td class="small">{{ entry.note or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No ledger entries found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if customer.notes %}
+<div class="card mt-4">
+    <div class="card-header"><i class="fas fa-sticky-note me-1"></i> Notes</div>
+    <div class="card-body">{{ customer.notes }}</div>
+</div>
+{% endif %}
+{% endblock %}

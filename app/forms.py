@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField, IntegerField, DecimalField, TextAreaField, DateField
-from wtforms.validators import DataRequired, Email, EqualTo, NumberRange, Optional
+from wtforms.validators import DataRequired, Email, EqualTo, NumberRange, Optional, InputRequired
 from wtforms.widgets import TextArea
 
 class LoginForm(FlaskForm):
@@ -50,6 +50,9 @@ class ProductForm(FlaskForm):
     description = TextAreaField('Description')
     cost_price = DecimalField('Cost Price', validators=[DataRequired(), NumberRange(min=0)])
     selling_price = DecimalField('Selling Price', validators=[DataRequired(), NumberRange(min=0)])
+    wholesale_price = DecimalField('Wholesale Price', validators=[Optional(), NumberRange(min=0)])
+    min_wholesale_qty = IntegerField('Min Wholesale Qty', default=1, validators=[Optional(), NumberRange(min=1)])
+    allow_wholesale = BooleanField('Allow Wholesale', default=True)
     quantity = IntegerField('Quantity in Stock', validators=[DataRequired(), NumberRange(min=0)])
     low_stock_threshold = IntegerField('Low Stock Threshold', validators=[Optional(), NumberRange(min=0)])
     is_active = BooleanField('Active', default=True)
@@ -62,7 +65,17 @@ class ProductForm(FlaskForm):
         self.category_id.choices = [(0, '-- No Category --')] + [(category.id, category.name) for category in Category.query.all()]
 
 class SystemSettingsForm(FlaskForm):
-    tax_rate = DecimalField('Tax Rate', validators=[DataRequired(), NumberRange(min=0, max=1)])
+    company_name = StringField('Company Name', validators=[Optional()])
+    company_address = StringField('Address', validators=[Optional()])
+    company_phone = StringField('Phone', validators=[Optional()])
+    email_host = StringField('Email Host', validators=[Optional()])
+    email_port = IntegerField('Email Port', validators=[Optional()])
+    email_username = StringField('Email Username', validators=[Optional()])
+    email_password = PasswordField('Email Password', validators=[Optional()])
+    currency_symbol = StringField('Currency Symbol', validators=[Optional()])
+    tax_rate = DecimalField('Tax Rate', validators=[InputRequired(), NumberRange(min=0, max=100)])
+    receipt_header = TextAreaField('Receipt Header', validators=[Optional()])
+    receipt_footer = TextAreaField('Receipt Footer', validators=[Optional()])
     submit = SubmitField('Save Settings')
 
 class ReportForm(FlaskForm):

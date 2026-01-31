@@ -102,18 +102,26 @@
                         <td>
                             {% if sale.payments|length > 1 %}
                             <span class="badge bg-primary text-white" title="Split Payment">Split</span>
-                            {% elif sale.payment_method == PaymentMethod.CASH %}
+                            {% else %}
+                            {% set method = sale.payment_method %}
+                            {# Handle both Enum and String for backward compatibility #}
+                            {% set method_str = method.value if method.value is defined else method|string %}
+
+                            {% if method_str == 'Cash' %}
                             <span class="badge bg-secondary text-white">Cash</span>
-                            {% elif sale.payment_method == PaymentMethod.CARD %}
+                            {% elif method_str == 'Card' %}
                             <span class="badge bg-info text-white">Card</span>
-                            {% elif sale.payment_method == PaymentMethod.E_DAHAB %}
+                            {% elif method_str == 'E-Dahab' %}
                             <span class="badge text-white" style="background-color: #f59e0b;">E-Dahab</span>
-                            {% elif sale.payment_method == PaymentMethod.ZAAD %}
+                            {% elif method_str == 'Zaad' %}
                             <span class="badge text-white" style="background-color: #10b981;">Zaad</span>
-                            {% elif sale.payment_method == PaymentMethod.MOBILE_MONEY %}
+                            {% elif method_str == 'Store Credit' %}
+                            <span class="badge text-white" style="background-color: #6f42c1;">Store Credit</span>
+                            {% elif method_str == 'Mobile Money' %}
                             <span class="badge bg-success text-white">Mobile</span>
                             {% else %}
-                            <span class="badge bg-dark text-white">{{ sale.payment_method.value }}</span>
+                            <span class="badge bg-dark text-white">{{ method_str }}</span>
+                            {% endif %}
                             {% endif %}
                         </td>
                         <td>

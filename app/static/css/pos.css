@@ -472,3 +472,214 @@
 #checkoutModal .modal-content {
     pointer-events: auto;
 }
+
+/* ================================================================
+   Checkout Modal Overhaul
+   ================================================================ */
+.modal-content {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    padding: 1.5rem 2rem;
+}
+
+.modal-title {
+    font-weight: 600;
+    font-size: 1.25rem;
+    letter-spacing: 0.5px;
+}
+
+/* Left Column: Summary */
+.summary-panel {
+    background-color: #f8f9fa;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.summary-scrollable {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 400px;
+    /* Adjust based on screen */
+    padding-right: 5px;
+}
+
+/* Right Column: Payment */
+.payment-panel {
+    background-color: #fff;
+    height: 100%;
+}
+
+/* Payment Method Cards */
+.payment-methods-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.payment-method-card {
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #fff;
+    position: relative;
+    overflow: hidden;
+}
+
+.payment-method-card:hover {
+    border-color: #dee2e6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.payment-method-card.active {
+    border-color: #0d6efd;
+    background-color: #f0f7ff;
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
+}
+
+.payment-method-card img {
+    height: 32px;
+    margin-bottom: 0.5rem;
+    object-fit: contain;
+}
+
+.payment-method-card .icon-wrapper {
+    height: 32px;
+    width: 32px;
+    /* Fixed width for icon alignment if needed */
+    margin: 0 auto 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.payment-method-card .method-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+/* Store Credit Feature Card */
+.store-credit-card {
+    background: linear-gradient(135deg, #d1e7dd 0%, #a3cfbb 100%);
+    border: none;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    color: #0f5132;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.store-credit-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.store-credit-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 100px;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(25deg);
+}
+
+.credit-info .label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.8;
+    font-weight: 600;
+}
+
+.credit-info .amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.btn-use-max {
+    background-color: #fff;
+    color: #0f5132;
+    border: none;
+    font-weight: 600;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    transition: transform 0.1s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.btn-use-max:hover {
+    transform: scale(1.05);
+    background-color: #f8f9fa;
+}
+
+.btn-use-max:active {
+    transform: scale(0.95);
+}
+
+/* Totals Summary in Modal */
+.modal-totals-box {
+    background-color: #212529;
+    color: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    /* margin-top: auto; ensures it sits at bottom if flux is used */
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+    opacity: 0.8;
+}
+
+.total-row.grand-total {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 1.1rem;
+    font-weight: 600;
+    opacity: 1;
+}
+
+.total-row.grand-total .value {
+    font-size: 1.4rem;
+    color: #ffd700;
+    /* Gold */
+}
+
+.payment-input-group {
+    transition: all 0.3s ease;
+    opacity: 0.6;
+    transform: scale(0.98);
+}
+
+.payment-input-group.active {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+    border-radius: 6px;
+    background-color: #fff;
+}

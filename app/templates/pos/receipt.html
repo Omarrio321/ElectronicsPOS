@@ -291,8 +291,8 @@
                 {% endif %}
                 <h2>{{ company_name }}</h2>
                 <p class="text-muted" style="margin: 5px 0; line-height: 1.4; font-size: 11px;">
-                    123 Tech Street, Hargeisa<br>
-                    Tel: +252 63 444444
+                    {{ company_address }}<br>
+                    Tel: {{ company_phone }}
                 </p>
             </div>
 
@@ -380,7 +380,6 @@
                 {% if sale.payments %}
                 {% for payment in sale.payments %}
                 <div class="row">
-<<<<<<< HEAD
                     <span>{{ payment.payment_method.value }}{% if payment.reference %} <span class="text-muted">({{
                             payment.reference }})</span>{% endif %}:</span>
                     <span>${{ "%.2f"|format(payment.amount) }}</span>
@@ -391,15 +390,10 @@
                 <div class="row">
                     <span>{{ sale.payment_method.value }}:</span>
                     <span>${{ "%.2f"|format(sale.amount_paid) }}</span>
-=======
-                    <span class="text-muted">Paid:</span>
-                    <span>{{ sale.amount_paid | format_currency }}</span>
->>>>>>> 20614f1a432a79f32cca348baf09ee1c9b09085f
                 </div>
                 {% endif %}
                 <div class="divider"></div>
                 <div class="row">
-<<<<<<< HEAD
                     <span class="text-muted">Total Paid:</span>
                     <span class="fw-bold">${{ "%.2f"|format(sale.amount_paid) }}</span>
                 </div>
@@ -407,10 +401,6 @@
                 <div class="row" style="color: #198754;">
                     <span>Change Given:</span>
                     <span class="fw-bold">${{ "%.2f"|format(sale.change_given) }}</span>
-=======
-                    <span class="text-muted">Change:</span>
-                    <span>{{ sale.change_given | format_currency }}</span>
->>>>>>> 20614f1a432a79f32cca348baf09ee1c9b09085f
                 </div>
                 {% endif %}
             </div>

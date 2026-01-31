@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Receive Payment - {{ customer.full_name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('customers.index') }}">Customers</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('customers.profile', customer_id=customer.id) }}">{{
+                        customer.full_name }}</a></li>
+                <li class="breadcrumb-item active">Receive Payment</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i> Payment Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label class="form-label">Customer</label>
+                        <input type="text" class="form-control" value="{{ customer.full_name }}" readonly>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="amount" class="form-label">Amount Received <span
+                                    class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="amount" name="amount" step="0.01"
+                                    min="0.01" required autofocus>
+                            </div>
+                            <div class="form-text">Outstanding Balance: <span class="text-danger fw-bold">{{
+                                    format_currency(outstanding_balance) }}</span></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="date" name="date" value="{{ today }}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="method" class="form-label">Payment Method <span class="text-danger">*</span></label>
+                        <select class="form-select" id="method" name="method" required>
+                            <option value="Cash">Cash</option>
+                            <option value="Card">Card</option>
+                            <option value="E-Dahab">E-Dahab</option>
+                            <option value="Zaad">Zaad</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="reference" class="form-label">Reference ID (Optional)</label>
+                        <input type="text" class="form-control" id="reference" name="reference"
+                            placeholder="e.g. Transaction #">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('customers.profile', customer_id=customer.id) }}"
+                            class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-success"><i class="fas fa-check me-2"></i> Record
+                            Payment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unpaid Invoices Context -->
+    <div class="col-md-6">
+        <div class="card border-warning">
+            <div class="card-header bg-warning-subtle text-warning-emphasis">
+                <h5 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i> Unpaid Invoices</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>Invoice</th>
+                                <th>Date</th>
+                                <th class="text-end">Due</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in unpaid_invoices %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('sales.receipt', sale_id=invoice.id) }}" target="_blank">
+                                        {{ invoice.invoice_no or invoice.id }}
+                                    </a>
+                                </td>
+                                <td>{{ invoice.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td class="text-end text-danger fw-bold">{{ format_currency(invoice.amount_due) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-3">No unpaid invoices</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-light fw-bold">
+                                <td colspan="2" class="text-end">Total Due:</td>
+                                <td class="text-end text-danger">{{ format_currency(outstanding_balance) }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer small text-muted">
+                Payment will be applied to the oldest invoices first.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

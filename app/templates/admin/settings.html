@@ -59,7 +59,7 @@
                             {% if setting.key in ['tax_rate'] %}
                             <div class="input-group">
                                 <input type="number" name="{{ setting.key }}" class="form-control"
-                                    value="{{ setting.value }}" step="0.001" min="0" max="1">
+                                    value="{{ setting.value }}" step="any" min="0">
                                 <span class="input-group-text"><i class="bi bi-percent"></i></span>
                             </div>
                             {% elif setting.key in ['receipt_header', 'receipt_footer'] %}

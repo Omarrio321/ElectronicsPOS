@@ -67,6 +67,9 @@ def add():
             barcode=form.barcode.data,
             cost_price=form.cost_price.data,
             selling_price=form.selling_price.data,
+            wholesale_price=form.wholesale_price.data,
+            min_wholesale_qty=form.min_wholesale_qty.data,
+            allow_wholesale=form.allow_wholesale.data,
             quantity_in_stock=form.quantity.data,
             low_stock_threshold=form.low_stock_threshold.data,
             description=form.description.data
@@ -110,6 +113,9 @@ def edit(product_id):
         product.barcode = form.barcode.data
         product.cost_price = form.cost_price.data
         product.selling_price = form.selling_price.data
+        product.wholesale_price = form.wholesale_price.data
+        product.min_wholesale_qty = form.min_wholesale_qty.data
+        product.allow_wholesale = form.allow_wholesale.data
         product.quantity_in_stock = form.quantity.data
         product.low_stock_threshold = form.low_stock_threshold.data
         product.description = form.description.data

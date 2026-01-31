@@ -1,13 +1,16 @@
 # app/sales.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, send_file
 from flask_login import login_required, current_user
-from app.models import db, Sale, SaleItem, Product, User, SystemSetting, PaymentMethod, SaleStatus, Expense, ExpenseCategory, ExpenseStatus
+from app.models import db, Sale, SaleItem, Product, User, SystemSetting, PaymentMethod, SaleStatus, Expense, ExpenseCategory, ExpenseStatus, Payment
 from sqlalchemy import func, and_
 from datetime import datetime, timedelta
 from io import BytesIO
 import pdfkit
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
+import barcode
+from barcode.writer import ImageWriter
+import base64
 
 sales_bp = Blueprint('sales', __name__, url_prefix='/sales')
 
@@ -101,6 +104,18 @@ def receipt(sale_id):
     receipt_header = SystemSetting.get('receipt_header', 'Electronics Store POS System')
     receipt_footer = SystemSetting.get('receipt_footer', 'Thank you for your business!')
 
+    # Generate Barcode
+    barcode_b64 = None
+    if sale.invoice_no:
+        try:
+            Code128 = barcode.get_barcode_class('code128')
+            my_barcode = Code128(sale.invoice_no, writer=ImageWriter())
+            buffer = BytesIO()
+            my_barcode.write(buffer)
+            barcode_b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        except Exception as e:
+            current_app.logger.error(f"Barcode generation failed: {e}")
+
     return render_template(
         'sales/receipt.html',
         sale=sale,
@@ -108,7 +123,8 @@ def receipt(sale_id):
         receipt_header=receipt_header,
         receipt_footer=receipt_footer,
         format_currency=format_currency,
-        PaymentMethod=PaymentMethod
+        PaymentMethod=PaymentMethod,
+        barcode_b64=barcode_b64
     )
 
 # --------------------
@@ -123,6 +139,18 @@ def receipt_pdf(sale_id):
     receipt_header = SystemSetting.get('receipt_header', 'Electronics Store POS System')
     receipt_footer = SystemSetting.get('receipt_footer', 'Thank you for your business!')
 
+    # Generate Barcode
+    barcode_b64 = None
+    if sale.invoice_no:
+        try:
+            Code128 = barcode.get_barcode_class('code128')
+            my_barcode = Code128(sale.invoice_no, writer=ImageWriter())
+            buffer = BytesIO()
+            my_barcode.write(buffer)
+            barcode_b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        except Exception as e:
+            current_app.logger.error(f"Barcode generation failed: {e}")
+
     # Render PDF-friendly HTML template
     # Create a dedicated template 'sales/receipt_pdf.html' or reuse 'receipt.html' if that works well
     html = render_template(
@@ -132,14 +160,25 @@ def receipt_pdf(sale_id):
         receipt_header=receipt_header,
         receipt_footer=receipt_footer,
         format_currency=format_currency,
-        PaymentMethod=PaymentMethod
+        PaymentMethod=PaymentMethod,
+        barcode_b64=barcode_b64
     )
 
     # Generate PDF bytes
     try:
         path_wkhtmltopdf = current_app.config.get('WKHTMLTOPDF_PATH')
         config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
-        pdf_bytes = pdfkit.from_string(html, False, configuration=config)
+        
+        options = {
+            'page-size': 'A4',
+            'margin-top': '10mm',
+            'margin-right': '10mm',
+            'margin-bottom': '10mm',
+            'margin-left': '10mm',
+            'encoding': "UTF-8"
+        }
+        
+        pdf_bytes = pdfkit.from_string(html, False, configuration=config, options=options)
     except Exception as e:
         current_app.logger.exception("pdfkit failed to generate PDF")
         flash("PDF generation failed: " + str(e), "danger")
@@ -426,13 +465,14 @@ def reports():
         cursor += timedelta(days=1)
 
     # Payment methods (labels + values)
+    # Payment methods (labels + values) - Updated to use Payment table for accuracy (split/partial payments)
     pm_rows = db.session.query(
-        Sale.payment_method,
-        func.coalesce(func.sum(Sale.grand_total), 0).label('total')
+        Payment.payment_method,
+        func.coalesce(func.sum(Payment.amount), 0).label('total')
     ).filter(
-        func.date(Sale.created_at) >= start_date,
-        func.date(Sale.created_at) <= end_date
-    ).group_by(Sale.payment_method).all()
+        func.date(Payment.created_at) >= start_date,
+        func.date(Payment.created_at) <= end_date
+    ).group_by(Payment.payment_method).all()
 
     pm_labels = []
     pm_values = []

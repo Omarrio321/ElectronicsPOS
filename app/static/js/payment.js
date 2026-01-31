@@ -256,62 +256,201 @@ function getPaymentAmounts() {
         cash: payCash ? (parseFloat(payCash.value) || 0) : 0,
         card: payCard ? (parseFloat(payCard.value) || 0) : 0,
         edahab: payEDahab ? (parseFloat(payEDahab.value) || 0) : 0,
-        zaad: payZaad ? (parseFloat(payZaad.value) || 0) : 0
+        zaad: payZaad ? (parseFloat(payZaad.value) || 0) : 0,
+        storeCredit: (() => {
+            const el = document.getElementById('payStoreCredit');
+            return el ? (parseFloat(el.value) || 0) : 0;
+        })()
     };
 }
 
-function updatePaymentTotals() {
-    const remainingRow = document.getElementById('remainingRow');
-    const changeRow = document.getElementById('changeRow');
-    const completeBtn = document.getElementById('completeBtn');
-
-    if (!remainingRow || !changeRow || !completeBtn) {
-        return;
+// Helper to toggle visibility for d-flex elements
+function toggleFlexRow(el, show) {
+    if (!el) return;
+    if (show) {
+        el.classList.remove('d-none');
+        el.classList.add('d-flex');
+        el.style.display = '';
+    } else {
+        el.classList.remove('d-flex');
+        el.classList.add('d-none');
+        el.style.display = 'none';
     }
+}
 
+/* ================================================================
+   UI Helpers
+   ================================================================ */
+function focusPaymentInput(inputId) {
+    const el = document.getElementById(inputId);
+    if (el) {
+        el.focus();
+        // Highlight parent card
+        const card = el.closest('.payment-method-card');
+        if (card) showActiveCard(card);
+    }
+}
+
+function showActiveCard(card) {
+    // Optional: could implement radio-like behavior if we wanted only one active
+    // For now, just focus effect handled by CSS focus-within or manual class
+}
+
+function useMaxCredit(e) {
+    if (e) e.preventDefault();
+
+    // Get current totals
     const grandTotal = getGrandTotal();
     const amounts = getPaymentAmounts();
-    const totalPaid = amounts.cash + amounts.card + amounts.edahab + amounts.zaad;
-    const digitalPaid = amounts.card + amounts.edahab + amounts.zaad;
+    const otherPayments = amounts.cash + amounts.card + amounts.edahab + amounts.zaad;
+    const remainingToPay = Math.max(0, grandTotal - otherPayments);
 
-    const remaining = grandTotal - totalPaid;
-    const change = totalPaid - grandTotal;
+    // Get available
+    const customer = state.selectedCustomer;
+    if (!customer || !customer.credit_balance) return;
 
-    const totalPaidDisplay = document.getElementById('totalPaidDisplay');
-    if (totalPaidDisplay) totalPaidDisplay.innerText = `$${totalPaid.toFixed(2)}`;
+    const available = parseFloat(customer.credit_balance);
+    const useAmount = Math.min(remainingToPay, available);
 
-    const digitalOverpayError = document.getElementById('digitalOverpayError');
-    const paymentError = document.getElementById('paymentError');
+    const input = document.getElementById('payStoreCredit');
+    if (input) {
+        input.value = useAmount.toFixed(2);
+        updatePaymentTotals();
+    }
+}
 
-    const isDigitalOverpay = digitalPaid > grandTotal + 0.001;
+function updatePaymentTotals() {
+    try {
+        const remainingRow = document.getElementById('remainingRow');
+        const changeRow = document.getElementById('changeRow');
+        const completeBtn = document.getElementById('completeBtn');
+        const amountDueRow = document.getElementById('amountDueRow');
+        const partialPaymentInfo = document.getElementById('partialPaymentInfo');
+        const totalPaidDisplay = document.getElementById('totalPaidDisplay');
+        const digitalOverpayError = document.getElementById('digitalOverpayError');
+        const paymentError = document.getElementById('paymentError');
 
-    if (remaining > 0.001) {
-        remainingRow.style.display = 'flex';
-        changeRow.style.display = 'none';
-        const remainingDisplay = document.getElementById('remainingDisplay');
-        if (remainingDisplay) remainingDisplay.innerText = `$${remaining.toFixed(2)}`;
-        completeBtn.disabled = true;
-        if (paymentError) paymentError.style.display = totalPaid > 0 ? 'none' : 'block';
-        if (digitalOverpayError) digitalOverpayError.style.display = 'none';
-    } else if (isDigitalOverpay) {
-        remainingRow.style.display = 'none';
-        changeRow.style.display = 'none';
-        completeBtn.disabled = true;
+        if (!remainingRow || !changeRow || !completeBtn) return;
+
+        const grandTotal = getGrandTotal();
+        const amounts = getPaymentAmounts();
+        // Credit counts towards total paid
+        const totalPaid = amounts.cash + amounts.card + amounts.edahab + amounts.zaad + amounts.storeCredit;
+        const digitalPaid = amounts.card + amounts.edahab + amounts.zaad + amounts.storeCredit;
+
+        // Ensure floating point precision stability
+        const remaining = Math.max(0, parseFloat((grandTotal - totalPaid).toFixed(2)));
+        const change = Math.max(0, parseFloat((totalPaid - grandTotal).toFixed(2)));
+
+        // Update Total Paid Display
+        if (totalPaidDisplay) totalPaidDisplay.innerText = `$${totalPaid.toFixed(2)}`;
+
+        // Check permissions
+        const partialCheckbox = document.getElementById('allowPartialPayment');
+        const allowPartial = partialCheckbox && partialCheckbox.checked && state.selectedCustomer;
+        const isDigitalOverpay = digitalPaid > grandTotal + 0.005;
+
+        // Reset all error/info states first
         if (paymentError) paymentError.style.display = 'none';
-        if (digitalOverpayError) digitalOverpayError.style.display = 'block';
-    } else {
-        remainingRow.style.display = 'none';
-        changeRow.style.display = change > 0.001 ? 'flex' : 'none';
-        const changeDisplay = document.getElementById('changeDisplay');
-        if (changeDisplay) changeDisplay.innerText = `$${change.toFixed(2)}`;
-        completeBtn.disabled = state.cart.length === 0;
-        if (paymentError) paymentError.style.display = 'none';
         if (digitalOverpayError) digitalOverpayError.style.display = 'none';
+        if (partialPaymentInfo) partialPaymentInfo.style.display = 'none';
+
+        // Hide amount due row by default (it's d-flex)
+        toggleFlexRow(amountDueRow, false);
+
+        // --- STORE CREDIT UI LOGIC ---
+        const storeCreditCard = document.getElementById('storeCreditCard');
+        const payStoreCredit = document.getElementById('payStoreCredit');
+        const storeCreditAvailable = document.getElementById('storeCreditAvailable');
+
+        if (storeCreditCard && payStoreCredit) {
+            const customer = state.selectedCustomer;
+
+            if (customer && customer.credit_balance > 0) {
+                storeCreditCard.style.display = 'flex';
+                if (storeCreditAvailable) {
+                    storeCreditAvailable.innerText = `$${parseFloat(customer.credit_balance).toFixed(2)}`;
+                }
+
+                // Validate limits
+                const entered = parseFloat(payStoreCredit.value) || 0;
+                if (entered > customer.credit_balance) {
+                    payStoreCredit.classList.add('is-invalid');
+                } else {
+                    payStoreCredit.classList.remove('is-invalid');
+                }
+            } else {
+                storeCreditCard.style.display = 'none';
+                payStoreCredit.value = '';
+            }
+        }
+
+        // --- HIGHLIGHT ACTIVE CARDS ---
+        ['payCash', 'payCard', 'payEDahab', 'payZaad'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                const card = el.closest('.payment-method-card');
+                if (card) {
+                    if (el.value && parseFloat(el.value) > 0) {
+                        card.classList.add('active');
+                    } else {
+                        card.classList.remove('active');
+                    }
+                }
+            }
+        });
+
+        // Logic branching
+        if (isDigitalOverpay) {
+            toggleFlexRow(remainingRow, false);
+            toggleFlexRow(changeRow, false);
+            completeBtn.disabled = true;
+            if (digitalOverpayError) digitalOverpayError.style.display = 'block';
+        } else if (remaining > 0.005) {
+            // Still owe money
+            if (allowPartial) {
+                // Partial payment allowed
+                toggleFlexRow(remainingRow, false);
+                toggleFlexRow(changeRow, false);
+
+                toggleFlexRow(amountDueRow, true);
+                const amountDueDisplay = document.getElementById('amountDueDisplay');
+                if (amountDueDisplay) amountDueDisplay.innerText = `$${remaining.toFixed(2)}`;
+
+                if (partialPaymentInfo) partialPaymentInfo.style.display = 'block';
+                completeBtn.disabled = false;
+            } else {
+                // Must pay in full
+                toggleFlexRow(remainingRow, true);
+                toggleFlexRow(changeRow, false);
+
+                const remainingDisplay = document.getElementById('remainingDisplay');
+                if (remainingDisplay) remainingDisplay.innerText = `$${remaining.toFixed(2)}`;
+
+                completeBtn.disabled = true;
+
+                if (paymentError && totalPaid <= 0) {
+                    paymentError.style.display = 'block';
+                }
+            }
+        } else {
+            // Paid in full or overpaid
+            toggleFlexRow(remainingRow, false);
+            toggleFlexRow(changeRow, true);
+
+            const changeDisplay = document.getElementById('changeDisplay');
+            if (changeDisplay) changeDisplay.innerText = `$${change.toFixed(2)}`;
+
+            completeBtn.disabled = false;
+        }
+
+    } catch (e) {
+        console.error("Error in updatePaymentTotals", e);
     }
 }
 
 function clearPayments() {
-    const fields = ['payCash', 'payCard', 'payEDahab', 'payZaad', 'refCard', 'refEDahab', 'refZaad'];
+    const fields = ['payCash', 'payCard', 'payEDahab', 'payZaad', 'payStoreCredit', 'refCard', 'refEDahab', 'refZaad'];
     fields.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -319,6 +458,9 @@ function clearPayments() {
 
     const discountInput = document.getElementById('discountInput');
     if (discountInput) discountInput.value = '';
+
+    // Clear active classes
+    document.querySelectorAll('.payment-method-card').forEach(c => c.classList.remove('active'));
 
     updatePaymentTotals();
 }
@@ -342,6 +484,9 @@ function buildPaymentsArray() {
         const refZaad = document.getElementById('refZaad');
         payments.push({ method: 'Zaad', amount: amounts.zaad, reference: refZaad?.value || '' });
     }
+    if (amounts.storeCredit > 0) {
+        payments.push({ method: 'Store Credit', amount: amounts.storeCredit, reference: '' });
+    }
 
     return payments;
 }
@@ -358,7 +503,10 @@ async function processCheckout() {
     }
 
     const payments = buildPaymentsArray();
-    if (payments.length === 0) {
+    const partialCheckbox = document.getElementById('allowPartialPayment');
+    const allowPartial = partialCheckbox && partialCheckbox.checked && state.selectedCustomer;
+
+    if (payments.length === 0 && !allowPartial) {
         const paymentError = document.getElementById('paymentError');
         if (paymentError) paymentError.style.display = 'block';
         logDebug('No payment entered');
@@ -369,7 +517,11 @@ async function processCheckout() {
     const payload = {
         items: state.cart.map(i => ({ product_id: i.id, quantity: i.quantity, price: i.price })),
         discount: discountInput ? (parseFloat(discountInput.value) || 0) : 0,
-        payments: payments
+        payments: payments,
+        // New fields for customer/wholesale/partial
+        customer_id: state.selectedCustomer?.id || null,
+        sale_type: state.saleType || 'RETAIL',
+        allow_partial_payment: allowPartial || false
     };
 
     try {
@@ -385,7 +537,9 @@ async function processCheckout() {
             }
 
             // Show success message
-            if (res.change && res.change > 0) {
+            if (res.invoice_status === 'PARTIAL' || res.amount_due > 0) {
+                showToast(`Invoice created! Amount due: $${res.amount_due.toFixed(2)}`, 'success');
+            } else if (res.change && res.change > 0) {
                 showToast(`Sale completed! Change: $${res.change.toFixed(2)}`, 'success');
             } else {
                 showToast('Sale completed successfully!', 'success');
@@ -396,9 +550,16 @@ async function processCheckout() {
 
             // Clear cart and reset state
             state.cart = [];
+            state.selectedCustomer = null;
+            state.saleType = 'RETAIL';
             localStorage.removeItem('pos_cart');
             clearPayments();
             renderCart();
+
+            // Reset customer search
+            if (typeof resetCheckoutModal === 'function') {
+                resetCheckoutModal();
+            }
 
             logDebug('Cart cleared, ready for next sale');
         } else {

@@ -146,13 +146,11 @@
             <table class="table table-striped align-middle">
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Name</th>
                         <th>Category</th>
                         <th>SKU</th>
-                        <th>Barcode</th>
-                        <th>Cost Price</th>
-                        <th>Selling Price</th>
+                        <th>Retail Price</th>
+                        <th>Wholesale Price</th>
                         <th>Stock</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -161,13 +159,21 @@
                 <tbody>
                     {% for product in products.items %}
                     <tr>
-                        <td>{{ product.id }}</td>
-                        <td>{{ product.name }}</td>
+                        <td>
+                            <div class="fw-bold">{{ product.name }}</div>
+                            <small class="text-muted">{{ product.barcode or '' }}</small>
+                        </td>
                         <td>{{ product.category.name if product.category else '-' }}</td>
                         <td>{{ product.sku }}</td>
-                        <td>{{ product.barcode or '-' }}</td>
-                        <td>{{ format_currency(product.cost_price) }}</td>
                         <td>{{ format_currency(product.selling_price) }}</td>
+                        <td>
+                            {% if product.allow_wholesale %}
+                            {{ format_currency(product.wholesale_price) if product.wholesale_price else '-' }}
+                            <div class="small text-muted">Min: {{ product.min_wholesale_qty }}</div>
+                            {% else %}
+                            <span class="badge bg-light text-dark">N/A</span>
+                            {% endif %}
+                        </td>
                         <td>{{ product.quantity_in_stock }}</td>
                         <td>
                             {% if product.is_low_stock %}
@@ -195,7 +201,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="10" class="text-center text-muted">No products found.</td>
+                        <td colspan="8" class="text-center text-muted">No products found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
