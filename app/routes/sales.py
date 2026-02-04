@@ -349,6 +349,13 @@ def export_excel():
             payment = sale.payment_method.value
         except Exception:
             payment = str(sale.payment_method)
+            
+        # Fallback for empty payment method
+        if not payment and sale.payments:
+            try:
+                payment = sale.payments[0].payment_method.value
+            except:
+                payment = str(sale.payments[0].payment_method)
         
         try:
             status = sale.sale_status.value
@@ -465,8 +472,8 @@ def reports():
         cursor += timedelta(days=1)
 
     # Payment methods (labels + values)
-    # Payment methods (labels + values) - Updated to use Payment table for accuracy (split/partial payments)
-    pm_rows = db.session.query(
+    # SUM ALL PAYMENTS in period (Cash Basis)
+    pm_stats = db.session.query(
         Payment.payment_method,
         func.coalesce(func.sum(Payment.amount), 0).label('total')
     ).filter(
@@ -476,21 +483,22 @@ def reports():
 
     pm_labels = []
     pm_values = []
-    for r in pm_rows:
+    for r in pm_stats:
         try:
-            label = r.payment_method.value  # if Enum
-        except Exception:
+            label = r.payment_method.value
+        except:
             label = str(r.payment_method)
         pm_labels.append(label)
         pm_values.append(float(r.total or 0))
 
     # Totals and aggregates
-    total_sales = db.session.query(func.count(Sale.id)).filter(
+    # Invoiced Total (Accrual Basis - what we sold)
+    total_sales_count = db.session.query(func.count(Sale.id)).filter(
         func.date(Sale.created_at) >= start_date,
         func.date(Sale.created_at) <= end_date
     ).scalar() or 0
 
-    total_revenue = db.session.query(func.coalesce(func.sum(Sale.grand_total), 0)).filter(
+    total_invoiced = db.session.query(func.coalesce(func.sum(Sale.grand_total), 0)).filter(
         func.date(Sale.created_at) >= start_date,
         func.date(Sale.created_at) <= end_date
     ).scalar() or 0
@@ -502,8 +510,15 @@ def reports():
 
     low_stock_count = Product.query.filter(Product.quantity_in_stock <= Product.low_stock_threshold).count()
 
-    # --- COGS (Cost of Goods Sold) ---
-    # Calculate cost of products sold in the period
+    # --- CASH FLOW ANALYSIS ---
+    
+    # 1. Total Collected (Cash Basis - what we received)
+    total_collected = db.session.query(func.coalesce(func.sum(Payment.amount), 0)).filter(
+        func.date(Payment.created_at) >= start_date,
+        func.date(Payment.created_at) <= end_date
+    ).scalar() or 0
+
+    # 2. COGS (Cost of Goods Sold)
     cogs = db.session.query(
         func.coalesce(func.sum(SaleItem.quantity_sold * Product.cost_price), 0)
     ).join(Product).join(Sale, SaleItem.sale).filter(
@@ -511,11 +526,19 @@ def reports():
         func.date(Sale.created_at) <= end_date
     ).scalar() or 0
 
-    # Gross Profit = Revenue - COGS
-    gross_profit = float(total_revenue) - float(cogs)
+    # 3. Real Profit (Iterating sales to use property logic max(0, paid - cost))
+    # Note: Ideally this loop only runs over sales that had activity in period, 
+    # but for simplicity/correctness we sum real_profit of sales created in this period.
+    # Strict cash basis might say profit is realized when payment is made, but per-sale profit
+    # is usually tied to the sale lifecycle. We'll stick to "Profit from Sales in this Period".
+    period_sales = Sale.query.filter(
+        func.date(Sale.created_at) >= start_date,
+        func.date(Sale.created_at) <= end_date
+    ).all()
+    gross_profit = sum(sale.real_profit for sale in period_sales)
 
-    # Average Order Value
-    avg_order_value = float(total_revenue) / float(total_sales) if total_sales > 0 else 0
+    # Average Order Value (based on Invoiced Total)
+    avg_order_value = float(total_invoiced) / float(total_sales_count) if total_sales_count > 0 else 0
 
     # Top products
     top_products = db.session.query(
@@ -538,25 +561,22 @@ def reports():
     ).group_by(User.id).order_by(func.sum(Sale.grand_total).desc()).all()
 
     # --- EXPENSES INTEGRATION ---
-    # Only PAID expenses count towards net profit calculation
     paid_expenses = db.session.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
         Expense.date >= start_date,
         Expense.date <= end_date,
         Expense.status == ExpenseStatus.PAID
     ).scalar() or 0
 
-    # Track pending expenses separately for visibility
     pending_expenses = db.session.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
         Expense.date >= start_date,
         Expense.date <= end_date,
         Expense.status == ExpenseStatus.PENDING
     ).scalar() or 0
 
-    # Total expenses (all statuses) for reporting purposes
     total_expenses = float(paid_expenses) + float(pending_expenses)
 
-    # Net profit = Revenue - COGS - Paid Expenses (matches dashboard formula)
-    net_profit = float(total_revenue) - float(cogs) - float(paid_expenses)
+    # Net Profit = Real Gross Profit - Paid Expenses
+    net_profit = float(gross_profit) - float(paid_expenses)
 
     # Expense Distribution by Category (PAID only for chart accuracy)
     exp_stats = db.session.query(
@@ -573,24 +593,25 @@ def reports():
     exp_values = [float(r[1]) for r in exp_stats]
     exp_colors = [r[2] for r in exp_stats]
 
-    # Recent Expenses for table (show all statuses for context)
+    # Recent Expenses
     recent_expenses = Expense.query.filter(
         Expense.date >= start_date,
         Expense.date <= end_date
     ).order_by(Expense.date.desc()).limit(10).all()
 
-    # Render template: these keys match the shape used by the templates provided earlier
     return render_template(
         'sales/reports.html',
         report_type=report_type,
         start_date=start_date,
         end_date=end_date,
-        total_sales=int(total_sales),
-        total_revenue=float(total_revenue),
+        total_sales=int(total_sales_count),
+        total_invoiced=float(total_invoiced),
+        total_collected=float(total_collected),
         total_items=int(total_items),
         cogs=float(cogs),
-        gross_profit=gross_profit,
+        gross_profit=gross_profit,  # This is now REAL profit
         avg_order_value=avg_order_value,
+        # ... rest same ...
         paid_expenses=float(paid_expenses),
         pending_expenses=float(pending_expenses),
         total_expenses=float(total_expenses),

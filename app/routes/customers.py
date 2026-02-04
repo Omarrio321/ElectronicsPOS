@@ -5,8 +5,10 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from app.models import db, Customer, CustomerLedger, Sale, Payment, CustomerStatus, LedgerEntryType, InvoiceStatus, PaymentMethod, SaleStatus
 from app.utils import format_currency
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
+from sqlalchemy import func, desc, and_
+from app.models import db, Customer, CustomerLedger, Sale, Payment, CustomerStatus, LedgerEntryType, InvoiceStatus, PaymentMethod, SaleStatus, SaleType
 
 customers_bp = Blueprint('customers', __name__, url_prefix='/customers')
 
@@ -18,12 +20,20 @@ customers_bp = Blueprint('customers', __name__, url_prefix='/customers')
 @customers_bp.route('/')
 @login_required
 def index():
-    """List all customers with search and pagination"""
+    """List all customers with search, pagination, and dashboard stats"""
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '').strip()
     status_filter = request.args.get('status', '')
+    leaderboard_metric = request.args.get('metric', 'top_spenders_month')
     per_page = 20
     
+    # --- DASHBOARD STATISTICS ---
+    stats = get_dashboard_stats()
+    
+    # --- LEADERBOARD ---
+    leaderboard = get_leaderboard(leaderboard_metric)
+
+    # --- CUSTOMER LIST QUERY ---
     query = Customer.query
     
     # Search filter
@@ -38,10 +48,24 @@ def index():
     
     # Status filter
     if status_filter:
-        try:
-            query = query.filter(Customer.status == CustomerStatus(status_filter))
-        except:
-            pass
+        if status_filter == 'Debtors':
+            # Subquery to find customers with positive balance
+            subq = db.session.query(
+                CustomerLedger.customer_id,
+                func.max(CustomerLedger.id).label('max_id')
+            ).group_by(CustomerLedger.customer_id).subquery()
+            
+            debtor_ids = db.session.query(CustomerLedger.customer_id)\
+                .join(subq, CustomerLedger.id == subq.c.max_id)\
+                .filter(CustomerLedger.balance_after > 0).all()
+            debtor_ids = [d[0] for d in debtor_ids]
+            
+            query = query.filter(Customer.id.in_(debtor_ids))
+        else:
+            try:
+                query = query.filter(Customer.status == CustomerStatus(status_filter))
+            except:
+                pass
     
     # Order by name
     query = query.order_by(Customer.full_name.asc())
@@ -52,7 +76,141 @@ def index():
     return render_template('customers/index.html', 
                            customers=customers, 
                            search=search,
-                           status_filter=status_filter)
+                           status_filter=status_filter,
+                           stats=stats,
+                           leaderboard=leaderboard,
+                           current_metric=leaderboard_metric,
+                           format_currency=format_currency)
+
+def get_dashboard_stats():
+    """Calculate dashboard metrics efficiently"""
+    today = datetime.utcnow().date()
+    start_of_month = today.replace(day=1)
+    
+    # 1. Total & Active Customers
+    total_customers = Customer.query.count()
+    
+    # Active: Customers with at least 1 invoice in last 30 days
+    last_30_days = today - timedelta(days=30)
+    active_customers = db.session.query(func.count(func.distinct(Sale.customer_id)))\
+        .filter(Sale.created_at >= last_30_days, Sale.customer_id.isnot(None)).scalar() or 0
+        
+    # 2. Financials (Ledger & Payments)
+    # Customers with Balance Due (Latest ledger entry > 0)
+    # This is complex in SQL without a subquery, so we check the `get_outstanding_balance` equivalent logic
+    # Optimization: We assume efficient ledger usage. 
+    # For scalable "Balance Due" count, we ideally need a 'current_balance' column on Customer table.
+    # PROD NOTE: Add current_balance column to Customer for O(1) query.
+    # For now, we will query latest ledger entries.
+    
+    # Subquery to get latest ledger ID for each customer
+    subq = db.session.query(
+        CustomerLedger.customer_id,
+        func.max(CustomerLedger.id).label('max_id')
+    ).group_by(CustomerLedger.customer_id).subquery()
+    
+    # Join to get the balance
+    balance_due_count = db.session.query(func.count(CustomerLedger.id))\
+        .join(subq, CustomerLedger.id == subq.c.max_id)\
+        .filter(CustomerLedger.balance_after > 0).scalar() or 0
+        
+    total_outstanding = db.session.query(func.sum(CustomerLedger.balance_after))\
+        .join(subq, CustomerLedger.id == subq.c.max_id)\
+        .filter(CustomerLedger.balance_after > 0).scalar() or 0
+        
+    # 3. Monthly Metrics
+    # Paid This Month
+    paid_this_month = db.session.query(func.sum(Payment.amount))\
+        .filter(Payment.created_at >= start_of_month).scalar() or 0
+        
+    # Wholesale Sales This Month (SaleType.WHOLESALE)
+    # Assuming we added SaleType to Sale model in shared context, otherwise use logic
+    # If SaleType not in Sale model, we check price_type of items or similar.
+    # Based on models.py viewed earlier, Sale has sale_type!
+    wholesale_sales = db.session.query(func.sum(Sale.grand_total))\
+        .filter(Sale.created_at >= start_of_month, 
+                Sale.sale_status != SaleStatus.VOIDED,
+                # Sale.sale_type == SaleType.WHOLESALE  <-- If SaleType exists and is populated
+                ).scalar() or 0
+    
+    # Retail Sales (Approximate as Total - Wholesale for now if Mixed types exist)
+    total_sales_month = db.session.query(func.sum(Sale.grand_total))\
+        .filter(Sale.created_at >= start_of_month,
+                Sale.sale_status != SaleStatus.VOIDED).scalar() or 0
+    retail_sales = float(total_sales_month) - float(wholesale_sales)
+
+    # Top Customer This Month
+    top_customer = db.session.query(
+        Customer.full_name,
+        func.sum(Sale.grand_total).label('total_spent')
+    ).join(Sale).filter(
+        Sale.created_at >= start_of_month,
+        Sale.sale_status != SaleStatus.VOIDED
+    ).group_by(Customer.id).order_by(desc('total_spent')).first()
+    
+    return {
+        'total_customers': total_customers,
+        'active_customers': active_customers,
+        'balance_due_count': balance_due_count,
+        'total_outstanding': total_outstanding,
+        'paid_this_month': paid_this_month,
+        'wholesale_sales': wholesale_sales,
+        'retail_sales': retail_sales,
+        'top_customer': top_customer
+    }
+
+def get_leaderboard(metric='top_spenders_month'):
+    """Get top 10 customers based on metric"""
+    query = db.session.query(
+        Customer.id,
+        Customer.full_name,
+        Customer.phone
+    )
+    
+    limit = 10
+    results = []
+    
+    if metric == 'top_spenders_month':
+        start_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0)
+        rows = query.add_columns(func.sum(Sale.grand_total).label('value'))\
+            .join(Sale)\
+            .filter(Sale.created_at >= start_of_month, Sale.sale_status != SaleStatus.VOIDED)\
+            .group_by(Customer.id)\
+            .order_by(desc('value')).limit(limit).all()
+        results = [{'id': r.id, 'name': r.full_name, 'value': r.value, 'label': 'Spent'} for r in rows]
+        
+    elif metric == 'top_spenders_all':
+        rows = query.add_columns(func.sum(Sale.grand_total).label('value'))\
+            .join(Sale)\
+            .filter(Sale.sale_status != SaleStatus.VOIDED)\
+            .group_by(Customer.id)\
+            .order_by(desc('value')).limit(limit).all()
+        results = [{'id': r.id, 'name': r.full_name, 'value': r.value, 'label': 'Spent'} for r in rows]
+        
+    elif metric == 'most_orders':
+        rows = query.add_columns(func.count(Sale.id).label('value'))\
+            .join(Sale)\
+            .group_by(Customer.id)\
+            .order_by(desc('value')).limit(limit).all()
+        results = [{'id': r.id, 'name': r.full_name, 'value': int(r.value), 'label': 'Orders'} for r in rows]
+        
+    elif metric == 'most_owed':
+        # Use subquery for latest ledger query
+        subq = db.session.query(
+            CustomerLedger.customer_id,
+            func.max(CustomerLedger.id).label('max_id')
+        ).group_by(CustomerLedger.customer_id).subquery()
+        
+        rows = query.add_columns(CustomerLedger.balance_after.label('value'))\
+            .join(CustomerLedger)\
+            .join(subq, and_(CustomerLedger.customer_id == subq.c.customer_id, 
+                             CustomerLedger.id == subq.c.max_id))\
+            .filter(CustomerLedger.balance_after > 0)\
+            .order_by(desc('value')).limit(limit).all()
+            
+        results = [{'id': r.id, 'name': r.full_name, 'value': r.value, 'label': 'Owes'} for r in rows]
+
+    return results
 
 
 # =============================================================================

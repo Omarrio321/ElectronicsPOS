@@ -299,6 +299,27 @@ class Sale(db.Model):
             self.change_given = 0
         return self
     
+    @property
+    def total_cost(self):
+        """Calculate total cost of goods for this sale"""
+        return sum(item.quantity_sold * item.product.cost_price for item in self.sale_items)
+
+    @property
+    def real_profit(self):
+        """
+        Cash-based profit calculation.
+        Profit = max(0, Total Collected - Total Cost)
+        No profit is recognized until the cost is covered.
+        """
+        collected = self.amount_paid
+        cost = self.total_cost
+        
+        # If we haven't covered cost, profit is 0 (or negative regarding cash flow, but business rule says 0)
+        if collected <= cost:
+            return 0
+            
+        return collected - cost
+
     @staticmethod
     def generate_invoice_no():
         """Generate unique invoice number: INV-YYYYMMDD-XXXX"""

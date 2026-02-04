@@ -305,6 +305,10 @@
                     <span class="fw-bold">{{ sale.id }}</span>
                 </div>
                 <div class="row">
+                    <span class="text-muted">Customer:</span>
+                    <span>{{ sale.customer.full_name if sale.customer else 'Walk-in Customer' }}</span>
+                </div>
+                <div class="row">
                     <span class="text-muted">Date:</span>
                     <span>{{ sale.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
                 </div>

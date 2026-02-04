@@ -61,10 +61,31 @@
                     <dd class="col-sm-7">
                         {% if sale.payments|length > 1 %}
                         <span class="badge bg-primary">Split Payment</span>
-                        {% elif sale.payments|length == 1 %}
-                        <span class="badge bg-success">{{ sale.payments[0].payment_method.value }}</span>
                         {% else %}
-                        <span class="badge bg-secondary">{{ sale.payment_method.value }}</span>
+                        {% set method = sale.payment_method %}
+                        {% set method_str = method.value if method.value is defined else method|string %}
+
+                        {# Fallback: If method_str is empty but we have payments, use the first payment's method #}
+                        {% if not method_str and sale.payments %}
+                        {% set p_method = sale.payments[0].payment_method %}
+                        {% set method_str = p_method.value if p_method.value is defined else p_method|string %}
+                        {% endif %}
+
+                        {% if method_str == 'Cash' or method_str == 'CASH' %}
+                        <span class="badge bg-secondary text-white">Cash</span>
+                        {% elif method_str == 'Card' or method_str == 'CARD' %}
+                        <span class="badge bg-info text-white">Card</span>
+                        {% elif method_str in ['E-Dahab', 'E_DAHAB'] %}
+                        <span class="badge text-white" style="background-color: #f59e0b;">E-Dahab</span>
+                        {% elif method_str in ['Zaad', 'ZAAD'] %}
+                        <span class="badge text-white" style="background-color: #10b981;">Zaad</span>
+                        {% elif method_str in ['Store Credit', 'STORE_CREDIT'] %}
+                        <span class="badge text-white" style="background-color: #6f42c1;">Store Credit</span>
+                        {% elif method_str in ['Mobile Money', 'MOBILE_MONEY'] %}
+                        <span class="badge bg-success text-white">Mobile</span>
+                        {% else %}
+                        <span class="badge bg-dark text-white">{{ method_str }}</span>
+                        {% endif %}
                         {% endif %}
                     </dd>
 
@@ -116,9 +137,29 @@
                     {% for payment in sale.payments %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
-                            <i
-                                class="bi bi-{% if payment.payment_method.value == 'Cash' %}cash{% elif payment.payment_method.value == 'Card' %}credit-card{% else %}phone{% endif %} me-2"></i>
-                            <strong>{{ payment.payment_method.value }}</strong>
+                            {% set method = payment.payment_method %}
+                            {% set method_str = method.value if method.value is defined else method|string %}
+
+                            {% if method_str == 'Cash' or method_str == 'CASH' %}
+                            <i class="bi bi-cash me-2"></i><span class="badge bg-secondary text-white">Cash</span>
+                            {% elif method_str == 'Card' or method_str == 'CARD' %}
+                            <i class="bi bi-credit-card me-2"></i><span class="badge bg-info text-white">Card</span>
+                            {% elif method_str in ['E-Dahab', 'E_DAHAB'] %}
+                            <i class="bi bi-phone me-2"></i><span class="badge text-white"
+                                style="background-color: #f59e0b;">E-Dahab</span>
+                            {% elif method_str in ['Zaad', 'ZAAD'] %}
+                            <i class="bi bi-phone me-2"></i><span class="badge text-white"
+                                style="background-color: #10b981;">Zaad</span>
+                            {% elif method_str in ['Store Credit', 'STORE_CREDIT'] %}
+                            <i class="bi bi-wallet2 me-2"></i><span class="badge text-white"
+                                style="background-color: #6f42c1;">Store Credit</span>
+                            {% elif method_str in ['Mobile Money', 'MOBILE_MONEY'] %}
+                            <i class="bi bi-phone me-2"></i><span class="badge bg-success text-white">Mobile</span>
+                            {% else %}
+                            <i class="bi bi-wallet me-2"></i><span class="badge bg-dark text-white">{{ method_str
+                                }}</span>
+                            {% endif %}
+
                             {% if payment.reference %}
                             <small class="text-muted ms-2">({{ payment.reference }})</small>
                             {% endif %}

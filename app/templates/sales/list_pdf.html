@@ -155,17 +155,23 @@
                     {% set method = sale.payment_method %}
                     {% set method_str = method.value if method.value is defined else method|string %}
 
-                    {% if method_str == 'Cash' %}
+                    {# Fallback logic #}
+                    {% if not method_str and sale.payments %}
+                    {% set p_method = sale.payments[0].payment_method %}
+                    {% set method_str = p_method.value if p_method.value is defined else p_method|string %}
+                    {% endif %}
+
+                    {% if method_str == 'Cash' or method_str == 'CASH' %}
                     <span class="badge badge-secondary">Cash</span>
-                    {% elif method_str == 'Card' %}
+                    {% elif method_str == 'Card' or method_str == 'CARD' %}
                     <span class="badge badge-info">Card</span>
-                    {% elif method_str == 'E-Dahab' %}
+                    {% elif method_str in ['E-Dahab', 'E_DAHAB'] %}
                     <span class="badge" style="background-color: #f59e0b; color: white;">E-Dahab</span>
-                    {% elif method_str == 'Zaad' %}
+                    {% elif method_str in ['Zaad', 'ZAAD'] %}
                     <span class="badge" style="background-color: #10b981; color: white;">Zaad</span>
-                    {% elif method_str == 'Store Credit' %}
+                    {% elif method_str in ['Store Credit', 'STORE_CREDIT'] %}
                     <span class="badge" style="background-color: #6f42c1; color: white;">Store Credit</span>
-                    {% elif method_str == 'Mobile Money' %}
+                    {% elif method_str in ['Mobile Money', 'MOBILE_MONEY'] %}
                     <span class="badge badge-success">Mobile</span>
                     {% else %}
                     <span class="badge badge-dark">{{ method_str }}</span>

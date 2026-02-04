@@ -99,215 +99,194 @@
 
     {% from 'components/card.html' import kpi_card %}
 
-    <!-- Summary Statistics -->
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-6 g-2 mb-3">
-        <div class="col">
-            {{ kpi_card("Transactions", total_sales or 0, "bi bi-receipt", icon_color='text-primary') }}
-        </div>
-        <div class="col">
-            {{ kpi_card("Revenue", format_currency(total_revenue or 0), "bi bi-cash-stack",
-            icon_color='text-success', value_class='text-success') }}
-        </div>
-        <div class="col">
-            {{ kpi_card("COGS", format_currency(cogs or 0), "bi bi-box-seam",
-            icon_color='text-secondary', subtext='Cost of Goods Sold') }}
-        </div>
-        <div class="col">
-            {{ kpi_card("Gross Profit", format_currency(gross_profit or 0), "bi bi-graph-up-arrow",
-            icon_color='text-info', value_class='text-info') }}
-        </div>
-        <div class="col">
-            {{ kpi_card("Expenses", format_currency(paid_expenses or 0), "bi bi-wallet2",
-            icon_color='text-warning', subtext='Paid Only') }}
-        </div>
-        <div class="col">
-            {% set profit_color = 'text-success' if (net_profit or 0) >= 0 else 'text-danger' %}
-            {{ kpi_card("Net Profit", format_currency(net_profit or 0), "bi bi-briefcase",
-            icon_color=profit_color, value_class=profit_color) }}
-        </div>
+    <div class="col">
+        {% set profit_color = 'text-success' if (net_profit or 0) >= 0 else 'text-danger' %}
+        {{ kpi_card("Net Profit", format_currency(net_profit or 0), "bi bi-briefcase",
+        icon_color=profit_color, value_class=profit_color) }}
     </div>
+</div>
 
-    <!-- Charts Section -->
-    <div class="row mb-4 g-3">
-        <div class="col-md-8">
-            <div class="card p-3 shadow-sm border-0 h-100">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0 fw-bold"><i class="bi bi-graph-up me-2 text-primary"></i> Revenue Trend</h5>
-                    <span class="badge bg-light text-dark">Timeline</span>
-                </div>
-                <div id="salesChartWrap" style="min-height:300px;position:relative;">
-                    <div class="chart-loader" id="salesLoader">
-                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                        <span>Loading chart...</span>
-                    </div>
-                    <div id="noSalesData" style="display:none;text-align:center;padding:100px 20px;color:#adb5bd;">
-                        <i class="bi bi-bar-chart-fill fs-1 d-block mb-2 opacity-25"></i>
-                        No sales data found for the selected period
-                    </div>
-                    <canvas id="salesChart" style="display:none;"></canvas>
-                </div>
+<!-- Charts Section -->
+<div class="row mb-4 g-3">
+    <div class="col-md-8">
+        <div class="card p-3 shadow-sm border-0 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-graph-up me-2 text-primary"></i> Revenue Trend</h5>
+                <span class="badge bg-light text-dark">Timeline</span>
             </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card p-3 shadow-sm border-0 h-100">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0 fw-bold"><i class="bi bi-pie-chart me-2 text-primary"></i> Payment Methods</h5>
-                    <span class="badge bg-light text-dark">Distribution</span>
+            <div id="salesChartWrap" style="min-height:300px;position:relative;">
+                <div class="chart-loader" id="salesLoader">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    <span>Loading chart...</span>
                 </div>
-                <div class="mb-4" id="paymentChartWrap" style="min-height:220px;position:relative;">
-                    <div class="chart-loader" id="paymentLoader">
-                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                        <span>Loading...</span>
-                    </div>
-                    <canvas id="paymentChart" style="display:none;"></canvas>
+                <div id="noSalesData" style="display:none;text-align:center;padding:100px 20px;color:#adb5bd;">
+                    <i class="bi bi-bar-chart-fill fs-1 d-block mb-2 opacity-25"></i>
+                    No sales data found for the selected period
                 </div>
-
-                <hr class="my-3">
-
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0 fw-bold"><i class="bi bi-tag me-2 text-danger"></i> Expense Breakdown</h5>
-                    <span class="badge bg-light text-dark">Categories</span>
-                </div>
-                <div id="expenseChartWrap" style="min-height:220px;position:relative;">
-                    <div class="chart-loader" id="expenseLoader">
-                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                        <span>Loading...</span>
-                    </div>
-                    <div id="noExpenseData" style="display:none;text-align:center;padding:50px 10px;color:#adb5bd;">
-                        <small>No expenses recorded</small>
-                    </div>
-                    <canvas id="expenseChart" style="display:none;"></canvas>
-                </div>
+                <canvas id="salesChart" style="display:none;"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Data Tables -->
-    <div class="row g-4">
-        <!-- Top Products -->
-        <div class="col-md-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-white border-0 pt-3">
-                    <h6 class="mb-0 fw-bold"><i class="bi bi-trophy me-2 text-warning"></i> Best Selling Products</h6>
+    <div class="col-md-4">
+        <div class="card p-3 shadow-sm border-0 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-pie-chart me-2 text-primary"></i> Payment Methods</h5>
+                <span class="badge bg-light text-dark">Distribution</span>
+            </div>
+            <div class="mb-4" id="paymentChartWrap" style="min-height:220px;position:relative;">
+                <div class="chart-loader" id="paymentLoader">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    <span>Loading...</span>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table mb-0 table-hover">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th class="ps-3 small text-uppercase text-muted">Product Name</th>
-                                    <th class="text-center small text-uppercase text-muted">Qty Sold</th>
-                                    <th class="text-end pe-3 small text-uppercase text-muted">Revenue</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for p in top_products %}
-                                <tr>
-                                    <td class="ps-3">{{ p.name if p.name is defined else p[0] }}</td>
-                                    <td class="text-center"><span class="badge bg-secondary rounded-pill">{{
-                                            p.total_sold if p.total_sold is defined else p[1] }}</span></td>
-                                    <td class="text-end pe-3 fw-bold">{{ format_currency(p.total_revenue if
-                                        p.total_revenue is defined else p[2]) }}</td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="3" class="text-center text-muted py-4 small">No product data</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                <canvas id="paymentChart" style="display:none;"></canvas>
+            </div>
+
+            <hr class="my-3">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-tag me-2 text-danger"></i> Expense Breakdown</h5>
+                <span class="badge bg-light text-dark">Categories</span>
+            </div>
+            <div id="expenseChartWrap" style="min-height:220px;position:relative;">
+                <div class="chart-loader" id="expenseLoader">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    <span>Loading...</span>
                 </div>
+                <div id="noExpenseData" style="display:none;text-align:center;padding:50px 10px;color:#adb5bd;">
+                    <small>No expenses recorded</small>
+                </div>
+                <canvas id="expenseChart" style="display:none;"></canvas>
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- Sales by Cashier -->
-        <div class="col-md-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-white border-0 pt-3">
-                    <h6 class="mb-0 fw-bold"><i class="bi bi-people me-2 text-info"></i> Performance by Cashier</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table mb-0 table-hover">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th class="ps-3 small text-uppercase text-muted">Cashier</th>
-                                    <th class="text-center small text-uppercase text-muted">Count</th>
-                                    <th class="text-end pe-3 small text-uppercase text-muted">Revenue</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for u in user_sales %}
-                                <tr>
-                                    <td class="ps-3">{{ u.username if u.username is defined else u[0] }}</td>
-                                    <td class="text-center">{{ u.count if u.count is defined else u[1] }}</td>
-                                    <td class="text-end pe-3 fw-bold text-success">{{ format_currency(u.total if u.total
-                                        is defined else u[2]) }}</td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="3" class="text-center text-muted py-4 small">No cashier data</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+<!-- Data Tables -->
+<div class="row g-4">
+    <!-- Top Products -->
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white border-0 pt-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-trophy me-2 text-warning"></i> Best Selling Products</h6>
             </div>
-        </div>
-
-        <!-- Recent Expenses in Period -->
-        <div class="col-md-12 mt-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white border-0 pt-3">
-                    <h6 class="mb-0 fw-bold"><i class="bi bi-journal-text me-2 text-danger"></i> Recent Expenses in
-                        Period
-                    </h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table mb-0 table-hover align-middle">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th class="ps-3 small text-uppercase text-muted">Date</th>
-                                    <th class="small text-uppercase text-muted">Title</th>
-                                    <th class="small text-uppercase text-muted">Category</th>
-                                    <th class="text-center small text-uppercase text-muted">Status</th>
-                                    <th class="text-end pe-3 small text-uppercase text-muted">Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for exp in recent_expenses %}
-                                <tr>
-                                    <td class="ps-3">{{ exp.date.strftime('%d %b %Y') }}</td>
-                                    <td class="fw-semibold">{{ exp.title }}</td>
-                                    <td><span class="badge px-2 py-1"
-                                            style="--bg-color: {{ exp.category.color }}; background-color: var(--bg-color);">{{
-                                            exp.category.name }}</span></td>
-                                    <td class="text-center">
-                                        {% if exp.status.value == 'Paid' %}
-                                        <span class="badge bg-success">Paid</span>
-                                        {% else %}
-                                        <span class="badge bg-warning text-dark">Pending</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-end pe-3 fw-bold text-danger">{{ format_currency(exp.amount) }}</td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="5" class="text-center text-muted py-4 small">No expenses recorded for
-                                        this period</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0 table-hover">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-3 small text-uppercase text-muted">Product Name</th>
+                                <th class="text-center small text-uppercase text-muted">Qty Sold</th>
+                                <th class="text-end pe-3 small text-uppercase text-muted">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in top_products %}
+                            <tr>
+                                <td class="ps-3">{{ p.name if p.name is defined else p[0] }}</td>
+                                <td class="text-center"><span class="badge bg-secondary rounded-pill">{{
+                                        p.total_sold if p.total_sold is defined else p[1] }}</span></td>
+                                <td class="text-end pe-3 fw-bold">{{ format_currency(p.total_revenue if
+                                    p.total_revenue is defined else p[2]) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4 small">No product data</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Sales by Cashier -->
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white border-0 pt-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-people me-2 text-info"></i> Performance by Cashier</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0 table-hover">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-3 small text-uppercase text-muted">Cashier</th>
+                                <th class="text-center small text-uppercase text-muted">Count</th>
+                                <th class="text-end pe-3 small text-uppercase text-muted">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in user_sales %}
+                            <tr>
+                                <td class="ps-3">{{ u.username if u.username is defined else u[0] }}</td>
+                                <td class="text-center">{{ u.count if u.count is defined else u[1] }}</td>
+                                <td class="text-end pe-3 fw-bold text-success">{{ format_currency(u.total if u.total
+                                    is defined else u[2]) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4 small">No cashier data</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Expenses in Period -->
+    <div class="col-md-12 mt-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-0 pt-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-journal-text me-2 text-danger"></i> Recent Expenses in
+                    Period
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0 table-hover align-middle">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-3 small text-uppercase text-muted">Date</th>
+                                <th class="small text-uppercase text-muted">Title</th>
+                                <th class="small text-uppercase text-muted">Category</th>
+                                <th class="text-center small text-uppercase text-muted">Status</th>
+                                <th class="text-end pe-3 small text-uppercase text-muted">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for exp in recent_expenses %}
+                            <tr>
+                                <td class="ps-3">{{ exp.date.strftime('%d %b %Y') }}</td>
+                                <td class="fw-semibold">{{ exp.title }}</td>
+                                <td><span class="badge px-2 py-1"
+                                        style="--bg-color: {{ exp.category.color }}; background-color: var(--bg-color);">{{
+                                        exp.category.name }}</span></td>
+                                <td class="text-center">
+                                    {% if exp.status.value == 'Paid' %}
+                                    <span class="badge bg-success">Paid</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-3 fw-bold text-danger">{{ format_currency(exp.amount) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4 small">No expenses recorded for
+                                    this period</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 </div>
 
 <!-- Toast Notifications -->

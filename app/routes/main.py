@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, jsonify
 from flask_login import login_required, current_user
-from app.models import Sale, Product, SaleItem, Expense, ExpenseStatus
+from app.models import Sale, Product, SaleItem, Expense, ExpenseStatus, Payment, PaymentMethod
 from app import db
 from sqlalchemy import func, desc
 from datetime import datetime, timedelta
@@ -17,15 +17,33 @@ def dashboard():
     
     # Get dashboard statistics
     total_sales = Sale.query.count()
-    total_revenue = db.session.query(func.sum(Sale.grand_total)).scalar() or 0
     total_products = Product.query.count()
     low_stock_products = Product.query.filter(Product.quantity_in_stock <= Product.low_stock_threshold).count()
     
-    # Get today's sales
+    # --- CASH-BASED FINANCIALS ---
+    
+    # 1. Total Collected (Lifetime) - derived from Payments
+    total_revenue = db.session.query(func.sum(Payment.amount)).scalar() or 0
+    
+    # Get today's sales (for count)
     today = datetime.utcnow().date()
     today_sales = Sale.query.filter(func.date(Sale.created_at) == today).count()
-    today_revenue = db.session.query(func.sum(Sale.grand_total)).filter(
-        func.date(Sale.created_at) == today
+    
+    # 2. Today's Collected (derived from Payments made TODAY)
+    today_revenue = db.session.query(func.sum(Payment.amount)).filter(
+        func.date(Payment.created_at) == today
+    ).scalar() or 0
+    
+    # 3. Cash in Drawer (Today)
+    cash_today = db.session.query(func.sum(Payment.amount)).filter(
+        func.date(Payment.created_at) == today,
+        Payment.payment_method == PaymentMethod.CASH
+    ).scalar() or 0
+    
+    # 4. Mobile Money (Today) - Zaad + E-Dahab
+    mobile_today = db.session.query(func.sum(Payment.amount)).filter(
+        func.date(Payment.created_at) == today,
+        Payment.payment_method.in_([PaymentMethod.ZAAD, PaymentMethod.E_DAHAB])
     ).scalar() or 0
     
     # Get recent sales
@@ -40,16 +58,19 @@ def dashboard():
     # Get sales data for charts (last 30 days)
     sales_data = get_sales_chart_data()
 
-    # Calculate Net Profit
+    # Calculate Net Profit (REAL PROFIT based on Cash)
     # 1. Total Expenses (Paid only)
     total_expenses = db.session.query(func.sum(Expense.amount)).filter(Expense.status == ExpenseStatus.PAID).scalar() or 0
     
-    # 2. COGS (Cost of Goods Sold)
-    # COGS = Sum(Quantity Sold * Product Cost Price)
-    total_cogs = db.session.query(func.sum(SaleItem.quantity_sold * Product.cost_price)).join(Product).scalar() or 0
+    # 2. Real Profit from Sales
+    # Iterate all sales to sum real_profit (since it's a property logic, not simple SQL sum)
+    # For performance on large DB, this logic should be moved to SQL/hybrid_property, but for now we iterate.
+    # We'll limit to recent history or sum all if DB is small. PROD NOTE: Optimize this later.
+    all_sales = Sale.query.all()
+    gross_profit = sum(sale.real_profit for sale in all_sales)
 
-    # 3. Net Profit
-    net_profit = float(total_revenue) - float(total_cogs) - float(total_expenses)
+    # 3. Net Profit = Real Gross Profit - Paid Expenses
+    net_profit = float(gross_profit) - float(total_expenses)
     
     return render_template('dashboard.html',
                          total_sales=total_sales,
@@ -62,10 +83,12 @@ def dashboard():
                          top_products=top_products,
                          sales_data=json.dumps(sales_data),
                          total_expenses=total_expenses,
-                         net_profit=net_profit)
+                         net_profit=net_profit,
+                         cash_today=cash_today,
+                         mobile_today=mobile_today)
 
 def get_sales_chart_data():
-    """Get sales data for the last 30 days"""
+    """Get sales data for the last 30 days - Cash Collected Basis"""
     end_date = datetime.utcnow()
     start_date = end_date - timedelta(days=30)
     
@@ -73,13 +96,14 @@ def get_sales_chart_data():
     current_date = start_date
     
     while current_date <= end_date:
-        daily_sales = db.session.query(func.sum(Sale.grand_total)).filter(
-            func.date(Sale.created_at) == current_date.date()
+        # Sum PAYMENTS made on this day, not Sales created
+        daily_collection = db.session.query(func.sum(Payment.amount)).filter(
+            func.date(Payment.created_at) == current_date.date()
         ).scalar() or 0
         
         sales_data.append({
             'date': current_date.strftime('%Y-%m-%d'),
-            'sales': float(daily_sales)
+            'sales': float(daily_collection)
         })
         
         current_date += timedelta(days=1)

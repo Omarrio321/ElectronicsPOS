@@ -449,7 +449,39 @@
                 <!-- Optional: Due Date or Payment Method -->
                 <div class="detail-row">
                     <span class="detail-label">Payment Method</span>
-                    <span class="detail-value">{{ sale.payment_method.value }}</span>
+                    <span class="detail-value">
+                        {% if sale.payments|length > 1 %}
+                        Split Payment
+                        <div class="payment-methods-list">
+                            {% for payment in sale.payments %}
+                            <div class="row">
+                                <span>
+                                    {% set method = payment.payment_method %}
+                                    {% set method_str = method.value if method.value is defined else method|string %}
+                                    {% if method_str in ['Zaad', 'ZAAD'] %}Zaad{% elif method_str in ['E-Dahab',
+                                    'E_DAHAB'] %}E-Dahab{% else %}{{ method_str }}{% endif %}
+                                    {% if payment.reference %} ({{ payment.reference }}){% endif %}:
+                                </span>
+                                <span>{{ format_currency(payment.amount) }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {% set method = sale.payment_method %}
+                        {% set method_str = method.value if method.value is defined else method|string %}
+
+                        {# Fallback logic #}
+                        {% if not method_str and sale.payments %}
+                        {% set p_method = sale.payments[0].payment_method %}
+                        {% set method_str = p_method.value if p_method.value is defined else p_method|string %}
+                        {% endif %}
+
+                        {% if method_str in ['Zaad', 'ZAAD'] %}Zaad
+                        {% elif method_str in ['E-Dahab', 'E_DAHAB'] %}E-Dahab
+                        {% else %}{{ method_str }}
+                        {% endif %}
+                        {% endif %}
+                    </span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Cashier</span>

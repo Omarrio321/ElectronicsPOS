@@ -14,25 +14,30 @@
         {{ kpi_card("Today's Sales", today_sales, "fas fa-shopping-bag", trend=12) }}
     </div>
     <div class="col">
-        {{ kpi_card("Revenue", format_currency(today_revenue), "fas fa-dollar-sign", trend=8) }}
+        {{ kpi_card("Collected Today", format_currency(today_revenue), "fas fa-cash-register",
+        icon_color='text-primary',
+        subtext='Actual Cash Flow') }}
     </div>
     <div class="col">
-        {{ kpi_card("Net Profit", format_currency(net_profit), "fas fa-wallet",
+        {{ kpi_card("Real Profit", format_currency(net_profit), "fas fa-wallet",
         icon_color='text-success',
         value_class='text-success' if net_profit >= 0 else 'text-danger',
-        subtext='Rev - COGS - Exp') }}
+        subtext='Max(0, Paid - Cost)') }}
+    </div>
+    <div class="col">
+        {{ kpi_card("Cash", format_currency(cash_today), "fas fa-money-bill-wave",
+        icon_color='text-secondary',
+        subtext='In Drawer') }}
+    </div>
+    <div class="col">
+        {{ kpi_card("Mobile Money", format_currency(mobile_today), "fas fa-mobile-alt",
+        icon_color='text-info',
+        subtext='Zaad + E-Dahab') }}
     </div>
     <div class="col">
         {{ kpi_card("Paid Exp.", format_currency(total_expenses), "fas fa-file-invoice-dollar",
         icon_color='text-danger',
         subtext='<a href="' + url_for('expenses.index') + '" class="text-decoration-none">View Details</a>') }}
-    </div>
-    <div class="col">
-        {{ kpi_card("Low Stock", low_stock_products, "fas fa-exclamation-triangle", icon_color='text-warning', trend=-2)
-        }}
-    </div>
-    <div class="col">
-        {{ kpi_card("Total Products", total_products, "fas fa-box-open") }}
     </div>
 </div>
 
@@ -147,7 +152,7 @@
             data: {
                 labels: salesData.map(d => d.date),
                 datasets: [{
-                    label: `Sales (${window.CURRENCY_SYMBOL})`,
+                    label: `Collected (${window.CURRENCY_SYMBOL})`,
                     data: salesData.map(d => d.sales),
                     borderColor: '#6c5ce7',
                     backgroundColor: gradient,
