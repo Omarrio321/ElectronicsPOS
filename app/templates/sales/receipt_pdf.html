@@ -265,7 +265,9 @@
                         {% set method = payment.payment_method %}
                         {% set method_str = method.value if method.value is defined else method|string %}
                         {% if method_str in ['Zaad', 'ZAAD'] %}Zaad{% elif method_str in ['E-Dahab', 'E_DAHAB']
-                        %}E-Dahab{% else %}{{ method_str }}{% endif %}
+                        %}E-Dahab{% elif method_str in ['Store Credit', 'STORE_CREDIT'] or not method_str %}Credit{%
+                        else %}{{ method_str
+                        }}{% endif %}
                         {% if payment.reference %} ({{ payment.reference }}){% endif %}:
                     </span>
                     <span>{{ format_currency(payment.amount) }}</span>
@@ -284,7 +286,9 @@
                         {% endif %}
 
                         {% if method_str in ['Zaad', 'ZAAD'] %}Zaad{% elif method_str in ['E-Dahab', 'E_DAHAB']
-                        %}E-Dahab{% else %}{{ method_str }}{% endif %}:
+                        %}E-Dahab{% elif method_str in ['Store Credit', 'STORE_CREDIT'] or not method_str %}Credit{%
+                        else %}{{ method_str
+                        }}{% endif %}:
                     </span>
                     <span>{{ format_currency(sale.amount_paid) }}</span>
                 </div>

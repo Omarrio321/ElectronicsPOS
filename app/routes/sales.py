@@ -1,7 +1,7 @@
 # app/sales.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, send_file
 from flask_login import login_required, current_user
-from app.models import db, Sale, SaleItem, Product, User, SystemSetting, PaymentMethod, SaleStatus, Expense, ExpenseCategory, ExpenseStatus, Payment
+from app.models import db, Sale, SaleItem, Product, User, SystemSetting, PaymentMethod, SaleStatus, Expense, ExpenseCategory, ExpenseStatus, Payment, Customer, InvoiceStatus
 from sqlalchemy import func, and_
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -357,6 +357,10 @@ def export_excel():
             except:
                 payment = str(sale.payments[0].payment_method)
         
+        # User Request: "Store Credit" or empty should display as "Credit"
+        if payment in ['Store Credit', 'STORE_CREDIT'] or not payment:
+            payment = "Credit"
+        
         try:
             status = sale.sale_status.value
         except Exception:
@@ -488,6 +492,10 @@ def reports():
             label = r.payment_method.value
         except:
             label = str(r.payment_method)
+        
+        if label in ['Store Credit', 'STORE_CREDIT'] or not label:
+            label = "Credit"
+            
         pm_labels.append(label)
         pm_values.append(float(r.total or 0))
 
@@ -599,6 +607,28 @@ def reports():
         Expense.date <= end_date
     ).order_by(Expense.date.desc()).limit(10).all()
 
+
+    # Sales by cashier
+    user_sales = db.session.query(
+        User.username,
+        func.count(Sale.id).label('count'),
+        func.coalesce(func.sum(Sale.grand_total), 0).label('total')
+    ).join(Sale).filter(
+        func.date(Sale.created_at) >= start_date,
+        func.date(Sale.created_at) <= end_date
+    ).group_by(User.id).order_by(func.sum(Sale.grand_total).desc()).all()
+
+    # Top Customers (Added for Leaderboard)
+    top_customers = db.session.query(
+        Customer.full_name,
+        func.count(Sale.id).label('tx_count'),
+        func.sum(Sale.grand_total).label('total_spent')
+    ).join(Sale).filter(
+        func.date(Sale.created_at) >= start_date,
+        func.date(Sale.created_at) <= end_date,
+        Sale.customer_id.isnot(None) 
+    ).group_by(Customer.id).order_by(func.sum(Sale.grand_total).desc()).limit(10).all()
+
     return render_template(
         'sales/reports.html',
         report_type=report_type,
@@ -626,6 +656,7 @@ def reports():
         recent_expenses=recent_expenses,
         top_products=top_products,
         user_sales=user_sales,
+        top_customers=top_customers,
         format_currency=format_currency
     )
 
@@ -794,17 +825,24 @@ def reports_pdf():
     ).group_by(User.id).order_by(func.sum(Sale.grand_total).desc()).all()
 
     # 5. COGS for PDF
-    cogs = db.session.query(
-        func.coalesce(func.sum(SaleItem.quantity_sold * Product.cost_price), 0)
-    ).join(Product).join(Sale, SaleItem.sale).filter(
+    # 5. Realized Profit (Strict Cash Basis)
+    period_sales = Sale.query.filter(
         func.date(Sale.created_at) >= start_date,
         func.date(Sale.created_at) <= end_date
-    ).scalar() or 0
+    ).all()
 
-    gross_profit = float(total_revenue) - float(cogs)
-    avg_order_value = float(total_revenue) / float(total_sales) if total_sales > 0 else 0
+    realized_revenue = 0
+    realized_cogs = 0
+    for sale in period_sales:
+        if sale.invoice_status == InvoiceStatus.PAID:
+            sale_revenue = sale.grand_total 
+            sale_cogs = sum(item.quantity_sold * item.product.cost_price for item in sale.sale_items)
+            realized_revenue += float(sale_revenue)
+            realized_cogs += float(sale_cogs)
 
-    # 6. Expenses for PDF - Only PAID expenses count towards net profit
+    realized_gross_profit = realized_revenue - realized_cogs
+    
+    # 6. Expenses
     paid_expenses = db.session.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
         Expense.date >= start_date,
         Expense.date <= end_date,
@@ -817,9 +855,25 @@ def reports_pdf():
         Expense.status == ExpenseStatus.PENDING
     ).scalar() or 0
 
-    total_expenses = float(paid_expenses) + float(pending_expenses)
-    # Net profit = Revenue - COGS - Paid Expenses (matches dashboard)
-    net_profit = float(total_revenue) - float(cogs) - float(paid_expenses)
+    net_profit = float(realized_gross_profit) - float(paid_expenses)
+    
+    # 7. Top Customers
+    top_customers = db.session.query(
+        Customer.full_name,
+        func.count(Sale.id).label('tx_count'),
+        func.sum(Sale.grand_total).label('total_spent')
+    ).join(Sale).filter(
+        func.date(Sale.created_at) >= start_date,
+        func.date(Sale.created_at) <= end_date,
+        Sale.customer_id.isnot(None) 
+    ).group_by(Customer.id).order_by(func.sum(Sale.grand_total).desc()).limit(10).all()
+
+    # 8. Avg Order Value implies total invoiced / count
+    avg_order_value = float(total_revenue) / float(total_sales) if total_sales > 0 else 0
+
+    # Get Company Info
+    company_name = SystemSetting.get('company_name', 'Electronics POS')
+    company_logo = SystemSetting.get('company_logo')
 
     period_expenses = Expense.query.filter(
         Expense.date >= start_date,
@@ -830,24 +884,30 @@ def reports_pdf():
 
     html = render_template(
         'sales/reports_pdf.html',
-        generated_at=datetime.now().strftime('%Y-%m-%d %H:%M'),
+        generated_at=datetime.now().strftime('%d %b %Y, %I:%M %p'),
         start_date=start_date,
         end_date=end_date,
         report_type=report_type,
+        company_name=company_name,
+        company_logo=company_logo,
+        
         total_sales=total_sales,
         total_revenue=total_revenue,
-        cogs=float(cogs),
-        gross_profit=gross_profit,
+        cogs=realized_cogs,  # Pass realized cogs
+        gross_profit=realized_gross_profit, # Pass realized profit
         avg_order_value=avg_order_value,
+        
         paid_expenses=float(paid_expenses),
         pending_expenses=float(pending_expenses),
         total_expenses=total_expenses,
         net_profit=net_profit,
+        
         total_items=total_items,
-        daily_sales=daily_sales,
+        # daily_sales=daily_sales, # Not used in PDF usually?
         top_products=top_products,
         user_sales=user_sales,
         period_expenses=period_expenses,
+        top_customers=top_customers,
         format_currency=format_currency
     )
 
@@ -937,42 +997,36 @@ def reports_excel():
         func.date(Sale.created_at) <= end_date
     ).scalar() or 0
 
-    cogs = db.session.query(
-        func.coalesce(func.sum(SaleItem.quantity_sold * Product.cost_price), 0)
-    ).join(Product).join(Sale, SaleItem.sale).filter(
+    # 3. Realized Profit (Strict Cash Basis: Only Fully Paid Invoices)
+    # Fetch all sales in period first
+    period_sales = Sale.query.filter(
         func.date(Sale.created_at) >= start_date,
         func.date(Sale.created_at) <= end_date
-    ).scalar() or 0
+    ).all()
 
-    gross_profit = float(total_revenue) - float(cogs)
-    avg_order_value = float(total_revenue) / float(total_sales) if total_sales > 0 else 0
+    # Calculate Realized Revenue & COGS from PAID sales only
+    realized_revenue = 0
+    realized_cogs = 0
+    
+    # We can also track "Potential Profit" from unpaid/partial for insights if needed, 
+    # but user requested STRICT realized profit.
+    for sale in period_sales:
+        # Check for strict PAID status
+        if sale.invoice_status == InvoiceStatus.PAID:
+            sale_revenue = sale.grand_total # Or subtotal? Using grand_total (Revenue)
+            # Calculate sale COGS
+            sale_cogs = sum(item.quantity_sold * item.product.cost_price for item in sale.sale_items)
+            
+            realized_revenue += float(sale_revenue)
+            realized_cogs += float(sale_cogs)
 
-    paid_expenses = db.session.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
-        Expense.date >= start_date,
-        Expense.date <= end_date,
-        Expense.status == ExpenseStatus.PAID
-    ).scalar() or 0
+    # Realized Gross Profit
+    realized_gross_profit = realized_revenue - realized_cogs
 
-    pending_expenses = db.session.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
-        Expense.date >= start_date,
-        Expense.date <= end_date,
-        Expense.status == ExpenseStatus.PENDING
-    ).scalar() or 0
+    # Average Order Value (based on Invoiced Total)
+    avg_order_value = float(total_invoiced) / float(total_sales_count) if total_sales_count > 0 else 0
 
-    net_profit = float(total_revenue) - float(cogs) - float(paid_expenses)
-
-    # 2. Daily sales
-    rows = db.session.query(
-        func.date(Sale.created_at).label('date'),
-        func.coalesce(func.sum(Sale.grand_total), 0).label('sales')
-    ).filter(
-        func.date(Sale.created_at) >= start_date,
-        func.date(Sale.created_at) <= end_date
-    ).group_by(func.date(Sale.created_at)).order_by(func.date(Sale.created_at)).all()
-
-    daily_sales = [{'date': str(r.date), 'sales': float(r.sales or 0)} for r in rows]
-
-    # 3. Top products
+    # Top products
     top_products = db.session.query(
         Product.name,
         func.coalesce(func.sum(SaleItem.quantity_sold), 0).label('total_sold'),
@@ -980,9 +1034,20 @@ def reports_excel():
     ).join(SaleItem).join(Sale).filter(
         func.date(Sale.created_at) >= start_date,
         func.date(Sale.created_at) <= end_date
-    ).group_by(Product.id).order_by(func.sum(SaleItem.quantity_sold).desc()).limit(20).all()
+    ).group_by(Product.id).order_by(func.sum(SaleItem.quantity_sold).desc()).limit(10).all()
 
-    # 4. Sales by cashier
+    # Top Customers (New Widget)
+    top_customers = db.session.query(
+        Customer.full_name,
+        func.count(Sale.id).label('tx_count'),
+        func.sum(Sale.grand_total).label('total_spent')
+    ).join(Sale).filter(
+        func.date(Sale.created_at) >= start_date,
+        func.date(Sale.created_at) <= end_date,
+        Sale.customer_id.isnot(None) 
+    ).group_by(Customer.id).order_by(func.sum(Sale.grand_total).desc()).limit(10).all()
+
+    # Sales by cashier
     user_sales = db.session.query(
         User.username,
         func.count(Sale.id).label('count'),

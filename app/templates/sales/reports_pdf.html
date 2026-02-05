@@ -166,7 +166,7 @@
                 <div class="stat-value" style="color: #7f8c8d;">{{ format_currency(cogs) }}</div>
             </td>
             <td>
-                <div class="stat-label">Gross Profit</div>
+                <div class="stat-label">Realized Profit</div>
                 <div class="stat-value" style="color: #3498db;">{{ format_currency(gross_profit) }}</div>
             </td>
         </tr>
@@ -192,11 +192,11 @@
         </tr>
     </table>
     <p style="font-size: 9px; color: #7f8c8d; margin-top: -10px; margin-bottom: 15px;">
-        <em>Net Profit = Revenue - COGS - Paid Expenses. Pending expenses not yet deducted.</em>
+        <em>Realized Profit = Revenue (Paid Sales Only) - COGS. Net Profit = Realized Profit - Paid Expenses.</em>
     </p>
 
     <div style="width: 100%;">
-        <div style="width: 48%; float: left;">
+        <div style="width: 32%; float: left;">
             <div class="section-title">Top Products</div>
             <table class="data-table">
                 <thead>
@@ -217,7 +217,36 @@
                 </tbody>
             </table>
         </div>
-        <div style="width: 48%; float: right;">
+
+        <div style="width: 32%; float: left; margin-left: 2%;">
+            <div class="section-title">Top Customers</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">#</th>
+                        <th>Customer</th>
+                        <th class="text-center">Txns</th>
+                        <th class="text-right">Spent</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in top_customers %}
+                    <tr>
+                        <td style="color: #7f8c8d;">{{ loop.index }}</td>
+                        <td>{{ c.full_name }}</td>
+                        <td class="text-center">{{ c.tx_count }}</td>
+                        <td class="text-right">{{ format_currency(c.total_spent) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center">No data</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="width: 32%; float: right;">
             <div class="section-title">Cashier Performance</div>
             <table class="data-table">
                 <thead>

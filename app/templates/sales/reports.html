@@ -99,10 +99,24 @@
 
     {% from 'components/card.html' import kpi_card %}
 
-    <div class="col">
-        {% set profit_color = 'text-success' if (net_profit or 0) >= 0 else 'text-danger' %}
-        {{ kpi_card("Net Profit", format_currency(net_profit or 0), "bi bi-briefcase",
-        icon_color=profit_color, value_class=profit_color) }}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 card-group">
+        <div class="col">
+            {{ kpi_card("Total Sales", total_sales, "bi bi-receipt", icon_color="text-primary", value_class="text-dark")
+            }}
+        </div>
+        <div class="col">
+            {{ kpi_card("Realized Profit", format_currency(gross_profit), "bi bi-cash-stack", icon_color="text-success",
+            value_class="text-success") }}
+        </div>
+        <div class="col">
+            {{ kpi_card("Total Expenses", format_currency(total_expenses), "bi bi-wallet2", icon_color="text-danger",
+            value_class="text-danger") }}
+        </div>
+        <div class="col">
+            {% set profit_color = 'text-success' if (net_profit or 0) >= 0 else 'text-danger' %}
+            {{ kpi_card("Net Income", format_currency(net_profit or 0), "bi bi-briefcase", icon_color=profit_color,
+            value_class=profit_color) }}
+        </div>
     </div>
 </div>
 
@@ -165,7 +179,7 @@
 <!-- Data Tables -->
 <div class="row g-4">
     <!-- Top Products -->
-    <div class="col-md-6">
+    <div class="col-md-4">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-header bg-white border-0 pt-3">
                 <h6 class="mb-0 fw-bold"><i class="bi bi-trophy me-2 text-warning"></i> Best Selling Products</h6>
@@ -175,19 +189,20 @@
                     <table class="table mb-0 table-hover">
                         <thead class="bg-light">
                             <tr>
-                                <th class="ps-3 small text-uppercase text-muted">Product Name</th>
-                                <th class="text-center small text-uppercase text-muted">Qty Sold</th>
+                                <th class="ps-3 small text-uppercase text-muted">Product</th>
+                                <th class="text-center small text-uppercase text-muted">Qty</th>
                                 <th class="text-end pe-3 small text-uppercase text-muted">Revenue</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for p in top_products %}
                             <tr>
-                                <td class="ps-3">{{ p.name if p.name is defined else p[0] }}</td>
-                                <td class="text-center"><span class="badge bg-secondary rounded-pill">{{
-                                        p.total_sold if p.total_sold is defined else p[1] }}</span></td>
-                                <td class="text-end pe-3 fw-bold">{{ format_currency(p.total_revenue if
-                                    p.total_revenue is defined else p[2]) }}</td>
+                                <td class="ps-3 text-truncate" style="max-width: 150px;">{{ p.name if p.name is defined
+                                    else p[0] }}</td>
+                                <td class="text-center"><span class="badge bg-secondary rounded-pill">{{ p.total_sold if
+                                        p.total_sold is defined else p[1] }}</span></td>
+                                <td class="text-end pe-3 fw-bold">{{ format_currency(p.total_revenue if p.total_revenue
+                                    is defined else p[2]) }}</td>
                             </tr>
                             {% else %}
                             <tr>
@@ -201,8 +216,50 @@
         </div>
     </div>
 
+    <!-- Top Customers -->
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white border-0 pt-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-person-check me-2 text-primary"></i> Top Customers</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0 table-hover">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-3 small text-uppercase text-muted" style="width: 5%">#</th>
+                                <th class="small text-uppercase text-muted">Customer</th>
+                                <th class="text-center small text-uppercase text-muted">Txns</th>
+                                <th class="text-end pe-3 small text-uppercase text-muted">Spent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in top_customers %}
+                            <tr>
+                                <td class="ps-3 text-muted small align-middle">{{ loop.index }}</td>
+                                <td class="text-truncate align-middle" style="max-width: 140px; font-weight: 500;">
+                                    {{ c.full_name }}
+                                </td>
+                                <td class="text-center align-middle">
+                                    <span class="badge bg-light text-dark border">{{ c.tx_count }}</span>
+                                </td>
+                                <td class="text-end pe-3 fw-bold text-primary align-middle">{{
+                                    format_currency(c.total_spent) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4 small">No customer data</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Sales by Cashier -->
-    <div class="col-md-6">
+    <div class="col-md-4">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-header bg-white border-0 pt-3">
                 <h6 class="mb-0 fw-bold"><i class="bi bi-people me-2 text-info"></i> Performance by Cashier</h6>
@@ -213,7 +270,7 @@
                         <thead class="bg-light">
                             <tr>
                                 <th class="ps-3 small text-uppercase text-muted">Cashier</th>
-                                <th class="text-center small text-uppercase text-muted">Count</th>
+                                <th class="text-center small text-uppercase text-muted">Txns</th>
                                 <th class="text-end pe-3 small text-uppercase text-muted">Revenue</th>
                             </tr>
                         </thead>
@@ -222,8 +279,8 @@
                             <tr>
                                 <td class="ps-3">{{ u.username if u.username is defined else u[0] }}</td>
                                 <td class="text-center">{{ u.count if u.count is defined else u[1] }}</td>
-                                <td class="text-end pe-3 fw-bold text-success">{{ format_currency(u.total if u.total
-                                    is defined else u[2]) }}</td>
+                                <td class="text-end pe-3 fw-bold text-success">{{ format_currency(u.total if u.total is
+                                    defined else u[2]) }}</td>
                             </tr>
                             {% else %}
                             <tr>
@@ -433,7 +490,8 @@
             const l = String(label).toLowerCase();
             if (l.includes('zaad')) return '#28a745';
             if (l.includes('dahab')) return '#ffc107';
-            if (l.includes('mobile')) return '#6f42c1';
+            if (l.includes('credit')) return '#6f42c1'; // Purple for Credit
+            if (l.includes('mobile')) return '#17a2b8';
             if (l.includes('card')) return '#0dcaf0';
             return '#6c757d';
         });

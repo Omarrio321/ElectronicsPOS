@@ -384,15 +384,23 @@
                 {% if sale.payments %}
                 {% for payment in sale.payments %}
                 <div class="row">
-                    <span>{{ payment.payment_method.value }}{% if payment.reference %} <span class="text-muted">({{
-                            payment.reference }})</span>{% endif %}:</span>
+                    <span>
+                        {% set method_val = payment.payment_method.value %}
+                        {% if method_val in ['Store Credit', 'STORE_CREDIT'] or not method_val %}Credit{% else %}{{
+                        method_val }}{% endif %}
+                        {% if payment.reference %} <span class="text-muted">({{ payment.reference }})</span>{% endif %}:
+                    </span>
                     <span>${{ "%.2f"|format(payment.amount) }}</span>
                 </div>
                 {% endfor %}
                 {% else %}
                 <!-- Fallback for old sales without payment records -->
                 <div class="row">
-                    <span>{{ sale.payment_method.value }}:</span>
+                    <span>
+                        {% set method_val = sale.payment_method.value %}
+                        {% if method_val in ['Store Credit', 'STORE_CREDIT'] or not method_val %}Credit{% else %}{{
+                        method_val }}{% endif %}:
+                    </span>
                     <span>${{ "%.2f"|format(sale.amount_paid) }}</span>
                 </div>
                 {% endif %}

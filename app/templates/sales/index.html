@@ -121,8 +121,8 @@
                             <span class="badge text-white" style="background-color: #f59e0b;">E-Dahab</span>
                             {% elif method_str in ['Zaad', 'ZAAD'] %}
                             <span class="badge text-white" style="background-color: #10b981;">Zaad</span>
-                            {% elif method_str in ['Store Credit', 'STORE_CREDIT'] %}
-                            <span class="badge text-white" style="background-color: #6f42c1;">Store Credit</span>
+                            {% elif method_str in ['Store Credit', 'STORE_CREDIT'] or not method_str %}
+                            <span class="badge text-white" style="background-color: #6f42c1;">Credit</span>
                             {% elif method_str in ['Mobile Money', 'MOBILE_MONEY'] %}
                             <span class="badge bg-success text-white">Mobile</span>
                             {% else %}

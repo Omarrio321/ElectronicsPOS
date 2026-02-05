@@ -31,6 +31,23 @@
         <p class="text-muted">Manage your customer base and track performance.</p>
     </div>
     <div class="col-md-4 text-end">
+        <!-- Export Dropdown -->
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown"
+                aria-expanded="false">
+                <i class="fas fa-file-export me-1"></i> Export List
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item"
+                        href="{{ url_for('customers.export_excel', search=search, status=status_filter) }}">
+                        <i class="fas fa-file-excel text-success me-2"></i>Excel (.xlsx)
+                    </a></li>
+                <li><a class="dropdown-item"
+                        href="{{ url_for('customers.export_pdf', search=search, status=status_filter) }}">
+                        <i class="fas fa-file-pdf text-danger me-2"></i>PDF
+                    </a></li>
+            </ul>
+        </div>
         <a href="{{ url_for('customers.create') }}" class="btn btn-primary">
             <i class="fas fa-user-plus me-1"></i> Add Customer
         </a>
@@ -244,6 +261,9 @@
                             <option value="Active" {% if status_filter=='Active' %}selected{% endif %}>Active</option>
                             <option value="Inactive" {% if status_filter=='Inactive' %}selected{% endif %}>Inactive
                             </option>
+                            <option disabled>─────────</option>
+                            <option value="Debtors" {% if status_filter=='Debtors' %}selected{% endif %}
+                                style="color: #dc3545;">⚠ Owes Money</option>
                         </select>
                         <button type="submit" class="btn btn-sm btn-light border"><i
                                 class="fas fa-arrow-right"></i></button>
@@ -304,6 +324,11 @@
                                         <a href="{{ url_for('customers.edit', customer_id=customer.id) }}"
                                             class="btn btn-sm btn-light" title="Edit"><i
                                                 class="fas fa-pencil-alt small"></i></a>
+                                        {% if debt > 0 %}
+                                        <a href="{{ url_for('customers.profile', customer_id=customer.id) }}#ledger"
+                                            class="btn btn-sm btn-outline-danger" title="Print Statement"><i
+                                                class="fas fa-print small"></i></a>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>

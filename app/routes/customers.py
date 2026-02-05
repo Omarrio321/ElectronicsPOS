@@ -1,14 +1,19 @@
 # app/routes/customers.py
 """Customer CRUD routes with profile, ledger, and search functionality"""
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, current_app
 from flask_login import login_required, current_user
-from app.models import db, Customer, CustomerLedger, Sale, Payment, CustomerStatus, LedgerEntryType, InvoiceStatus, PaymentMethod, SaleStatus
+from app.models import db, Customer, CustomerLedger, Sale, Payment, CustomerStatus, LedgerEntryType, InvoiceStatus, PaymentMethod, SaleStatus, SaleType, SystemSetting
+import os
 from app.utils import format_currency
 from datetime import datetime, timedelta
 from decimal import Decimal
 from sqlalchemy import func, desc, and_
-from app.models import db, Customer, CustomerLedger, Sale, Payment, CustomerStatus, LedgerEntryType, InvoiceStatus, PaymentMethod, SaleStatus, SaleType
+from io import BytesIO
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+import pdfkit
+
 
 customers_bp = Blueprint('customers', __name__, url_prefix='/customers')
 
@@ -213,6 +218,82 @@ def get_leaderboard(metric='top_spenders_month'):
     return results
 
 
+def get_debtors_watchlist(limit=None):
+    """
+    Get customers who owe money with aging information.
+    Returns: list of dicts with customer info, balance, total_invoiced, total_paid, 
+             last_invoice_date, days_overdue (10+ days = overdue)
+    """
+    today = datetime.utcnow().date()
+    
+    # Subquery for latest ledger entry per customer
+    subq = db.session.query(
+        CustomerLedger.customer_id,
+        func.max(CustomerLedger.id).label('max_id')
+    ).group_by(CustomerLedger.customer_id).subquery()
+    
+    # Get customers with positive balance
+    debtors_query = db.session.query(
+        Customer.id,
+        Customer.full_name,
+        Customer.phone,
+        CustomerLedger.balance_after.label('balance')
+    ).join(CustomerLedger).join(
+        subq, and_(CustomerLedger.customer_id == subq.c.customer_id,
+                   CustomerLedger.id == subq.c.max_id)
+    ).filter(CustomerLedger.balance_after > 0).order_by(desc('balance'))
+    
+    if limit:
+        debtors_query = debtors_query.limit(limit)
+    
+    debtors = debtors_query.all()
+    
+    results = []
+    for debtor in debtors:
+        # Get oldest unpaid invoice date for aging calculation
+        # Using InvoiceStatus.PAID (correct enum value)
+        oldest_unpaid = db.session.query(func.min(Sale.created_at)).filter(
+            Sale.customer_id == debtor.id,
+            Sale.invoice_status != InvoiceStatus.PAID,
+            Sale.sale_status != SaleStatus.VOIDED
+        ).scalar()
+        
+        # Calculate days overdue (from oldest unpaid invoice)
+        days_overdue = 0
+        if oldest_unpaid:
+            days_overdue = (today - oldest_unpaid.date()).days
+        
+        # Get total invoiced and total paid for this customer
+        total_invoiced = db.session.query(func.sum(Sale.grand_total)).filter(
+            Sale.customer_id == debtor.id,
+            Sale.sale_status != SaleStatus.VOIDED
+        ).scalar() or Decimal('0')
+        
+        total_paid = db.session.query(func.sum(Payment.amount)).filter(
+            Payment.customer_id == debtor.id
+        ).scalar() or Decimal('0')
+        
+        # Get last invoice date
+        last_invoice = db.session.query(func.max(Sale.created_at)).filter(
+            Sale.customer_id == debtor.id,
+            Sale.sale_status != SaleStatus.VOIDED
+        ).scalar()
+        
+        results.append({
+            'id': debtor.id,
+            'name': debtor.full_name,
+            'phone': debtor.phone or '-',
+            'balance': float(debtor.balance),
+            'total_invoiced': float(total_invoiced),
+            'total_paid': float(total_paid),
+            'last_invoice_date': last_invoice,
+            'days_overdue': days_overdue,
+            'aging_status': 'overdue' if days_overdue >= 10 else 'current'
+        })
+    
+    return results
+
+
 # =============================================================================
 # CREATE CUSTOMER
 # =============================================================================
@@ -342,6 +423,20 @@ def profile(customer_id):
     # Get recent ledger entries (last 30)
     ledger_entries = CustomerLedger.query.filter_by(customer_id=customer_id)\
         .order_by(CustomerLedger.created_at.desc(), CustomerLedger.id.desc()).limit(30).all()
+
+    # Statistics for Cards
+    stats = db.session.query(
+        func.count(Sale.id).label('order_count'),
+        func.coalesce(func.sum(Sale.grand_total), 0).label('total_spent'),
+        func.max(Sale.created_at).label('last_purchase')
+    ).filter(
+        Sale.customer_id == customer_id,
+        Sale.sale_status != SaleStatus.VOIDED
+    ).first()
+
+    total_orders = stats.order_count or 0
+    total_spent = stats.total_spent or 0
+    last_purchase_date = stats.last_purchase
     
     return render_template('customers/profile.html',
                            customer=customer,
@@ -349,7 +444,10 @@ def profile(customer_id):
                            invoices=invoices,
                            unpaid_invoices=unpaid_invoices,
                            payments=payments,
-                           ledger_entries=ledger_entries)
+                           ledger_entries=ledger_entries,
+                           total_orders=total_orders,
+                           total_spent=total_spent,
+                           last_purchase_date=last_purchase_date)
 
 
 # =============================================================================
@@ -617,3 +715,236 @@ def recalculate_balance(customer_id):
         flash(f'Error recalculating balance: {str(e)}', 'danger')
 
     return redirect(url_for('customers.profile', customer_id=customer_id))
+
+
+# =============================================================================
+# DEBTORS EXPORT (Excel / PDF)
+# =============================================================================
+
+# =============================================================================
+# EXPORTS (Excel / PDF)
+# =============================================================================
+import os
+
+
+@customers_bp.route('/export/excel')
+@login_required
+def export_excel():
+    """Export customers to Excel (Unified Logic)"""
+    search = request.args.get('search', '').strip()
+    status_filter = request.args.get('status', '')
+    
+    query = Customer.query
+    
+    # 1. Search Filter
+    if search:
+        query = query.filter(db.or_(
+            Customer.full_name.ilike(f'%{search}%'),
+            Customer.phone.ilike(f'%{search}%'),
+            Customer.email.ilike(f'%{search}%')
+        ))
+    
+    # 2. Status/Debtors Filter
+    if status_filter:
+        if status_filter == 'Debtors':
+            # Subquery for debtors (same as index route)
+            subq = db.session.query(
+                CustomerLedger.customer_id,
+                func.max(CustomerLedger.id).label('max_id')
+            ).group_by(CustomerLedger.customer_id).subquery()
+            
+            debtor_ids = db.session.query(CustomerLedger.customer_id)\
+                .join(subq, CustomerLedger.id == subq.c.max_id)\
+                .filter(CustomerLedger.balance_after > 0).all()
+            debtor_ids = [d[0] for d in debtor_ids]
+            
+            query = query.filter(Customer.id.in_(debtor_ids))
+        else:
+            try:
+                query = query.filter(Customer.status == CustomerStatus(status_filter))
+            except: pass
+            
+    # Sort by ID Ascending (1, 2, 3) as requested
+    customers = query.order_by(Customer.id.asc()).all()
+    
+    if not customers:
+        flash('No customers found to export.', 'info')
+        return redirect(url_for('customers.index'))
+        
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Customer List"
+    
+    # Company Info for Header
+    from app.models import SystemSetting
+    company_name = SystemSetting.get('company_name', 'Electronics POS')
+    
+    # Styles
+    title_font = Font(bold=True, size=14, color="2C3E50")
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="2C3E50", end_color="2C3E50", fill_type="solid")
+    
+    zebra_light = PatternFill(start_color="F8F9FA", end_color="F8F9FA", fill_type="solid")
+    zebra_white = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+    
+    thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+    alignment_center = Alignment(horizontal='center', vertical='center')
+    alignment_left = Alignment(horizontal='left', vertical='center')
+    
+    # Title Section
+    ws.merge_cells('A1:F1')
+    ws['A1'] = company_name.upper()
+    ws['A1'].font = title_font
+    ws['A1'].alignment = alignment_center
+    
+    ws.merge_cells('A2:F2')
+    ws['A2'] = f"CUSTOMER LIST - {datetime.now().strftime('%d %b %Y %H:%M')}"
+    ws['A2'].alignment = alignment_center
+    
+    # Headers
+    headers = ['ID', 'Customer Name', 'Phone', 'Email', 'Status', 'Balance']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=4, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = alignment_center
+        cell.border = thin_border
+        
+    # Data
+    total_balance = 0
+    row_idx = 5
+    for c in customers:
+        debt = c.get_current_debt()
+        total_balance += debt
+        
+        # Zebra Striping
+        row_fill = zebra_light if row_idx % 2 == 0 else zebra_white
+        
+        # Write cells
+        ws.cell(row=row_idx, column=1, value=c.id).alignment = alignment_center
+        ws.cell(row=row_idx, column=2, value=c.full_name)
+        ws.cell(row=row_idx, column=3, value=c.phone or '-')
+        ws.cell(row=row_idx, column=4, value=c.email or '-')
+        ws.cell(row=row_idx, column=5, value=c.status.value).alignment = alignment_center
+        
+        bal_cell = ws.cell(row=row_idx, column=6, value=float(debt))
+        bal_cell.number_format = '#,##0.00'
+        if debt > 0:
+            bal_cell.font = Font(color="C0392B", bold=True)
+        else:
+            bal_cell.font = Font(color="27AE60")
+            
+        # Apply borders and fill
+        for col in range(1, 7):
+            cell = ws.cell(row=row_idx, column=col)
+            cell.border = thin_border
+            cell.fill = row_fill
+            
+        row_idx += 1
+        
+    # Summary Section
+    summary_row = row_idx + 1
+    ws.cell(row=summary_row, column=2, value=f"Total Customers: {len(customers)}").font = Font(bold=True)
+    
+    ws.cell(row=summary_row, column=5, value="Total Balance:").font = Font(bold=True)
+    ws.cell(row=summary_row, column=5).alignment = Alignment(horizontal='right')
+    
+    total_cell = ws.cell(row=summary_row, column=6, value=float(total_balance))
+    total_cell.font = Font(bold=True, size=11)
+    total_cell.number_format = '"$"#,##0.00'
+    
+    # Optimal Column Widths
+    ws.column_dimensions['A'].width = 8   # ID
+    ws.column_dimensions['B'].width = 35  # Name (Wider)
+    ws.column_dimensions['C'].width = 18  # Phone
+    ws.column_dimensions['D'].width = 25  # Email
+    ws.column_dimensions['E'].width = 12  # Status
+    ws.column_dimensions['F'].width = 18  # Balance
+        
+    filename = f"Customer_List_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    
+    # Save
+    excel_io = BytesIO()
+    wb.save(excel_io)
+    excel_io.seek(0)
+    
+    return send_file(excel_io, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                     as_attachment=True, download_name=filename)
+
+
+@customers_bp.route('/export/pdf')
+@login_required
+def export_pdf():
+    """Export customers to PDF (Unified Logic)"""
+    search = request.args.get('search', '').strip()
+    status_filter = request.args.get('status', '')
+    
+    query = Customer.query
+    if search:
+        query = query.filter(db.or_(
+            Customer.full_name.ilike(f'%{search}%'),
+            Customer.phone.ilike(f'%{search}%'),
+            Customer.email.ilike(f'%{search}%')
+        ))
+        
+    if status_filter:
+        if status_filter == 'Debtors':
+            subq = db.session.query(
+                CustomerLedger.customer_id,
+                func.max(CustomerLedger.id).label('max_id')
+            ).group_by(CustomerLedger.customer_id).subquery()
+            
+            debtor_ids = db.session.query(CustomerLedger.customer_id)\
+                .join(subq, CustomerLedger.id == subq.c.max_id)\
+                .filter(CustomerLedger.balance_after > 0).all()
+            debtor_ids = [d[0] for d in debtor_ids]
+            query = query.filter(Customer.id.in_(debtor_ids))
+        else:
+            try: query = query.filter(Customer.status == CustomerStatus(status_filter))
+            except: pass
+            
+    customers = query.order_by(Customer.id.asc()).all()
+    if not customers:
+        flash('No customers found to export.', 'info')
+        return redirect(url_for('customers.index'))
+        
+    # Calculate Summaries for PDF
+    total_customers = len(customers)
+    total_balance = sum(c.get_current_debt() for c in customers)
+    
+    # Render template (Company Info comes from global context_processor, matching POS receipt)
+    html_content = render_template('customers/list_pdf.html', 
+                                 customers=customers, 
+                                 total_customers=total_customers,
+                                 total_balance=total_balance,
+                                 generated_at=datetime.now(), 
+                                 format_currency=format_currency,
+                                 filter_name=status_filter or "All")
+
+    try:
+        path_wkhtmltopdf = current_app.config.get('WKHTMLTOPDF_PATH')
+        config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
+        
+        # Professional PDF Options
+        options = {
+            'page-size': 'A4',
+            'margin-top': '10mm',
+            'margin-right': '10mm',
+            'margin-bottom': '15mm',
+            'margin-left': '10mm',
+            'encoding': 'UTF-8',
+            'footer-center': '[page] of [toPage]',
+            'footer-font-size': '9',
+            'footer-spacing': '5'
+        }
+        
+        pdf_bytes = pdfkit.from_string(html_content, False, configuration=config, options=options)
+        pdf_io = BytesIO(pdf_bytes)
+        pdf_io.seek(0)
+        
+        return send_file(pdf_io, mimetype='application/pdf', as_attachment=True,
+                         download_name=f"Customer_List_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf")
+    except Exception as e:
+        current_app.logger.exception("PDF generation failed")
+        flash(f'Error generating PDF: {str(e)}', 'danger')
+        return redirect(url_for('customers.index'))
