@@ -146,6 +146,7 @@
             <table class="table table-striped align-middle">
                 <thead>
                     <tr>
+                        <th style="width: 60px;"></th>
                         <th>Name</th>
                         <th>Category</th>
                         <th>SKU</th>
@@ -159,6 +160,18 @@
                 <tbody>
                     {% for product in products.items %}
                     <tr>
+                        <td>
+                            {% if product.image_filename %}
+                            <img src="{{ url_for('static', filename='uploads/products/' + product.image_filename) }}"
+                                alt="{{ product.name }}"
+                                style="width: 40px; height: 40px; object-fit: cover; border-radius: 8px;">
+                            {% else %}
+                            <span class="d-inline-flex align-items-center justify-content-center"
+                                style="width: 40px; height: 40px; border-radius: 8px; background: #f0f2f5;">
+                                <i class="fas fa-box text-muted"></i>
+                            </span>
+                            {% endif %}
+                        </td>
                         <td>
                             <div class="fw-bold">{{ product.name }}</div>
                             <small class="text-muted">{{ product.barcode or '' }}</small>
@@ -201,7 +214,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="8" class="text-center text-muted">No products found.</td>
+                        <td colspan="9" class="text-center text-muted">No products found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, current_app
+from flask import Blueprint, render_template, request, jsonify, current_app, url_for
 from app.models import db, Product, Category, Sale, SaleItem, SystemSetting, Payment, Customer, CustomerLedger
 from app.models import PaymentMethod, SaleStatus, SaleType, InvoiceStatus, PriceType, LedgerEntryType
 from flask_login import login_required, current_user
@@ -78,7 +78,8 @@ def get_products_api():
                 'stock': p.quantity_in_stock,
                 'category_id': p.category_id,
                 'sku': p.sku,
-                'barcode': p.barcode
+                'barcode': p.barcode,
+                'image_url': url_for('static', filename=f'uploads/products/{p.image_filename}') if p.image_filename else None
             })
 
         return jsonify({

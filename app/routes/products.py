@@ -5,7 +5,10 @@ from app import db
 from app.forms import ProductForm
 from app.services.audit_service import AuditService
 from sqlalchemy import or_, desc
+from werkzeug.utils import secure_filename
 import json
+import uuid
+import os
 import pdfkit
 from io import BytesIO
 import openpyxl
@@ -74,6 +77,11 @@ def add():
             low_stock_threshold=form.low_stock_threshold.data,
             description=form.description.data
         )
+        
+        # Handle image upload
+        if form.image.data and form.image.data.filename:
+            product.image_filename = _save_product_image(form.image.data)
+        
         db.session.add(product)
         db.session.commit()
         
@@ -120,6 +128,18 @@ def edit(product_id):
         product.low_stock_threshold = form.low_stock_threshold.data
         product.description = form.description.data
         
+        # Handle image upload
+        if form.image.data and form.image.data.filename:
+            # Remove old image if exists
+            if product.image_filename:
+                _delete_product_image(product.image_filename)
+            product.image_filename = _save_product_image(form.image.data)
+        
+        # Handle image removal (checkbox)
+        if request.form.get('remove_image') == '1' and product.image_filename:
+            _delete_product_image(product.image_filename)
+            product.image_filename = None
+        
         db.session.commit()
         
         # Log product update
@@ -148,6 +168,10 @@ def delete(product_id):
     if SaleItem.query.filter_by(product_id=product_id).first():
         flash('Cannot delete product with existing sales', 'danger')
         return redirect(url_for('products.index'))
+    
+    # Clean up image file
+    if product.image_filename:
+        _delete_product_image(product.image_filename)
     
     db.session.delete(product)
     db.session.commit()
@@ -440,3 +464,26 @@ def export_excel():
         as_attachment=True,
         download_name=filename
     )
+
+
+# =============================================================================
+# Image Upload Helpers
+# =============================================================================
+
+def _save_product_image(file_data):
+    """Save uploaded product image with a unique filename. Returns the filename."""
+    original_ext = file_data.filename.rsplit('.', 1)[-1].lower()
+    unique_filename = f"{uuid.uuid4().hex[:12]}.{original_ext}"
+    upload_folder = current_app.config['PRODUCT_IMAGES_UPLOAD_FOLDER']
+    file_data.save(os.path.join(upload_folder, unique_filename))
+    return unique_filename
+
+
+def _delete_product_image(filename):
+    """Safely delete a product image file from disk."""
+    try:
+        filepath = os.path.join(current_app.config['PRODUCT_IMAGES_UPLOAD_FOLDER'], filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    except Exception as e:
+        current_app.logger.warning(f"Failed to delete product image {filename}: {e}")

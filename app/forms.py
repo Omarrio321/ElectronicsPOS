@@ -1,4 +1,5 @@
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField, IntegerField, DecimalField, TextAreaField, DateField
 from wtforms.validators import DataRequired, Email, EqualTo, NumberRange, Optional, InputRequired
 from wtforms.widgets import TextArea
@@ -48,6 +49,7 @@ class ProductForm(FlaskForm):
     sku = StringField('SKU', validators=[DataRequired()])
     barcode = StringField('Barcode', validators=[Optional()])
     description = TextAreaField('Description')
+    image = FileField('Product Image', validators=[FileAllowed(['jpg', 'jpeg', 'png', 'webp'], 'Images only (jpg, png, webp)')])
     cost_price = DecimalField('Cost Price', validators=[DataRequired(), NumberRange(min=0)])
     selling_price = DecimalField('Selling Price', validators=[DataRequired(), NumberRange(min=0)])
     wholesale_price = DecimalField('Wholesale Price', validators=[Optional(), NumberRange(min=0)])

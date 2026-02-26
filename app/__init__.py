@@ -34,6 +34,11 @@ def create_app(config_class=None):
     login_manager.init_app(app)
     csrf.init_app(app)
     
+    # Configure product image uploads
+    product_images_dir = os.path.join(app.static_folder, 'uploads', 'products')
+    os.makedirs(product_images_dir, exist_ok=True)
+    app.config['PRODUCT_IMAGES_UPLOAD_FOLDER'] = product_images_dir
+    
     # Security Extensions
 
     from flask_talisman import Talisman

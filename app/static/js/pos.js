@@ -349,9 +349,15 @@ function renderProducts() {
         return;
     }
 
-    const html = state.products.map(p => `
+    const html = state.products.map(p => {
+        const imgHtml = p.image_url
+            ? `<div class="product-img"><img src="${p.image_url}" alt="" loading="lazy"></div>`
+            : `<div class="product-img-placeholder"><i class="fas fa-box"></i></div>`;
+
+        return `
         <div class="product-card ${p.stock <= 0 ? 'out-of-stock' : ''}" onclick="addToCart(${p.id})" title="${escapeHtml(p.name)}">
-            <div>
+            ${imgHtml}
+            <div class="product-info">
                 <div class="product-name">${escapeHtml(p.name)}</div>
                 <div class="product-sku">${escapeHtml(p.sku || '')}</div>
             </div>
@@ -359,8 +365,8 @@ function renderProducts() {
                 <div class="text-primary fw-bold">$${Number(p.price).toFixed(2)}</div>
                 <div><span class="badge badge-stock ${p.stock < 5 ? 'bg-danger' : 'bg-secondary'}">Stock: ${p.stock}</span></div>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 
     // We only update innerHTML - this might be jarring if appending, but 'state.products' has ALL currently loaded.
     // Ideally for "Load More" we should append, but full re-render is safer for state sync unless perf is awful.

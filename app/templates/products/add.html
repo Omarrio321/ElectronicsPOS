@@ -9,12 +9,12 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-body">
-                <form method="POST">
-                    {{ form.hidden_tag() }}
+<form method="POST" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
 
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -171,26 +171,109 @@
                             </a>
                             {{ form.submit(class="btn btn-primary") }}
                         </div>
-                </form>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
 
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="bi bi-info-circle"></i> Product Information</h5>
-            </div>
-            <div class="card-body">
-                <ul class="list-unstyled">
-                    <li><strong>SKU:</strong> Stock Keeping Unit - Unique identifier for inventory tracking</li>
-                    <li><strong>Barcode:</strong> Optional - Used for scanning products at POS</li>
-                    <li><strong>Cost Price:</strong> The price you paid for the product</li>
-                    <li><strong>Selling Price:</strong> The price customers pay</li>
-                    <li><strong>Low Stock Threshold:</strong> Alert level for inventory management</li>
-                </ul>
+            <div class="col-md-4">
+                <!-- Image Upload Card -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-image"></i> Product Image</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="product-image-upload-zone" id="imageUploadZone"
+                            onclick="document.getElementById('image').click()">
+                            <div id="imagePreview" class="d-none">
+                                <img id="previewImg" src="" alt="Preview" class="img-fluid rounded"
+                                    style="max-height: 200px; object-fit: cover; width: 100%;">
+                            </div>
+                            <div id="imagePlaceholder" class="text-center py-4">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-2"></i>
+                                <p class="text-muted mb-1">Click to upload image</p>
+                                <small class="text-muted">JPG, PNG or WebP (max 5MB)</small>
+                            </div>
+                            {{ form.image(class="d-none", id="image", accept="image/jpeg,image/png,image/webp") }}
+                        </div>
+                        {% if form.image.errors %}
+                        <div class="text-danger mt-2">
+                            {% for error in form.image.errors %}
+                            <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <button type="button" class="btn btn-outline-secondary btn-sm w-100 mt-2 d-none"
+                            id="clearImageBtn" onclick="clearImagePreview()">
+                            <i class="fas fa-times me-1"></i> Remove Image
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-info-circle"></i> Product Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><strong>SKU:</strong> Stock Keeping Unit - Unique identifier for inventory tracking</li>
+                            <li><strong>Barcode:</strong> Optional - Used for scanning products at POS</li>
+                            <li><strong>Cost Price:</strong> The price you paid for the product</li>
+                            <li><strong>Selling Price:</strong> The price customers pay</li>
+                            <li><strong>Low Stock Threshold:</strong> Alert level for inventory management</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
+</form>
+{% endblock %}
+
+{% block head %}
+<style>
+    .product-image-upload-zone {
+        border: 2px dashed #dee2e6;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        overflow: hidden;
+        min-height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .product-image-upload-zone:hover {
+        border-color: #0d6efd;
+        background: #f0f7ff;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('image').addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image must be under 5MB');
+            e.target.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+            document.getElementById('previewImg').src = ev.target.result;
+            document.getElementById('imagePreview').classList.remove('d-none');
+            document.getElementById('imagePlaceholder').classList.add('d-none');
+            document.getElementById('clearImageBtn').classList.remove('d-none');
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function clearImagePreview() {
+        document.getElementById('image').value = '';
+        document.getElementById('imagePreview').classList.add('d-none');
+        document.getElementById('imagePlaceholder').classList.remove('d-none');
+        document.getElementById('clearImageBtn').classList.add('d-none');
+    }
+</script>
 {% endblock %}

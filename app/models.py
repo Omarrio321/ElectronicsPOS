@@ -56,6 +56,7 @@ class Product(db.Model):
     sku = db.Column(db.String(100), unique=True, nullable=False)
     barcode = db.Column(db.String(100), unique=True, nullable=True)
     description = db.Column(db.Text)
+    image_filename = db.Column(db.String(255), nullable=True)  # Product image file
     
     # Pricing
     cost_price = db.Column(db.Numeric(10, 2), nullable=False)
