@@ -63,38 +63,44 @@ def add():
     form.category_id.choices = [(c.id, c.name) for c in Category.query.all()]
     
     if form.validate_on_submit():
-        product = Product(
-            name=form.name.data,
-            category_id=form.category_id.data,
-            sku=form.sku.data,
-            barcode=form.barcode.data,
-            cost_price=form.cost_price.data,
-            selling_price=form.selling_price.data,
-            wholesale_price=form.wholesale_price.data,
-            min_wholesale_qty=form.min_wholesale_qty.data,
-            allow_wholesale=form.allow_wholesale.data,
-            quantity_in_stock=form.quantity.data,
-            low_stock_threshold=form.low_stock_threshold.data,
-            description=form.description.data
-        )
-        
-        # Handle image upload
-        if form.image.data and form.image.data.filename:
-            product.image_filename = _save_product_image(form.image.data)
-        
-        db.session.add(product)
-        db.session.commit()
-        
-        # Log product creation
-        AuditService.log_action(
-            action='CREATE_PRODUCT',
-            target_type='Product',
-            target_id=product.id,
-            details={'name': product.name, 'sku': product.sku}
-        )
-        
-        flash('Product added successfully', 'success')
-        return redirect(url_for('products.index'))
+        try:
+            product = Product(
+                name=form.name.data,
+                category_id=form.category_id.data,
+                sku=form.sku.data,
+                barcode=form.barcode.data,
+                cost_price=form.cost_price.data,
+                selling_price=form.selling_price.data,
+                wholesale_price=form.wholesale_price.data,
+                min_wholesale_qty=form.min_wholesale_qty.data,
+                allow_wholesale=form.allow_wholesale.data,
+                quantity_in_stock=form.quantity.data,
+                low_stock_threshold=form.low_stock_threshold.data,
+                description=form.description.data
+            )
+            
+            # Handle image upload
+            if form.image.data and form.image.data.filename:
+                product.image_filename = _save_product_image(form.image.data)
+            
+            db.session.add(product)
+            db.session.commit()
+            
+            # Log product creation
+            AuditService.log_action(
+                action='CREATE_PRODUCT',
+                target_type='Product',
+                target_id=product.id,
+                details={'name': product.name, 'sku': product.sku}
+            )
+            
+            flash('Product added successfully', 'success')
+            return redirect(url_for('products.index'))
+        except Exception as e:
+            db.session.rollback()
+            import traceback
+            current_app.logger.error(f"Error adding product: {e}\n{traceback.format_exc()}")
+            flash(f'Error adding product: {str(e)}', 'danger')
     
     return render_template('products/add.html', form=form)
 

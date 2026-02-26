@@ -201,79 +201,81 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="col-md-4">
-                    <!-- Image Upload Card -->
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h5 class="mb-0"><i class="bi bi-image"></i> Product Image</h5>
-                        </div>
-                        <div class="card-body">
-                            {% if product.image_filename %}
-                            <div id="currentImage" class="mb-3 text-center">
-                                <img src="{{ url_for('static', filename='uploads/products/' + product.image_filename) }}"
-                                    alt="{{ product.name }}" class="current-product-image">
-                                <div class="mt-2">
-                                    <label class="form-check form-check-inline text-danger" style="cursor: pointer;">
-                                        <input type="checkbox" name="remove_image" value="1" class="form-check-input"
-                                            id="removeImageCheck">
-                                        <span class="form-check-label small">Remove image</span>
-                                    </label>
-                                </div>
-                            </div>
-                            {% endif %}
-
-                            <div class="product-image-upload-zone" id="imageUploadZone"
-                                onclick="document.getElementById('image').click()">
-                                <div id="imagePreview" class="d-none">
-                                    <img id="previewImg" src="" alt="Preview" class="img-fluid rounded"
-                                        style="max-height: 200px; object-fit: cover; width: 100%;">
-                                </div>
-                                <div id="imagePlaceholder" class="text-center py-4">
-                                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-2"></i>
-                                    <p class="text-muted mb-1">{{ 'Upload new image' if product.image_filename else
-                                        'Click to upload
-                                        image' }}</p>
-                                    <small class="text-muted">JPG, PNG or WebP (max 5MB)</small>
-                                </div>
-                                {{ form.image(class="d-none", id="image", accept="image/jpeg,image/png,image/webp") }}
-                            </div>
-                            {% if form.image.errors %}
-                            <div class="text-danger mt-2">
-                                {% for error in form.image.errors %}
-                                <small>{{ error }}</small>
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                            <button type="button" class="btn btn-outline-secondary btn-sm w-100 mt-2 d-none"
-                                id="clearImageBtn" onclick="clearImagePreview()">
-                                <i class="fas fa-times me-1"></i> Cancel new image
-                            </button>
+        <div class="col-md-4">
+            <!-- Image Upload Card -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-image"></i> Product Image</h5>
+                </div>
+                <div class="card-body">
+                    {% if product.image_filename %}
+                    <div id="currentImage" class="mb-3 text-center">
+                        <img src="{{ url_for('static', filename='uploads/products/' + product.image_filename) }}"
+                            alt="{{ product.name }}" class="current-product-image">
+                        <div class="mt-2">
+                            <label class="form-check form-check-inline text-danger" style="cursor: pointer;">
+                                <input type="checkbox" name="remove_image" value="1" class="form-check-input"
+                                    id="removeImageCheck">
+                                <span class="form-check-label small">Remove image</span>
+                            </label>
                         </div>
                     </div>
+                    {% endif %}
 
-                    <div class="card">
-                        <div class="card-header">
-                            <h5><i class="bi bi-info-circle"></i> Product Details</h5>
+                    <div class="product-image-upload-zone" id="imageUploadZone"
+                        onclick="document.getElementById('image').click()">
+                        <div id="imagePreview" class="d-none">
+                            <img id="previewImg" src="" alt="Preview" class="img-fluid rounded"
+                                style="max-height: 200px; object-fit: cover; width: 100%;">
                         </div>
-                        <div class="card-body">
-                            <ul class="list-unstyled">
-                                <li><strong>Created:</strong> {{ product.created_at.strftime('%Y-%m-%d %H:%M') }}</li>
-                                <li><strong>Last Updated:</strong> {{ product.updated_at.strftime('%Y-%m-%d %H:%M') }}
-                                </li>
-                                <li><strong>Current Stock:</strong> {{ product.quantity }}</li>
-                                <li><strong>Stock Status:</strong>
-                                    {% if product.is_low_stock %}
-                                    <span class="badge bg-warning">Low Stock</span>
-                                    {% else %}
-                                    <span class="badge bg-success">In Stock</span>
-                                    {% endif %}
-                                </li>
-                            </ul>
+                        <div id="imagePlaceholder" class="text-center py-4">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-2"></i>
+                            <p class="text-muted mb-1">{{ 'Upload new image' if product.image_filename else
+                                'Click to upload
+                                image' }}</p>
+                            <small class="text-muted">JPG, PNG or WebP (max 5MB)</small>
                         </div>
+                        {{ form.image(class="d-none", id="image", accept="image/jpeg,image/png,image/webp") }}
                     </div>
+                    {% if form.image.errors %}
+                    <div class="text-danger mt-2">
+                        {% for error in form.image.errors %}
+                        <small>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <button type="button" class="btn btn-outline-secondary btn-sm w-100 mt-2 d-none" id="clearImageBtn"
+                        onclick="clearImagePreview()">
+                        <i class="fas fa-times me-1"></i> Cancel new image
+                    </button>
                 </div>
             </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-info-circle"></i> Product Details</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><strong>Created:</strong> {{ product.created_at.strftime('%Y-%m-%d %H:%M') }}</li>
+                        <li><strong>Last Updated:</strong> {{ product.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                        </li>
+                        <li><strong>Current Stock:</strong> {{ product.quantity }}</li>
+                        <li><strong>Stock Status:</strong>
+                            {% if product.is_low_stock %}
+                            <span class="badge bg-warning">Low Stock</span>
+                            {% else %}
+                            <span class="badge bg-success">In Stock</span>
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 </form>
 {% endblock %}
 

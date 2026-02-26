@@ -81,150 +81,151 @@
                             {% endif %}
                         </div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                {{ form.selling_price.label(class="form-label") }}
-                                {{ form.selling_price(class="form-control") }}
-                                {% if form.selling_price.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.selling_price.errors %}
-                                    <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-
-                            <div class="col-md-6">
-                                {{ form.wholesale_price.label(class="form-label") }}
-                                {{ form.wholesale_price(class="form-control") }}
-                                {% if form.wholesale_price.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.wholesale_price.errors %}
-                                    <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                {{ form.min_wholesale_qty.label(class="form-label") }}
-                                {{ form.min_wholesale_qty(class="form-control") }}
-                                {% if form.min_wholesale_qty.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.min_wholesale_qty.errors %}
-                                    <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 d-flex align-items-end">
-                                <div class="form-check mb-2">
-                                    {{ form.allow_wholesale(class="form-check-input") }}
-                                    {{ form.allow_wholesale.label(class="form-check-label") }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                {{ form.quantity.label(class="form-label") }}
-                                {{ form.quantity(class="form-control") }}
-                                {% if form.quantity.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.quantity.errors %}
-                                    <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-
-                            <div class="col-md-6">
-                                {{ form.low_stock_threshold.label(class="form-label") }}
-                                {{ form.low_stock_threshold(class="form-control") }}
-                                {% if form.low_stock_threshold.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.low_stock_threshold.errors %}
-                                    <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            {{ form.description.label(class="form-label") }}
-                            {{ form.description(class="form-control", rows="3") }}
-                            {% if form.description.errors %}
+                        <div class="col-md-6">
+                            {{ form.selling_price.label(class="form-label") }}
+                            {{ form.selling_price(class="form-control") }}
+                            {% if form.selling_price.errors %}
                             <div class="text-danger">
-                                {% for error in form.description.errors %}
+                                {% for error in form.selling_price.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.wholesale_price.label(class="form-label") }}
+                            {{ form.wholesale_price(class="form-control") }}
+                            {% if form.wholesale_price.errors %}
+                            <div class="text-danger">
+                                {% for error in form.wholesale_price.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.min_wholesale_qty.label(class="form-label") }}
+                            {{ form.min_wholesale_qty(class="form-control") }}
+                            {% if form.min_wholesale_qty.errors %}
+                            <div class="text-danger">
+                                {% for error in form.min_wholesale_qty.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check mb-2">
+                                {{ form.allow_wholesale(class="form-check-input") }}
+                                {{ form.allow_wholesale.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.quantity.label(class="form-label") }}
+                            {{ form.quantity(class="form-control") }}
+                            {% if form.quantity.errors %}
+                            <div class="text-danger">
+                                {% for error in form.quantity.errors %}
                                 <small>{{ error }}</small>
                                 {% endfor %}
                             </div>
                             {% endif %}
                         </div>
 
-                        <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('products.index') }}" class="btn btn-secondary">
-                                <i class="bi bi-arrow-left"></i> Back
-                            </a>
-                            {{ form.submit(class="btn btn-primary") }}
+                        <div class="col-md-6">
+                            {{ form.low_stock_threshold.label(class="form-label") }}
+                            {{ form.low_stock_threshold(class="form-control") }}
+                            {% if form.low_stock_threshold.errors %}
+                            <div class="text-danger">
+                                {% for error in form.low_stock_threshold.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="col-md-4">
-                <!-- Image Upload Card -->
-                <div class="card mb-3">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-image"></i> Product Image</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="product-image-upload-zone" id="imageUploadZone"
-                            onclick="document.getElementById('image').click()">
-                            <div id="imagePreview" class="d-none">
-                                <img id="previewImg" src="" alt="Preview" class="img-fluid rounded"
-                                    style="max-height: 200px; object-fit: cover; width: 100%;">
-                            </div>
-                            <div id="imagePlaceholder" class="text-center py-4">
-                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-2"></i>
-                                <p class="text-muted mb-1">Click to upload image</p>
-                                <small class="text-muted">JPG, PNG or WebP (max 5MB)</small>
-                            </div>
-                            {{ form.image(class="d-none", id="image", accept="image/jpeg,image/png,image/webp") }}
-                        </div>
-                        {% if form.image.errors %}
-                        <div class="text-danger mt-2">
-                            {% for error in form.image.errors %}
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="3") }}
+                        {% if form.description.errors %}
+                        <div class="text-danger">
+                            {% for error in form.description.errors %}
                             <small>{{ error }}</small>
                             {% endfor %}
                         </div>
                         {% endif %}
-                        <button type="button" class="btn btn-outline-secondary btn-sm w-100 mt-2 d-none"
-                            id="clearImageBtn" onclick="clearImagePreview()">
-                            <i class="fas fa-times me-1"></i> Remove Image
-                        </button>
                     </div>
-                </div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <h5><i class="bi bi-info-circle"></i> Product Information</h5>
-                    </div>
-                    <div class="card-body">
-                        <ul class="list-unstyled">
-                            <li><strong>SKU:</strong> Stock Keeping Unit - Unique identifier for inventory tracking</li>
-                            <li><strong>Barcode:</strong> Optional - Used for scanning products at POS</li>
-                            <li><strong>Cost Price:</strong> The price you paid for the product</li>
-                            <li><strong>Selling Price:</strong> The price customers pay</li>
-                            <li><strong>Low Stock Threshold:</strong> Alert level for inventory management</li>
-                        </ul>
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('products.index') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Back
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
                     </div>
                 </div>
             </div>
         </div>
+
+        <div class="col-md-4">
+            <!-- Image Upload Card -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-image"></i> Product Image</h5>
+                </div>
+                <div class="card-body">
+                    <div class="product-image-upload-zone" id="imageUploadZone"
+                        onclick="document.getElementById('image').click()">
+                        <div id="imagePreview" class="d-none">
+                            <img id="previewImg" src="" alt="Preview" class="img-fluid rounded"
+                                style="max-height: 200px; object-fit: cover; width: 100%;">
+                        </div>
+                        <div id="imagePlaceholder" class="text-center py-4">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-2"></i>
+                            <p class="text-muted mb-1">Click to upload image</p>
+                            <small class="text-muted">JPG, PNG or WebP (max 5MB)</small>
+                        </div>
+                        {{ form.image(class="d-none", id="image", accept="image/jpeg,image/png,image/webp") }}
+                    </div>
+                    {% if form.image.errors %}
+                    <div class="text-danger mt-2">
+                        {% for error in form.image.errors %}
+                        <small>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <button type="button" class="btn btn-outline-secondary btn-sm w-100 mt-2 d-none" id="clearImageBtn"
+                        onclick="clearImagePreview()">
+                        <i class="fas fa-times me-1"></i> Remove Image
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-info-circle"></i> Product Information</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><strong>SKU:</strong> Stock Keeping Unit - Unique identifier for inventory tracking</li>
+                        <li><strong>Barcode:</strong> Optional - Used for scanning products at POS</li>
+                        <li><strong>Cost Price:</strong> The price you paid for the product</li>
+                        <li><strong>Selling Price:</strong> The price customers pay</li>
+                        <li><strong>Low Stock Threshold:</strong> Alert level for inventory management</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 </form>
 {% endblock %}
 

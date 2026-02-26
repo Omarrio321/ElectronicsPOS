@@ -55,7 +55,7 @@ class ProductForm(FlaskForm):
     wholesale_price = DecimalField('Wholesale Price', validators=[Optional(), NumberRange(min=0)])
     min_wholesale_qty = IntegerField('Min Wholesale Qty', default=1, validators=[Optional(), NumberRange(min=1)])
     allow_wholesale = BooleanField('Allow Wholesale', default=True)
-    quantity = IntegerField('Quantity in Stock', validators=[DataRequired(), NumberRange(min=0)])
+    quantity = IntegerField('Quantity in Stock', validators=[InputRequired(), NumberRange(min=0)])
     low_stock_threshold = IntegerField('Low Stock Threshold', validators=[Optional(), NumberRange(min=0)])
     is_active = BooleanField('Active', default=True)
     submit = SubmitField('Save')
