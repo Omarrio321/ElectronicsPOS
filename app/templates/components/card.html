@@ -16,8 +16,9 @@
 </div>
 {% endmacro %}
 
-{% macro kpi_card(label, value, icon, icon_color='text-primary', value_class='', subtext=None, trend=None) %}
-<div class="glass-panel kpi-card h-100">
+{% macro kpi_card(label, value, icon, icon_color='text-primary', value_class='', subtext=None, trend=None,
+card_class='') %}
+<div class="glass-panel kpi-card h-100 {{ card_class }}">
     <div class="d-flex justify-content-between align-items-center mb-2">
         <span class="kpi-label text-truncate" title="{{ label }}">{{ label }}</span>
         <div class="p-1 rounded-circle bg-light {{ icon_color }} d-flex align-items-center justify-content-center"

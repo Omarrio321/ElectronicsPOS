@@ -828,3 +828,51 @@ function resetCheckoutModal() {
     document.getElementById('saleTypeRetail').checked = true;
     state.saleType = 'RETAIL';
 }
+
+/* ================================================================
+   POS Fullscreen Mode
+   ================================================================ */
+function togglePosFullscreen() {
+    const body = document.body;
+    const btn = document.getElementById('posFullscreenToggle');
+    const isActive = body.classList.toggle('pos-fullscreen-active');
+
+    // Update button icon
+    if (btn) {
+        const icon = btn.querySelector('i');
+        if (icon) {
+            icon.className = isActive ? 'fas fa-compress' : 'fas fa-expand';
+        }
+        btn.title = isActive ? 'Exit Fullscreen (F)' : 'Toggle Fullscreen (F)';
+    }
+
+    // Persist state in session (not across tabs/sessions)
+    sessionStorage.setItem('pos-fullscreen', isActive ? 'true' : 'false');
+}
+
+// Restore fullscreen state on POS page load
+document.addEventListener('DOMContentLoaded', () => {
+    if (sessionStorage.getItem('pos-fullscreen') === 'true') {
+        document.body.classList.add('pos-fullscreen-active');
+        const btn = document.getElementById('posFullscreenToggle');
+        if (btn) {
+            const icon = btn.querySelector('i');
+            if (icon) icon.className = 'fas fa-compress';
+            btn.title = 'Exit Fullscreen (F)';
+        }
+    }
+});
+
+// Keyboard shortcut: "F" key toggles fullscreen
+// Only fires when not typing in an input, textarea, or contenteditable
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'f' || e.key === 'F') {
+        const tag = e.target.tagName.toLowerCase();
+        const isEditable = e.target.isContentEditable;
+        if (tag === 'input' || tag === 'textarea' || tag === 'select' || isEditable) return;
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+        e.preventDefault();
+        togglePosFullscreen();
+    }
+});

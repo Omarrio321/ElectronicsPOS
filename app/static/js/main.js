@@ -359,6 +359,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // Sidebar Toggle Logic
 document.addEventListener('DOMContentLoaded', function () {
     const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebarExpand = document.getElementById('sidebarExpand');
     const body = document.body;
 
     // Check local storage
@@ -366,10 +367,16 @@ document.addEventListener('DOMContentLoaded', function () {
         body.classList.add('sidebar-collapsed');
     }
 
+    function toggleSidebar() {
+        body.classList.toggle('sidebar-collapsed');
+        localStorage.setItem('sidebar-collapsed', body.classList.contains('sidebar-collapsed'));
+    }
+
     if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', function () {
-            body.classList.toggle('sidebar-collapsed');
-            localStorage.setItem('sidebar-collapsed', body.classList.contains('sidebar-collapsed'));
-        });
+        sidebarToggle.addEventListener('click', toggleSidebar);
+    }
+
+    if (sidebarExpand) {
+        sidebarExpand.addEventListener('click', toggleSidebar);
     }
 });

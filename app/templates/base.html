@@ -44,7 +44,9 @@
 
             <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse bg-white transition-all" id="sidebarMenu">
                 <div class="position-sticky pt-3 d-flex flex-column h-100">
-                    <div class="px-3 mb-4 d-flex align-items-start justify-content-between header-branding">
+                    <!-- Expanded state: logo + collapse button -->
+                    <div
+                        class="px-3 mb-4 d-flex align-items-start justify-content-between header-branding sidebar-brand-full">
                         <div class="d-flex align-items-center">
                             {% if company_logo %}
                             <a href="{{ url_for('main.dashboard') }}"
@@ -58,8 +60,17 @@
                             <span class="h5 fw-bold mb-0 ms-2 brand-text lh-sm">{{ company_name }}</span>
                             {% endif %}
                         </div>
-                        <button id="sidebarToggle" class="btn btn-link link-secondary p-0 d-none d-md-block ms-2">
+                        <button id="sidebarToggle" class="btn btn-link link-secondary p-0 d-none d-md-block ms-2"
+                            title="Collapse sidebar">
                             <i class="fas fa-chevron-left"></i>
+                        </button>
+                    </div>
+                    <!-- Collapsed state: expand button only -->
+                    <div class="px-3 mb-4 sidebar-brand-collapsed d-none">
+                        <button id="sidebarExpand"
+                            class="btn btn-light w-100 d-flex align-items-center justify-content-center sidebar-expand-btn"
+                            title="Expand sidebar">
+                            <i class="fas fa-bars"></i>
                         </button>
                     </div>
 

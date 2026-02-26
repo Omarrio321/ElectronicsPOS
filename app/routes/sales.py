@@ -583,8 +583,8 @@ def reports():
 
     total_expenses = float(paid_expenses) + float(pending_expenses)
 
-    # Net Profit = Real Gross Profit - Paid Expenses
-    net_profit = float(gross_profit) - float(paid_expenses)
+    # Net Income = Total Revenue - Total Expenses
+    net_profit = float(total_invoiced) - float(total_expenses)
 
     # Expense Distribution by Category (PAID only for chart accuracy)
     exp_stats = db.session.query(
@@ -629,8 +629,30 @@ def reports():
         Sale.customer_id.isnot(None) 
     ).group_by(Customer.id).order_by(func.sum(Sale.grand_total).desc()).limit(10).all()
 
+    # --- INVENTORY VALUATION (ASSETS) ---
+    stock_stats = db.session.query(
+        func.coalesce(func.sum(Product.quantity_in_stock), 0).label('total_qty'),
+        func.coalesce(func.sum(Product.quantity_in_stock * Product.cost_price), 0).label('total_cost'),
+        func.coalesce(func.sum(Product.quantity_in_stock * Product.selling_price), 0).label('total_retail')
+    ).filter(Product.quantity_in_stock > 0).first()
+
+    if stock_stats:
+        inventory_qty = stock_stats.total_qty or 0
+        inventory_cost = stock_stats.total_cost or 0
+        inventory_retail = stock_stats.total_retail or 0
+    else:
+        inventory_qty = 0
+        inventory_cost = 0
+        inventory_retail = 0
+
+    inventory_profit = float(inventory_retail) - float(inventory_cost)
+
     return render_template(
         'sales/reports.html',
+        inventory_qty=inventory_qty,
+        inventory_cost=inventory_cost,
+        inventory_retail=inventory_retail,
+        inventory_profit=inventory_profit,
         report_type=report_type,
         start_date=start_date,
         end_date=end_date,
@@ -908,6 +930,10 @@ def reports_pdf():
         user_sales=user_sales,
         period_expenses=period_expenses,
         top_customers=top_customers,
+        inventory_qty=inventory_qty,
+        inventory_cost=inventory_cost,
+        inventory_retail=inventory_retail,
+        inventory_profit=inventory_profit,
         format_currency=format_currency
     )
 

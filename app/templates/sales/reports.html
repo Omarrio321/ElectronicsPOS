@@ -99,18 +99,20 @@
 
     {% from 'components/card.html' import kpi_card %}
 
-    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 card-group">
+    <!-- Financial Performance Section -->
+    <h5 class="fw-bold mb-3 text-secondary"><i class="bi bi-cash-coin me-2"></i>Financial Performance</h5>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 card-group mb-4">
         <div class="col">
-            {{ kpi_card("Total Sales", total_sales, "bi bi-receipt", icon_color="text-primary", value_class="text-dark")
-            }}
+            {{ kpi_card("Total Revenue", format_currency(total_invoiced), "bi bi-receipt", icon_color="text-primary",
+            value_class="text-dark") }}
         </div>
         <div class="col">
-            {{ kpi_card("Realized Profit", format_currency(gross_profit), "bi bi-cash-stack", icon_color="text-success",
-            value_class="text-success") }}
+            {{ kpi_card("Total Collected", format_currency(total_collected), "bi bi-wallet2", icon_color="text-success",
+            value_class="text-dark") }}
         </div>
         <div class="col">
-            {{ kpi_card("Total Expenses", format_currency(total_expenses), "bi bi-wallet2", icon_color="text-danger",
-            value_class="text-danger") }}
+            {{ kpi_card("Total Expenses", format_currency(total_expenses), "bi bi-dash-circle",
+            icon_color="text-danger", value_class="text-danger") }}
         </div>
         <div class="col">
             {% set profit_color = 'text-success' if (net_profit or 0) >= 0 else 'text-danger' %}
@@ -118,7 +120,43 @@
             value_class=profit_color) }}
         </div>
     </div>
+
+    <!-- Inventory Assets Section -->
+    <h5 class="fw-bold mb-3 text-secondary"><i class="bi bi-box-seam me-2"></i>Inventory Assets (Current Stock)</h5>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 card-group mb-4">
+        <div class="col">
+            {{ kpi_card("Asset Value (Cost)", format_currency(inventory_cost), "bi bi-tags-fill",
+            icon_color="text-purple", value_class="text-purple", card_class="border-start border-4 border-purple") }}
+        </div>
+        <div class="col">
+            {{ kpi_card("Retail Value", format_currency(inventory_retail), "bi bi-shop", icon_color="text-info",
+            value_class="text-dark") }}
+        </div>
+        <div class="col">
+            {{ kpi_card("Est. Future Profit", format_currency(inventory_profit), "bi bi-graph-up-arrow",
+            icon_color="text-teal", value_class="text-teal") }}
+        </div>
+        <div class="col">
+            {{ kpi_card("Total Items in Stock", inventory_qty|int ~ " Units", "bi bi-boxes", icon_color="text-warning",
+            value_class="text-dark") }}
+        </div>
+    </div>
 </div>
+
+<style>
+    /* Custom Colors for Professional Cards */
+    .text-purple {
+        color: #6f42c1 !important;
+    }
+
+    .border-purple {
+        border-color: #6f42c1 !important;
+    }
+
+    .text-teal {
+        color: #20c997 !important;
+    }
+</style>
 
 <!-- Charts Section -->
 <div class="row mb-4 g-3">

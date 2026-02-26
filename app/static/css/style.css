@@ -164,18 +164,31 @@ body.sidebar-collapsed .sidebar-heading::after {
     text-align: center;
 }
 
-body.sidebar-collapsed .header-branding {
-    padding-left: 0.5rem !important;
-    padding-right: 0.5rem !important;
-    justify-content: center !important;
+/* Hide full brand, show collapsed expand button */
+body.sidebar-collapsed .sidebar-brand-full {
+    display: none !important;
 }
 
-body.sidebar-collapsed .header-branding i.fa-bolt {
-    margin-right: 0 !important;
+body.sidebar-collapsed .sidebar-brand-collapsed {
+    display: block !important;
 }
 
-body.sidebar-collapsed #sidebarToggle i {
-    transform: rotate(180deg);
+/* Expand button styling */
+.sidebar-expand-btn {
+    padding: 0.6rem;
+    border-radius: var(--radius-sm);
+    color: var(--primary);
+    background: var(--primary-light);
+    border: 1px solid transparent;
+    font-size: 1.1rem;
+    transition: all var(--transition-fast);
+}
+
+.sidebar-expand-btn:hover {
+    background: var(--primary);
+    color: #fff;
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 body.sidebar-collapsed .nav-link {
