@@ -370,7 +370,7 @@ class SaleItem(db.Model):
 class Payment(db.Model):
     """Individual payment record for split payment and partial payment support"""
     id = db.Column(db.Integer, primary_key=True)
-    sale_id = db.Column(db.Integer, db.ForeignKey('sale.id'), nullable=False, index=True)
+    sale_id = db.Column(db.Integer, db.ForeignKey('sale.id'), nullable=True, index=True)
     
     # Customer (for payments received outside of checkout)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=True, index=True)

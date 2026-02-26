@@ -617,6 +617,20 @@ def receive_payment(customer_id):
             # 3. Handle Excess Payment (Credit)
             if remaining_payment > 0:
                 customer.credit_balance = (customer.credit_balance or 0) + remaining_payment
+                
+                # Create Payment record for the credit amount (so it appears in history and recalculation)
+                credit_payment = Payment(
+                    sale_id=None,  # Not linked to a specific sale
+                    customer_id=customer.id,
+                    amount=remaining_payment,
+                    payment_method=PaymentMethod(method_str),
+                    reference=reference,
+                    note=f'Credit Deposit' + (f' - {notes}' if notes else ''),
+                    created_by=current_user.id,
+                    created_at=datetime.strptime(date_str, '%Y-%m-%d')
+                )
+                db.session.add(credit_payment)
+                
                 flash(f'Payment allocated. ${remaining_payment} added to credit balance.', 'info')
             
             # Commit all changes
@@ -672,9 +686,11 @@ def recalculate_balance(customer_id):
             Sale.sale_status != SaleStatus.VOIDED
         ).scalar() or Decimal('0')
         
-        # Total Payments (Credit)
+        # Total Payments (Credit) - EXCLUDING Store Credit usage (internal transfer)
+        # We only count actual money coming in (Cash, Card, Zaad, etc.)
         total_payments = db.session.query(db.func.sum(Payment.amount)).filter(
-            Payment.customer_id == customer_id
+            Payment.customer_id == customer_id,
+            Payment.payment_method != PaymentMethod.STORE_CREDIT
         ).scalar() or Decimal('0')
         
         theoretical_balance = total_invoices - total_payments
