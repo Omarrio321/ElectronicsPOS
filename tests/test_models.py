@@ -17,7 +17,7 @@ class TestProductModel:
         product.low_stock_threshold = 5
         db_session.commit()
         
-        assert product.is_low_stock() is True
+        assert product.is_low_stock is True
     
     @pytest.mark.unit
     def test_is_low_stock_above_threshold(self, db_session, product):
@@ -26,7 +26,7 @@ class TestProductModel:
         product.low_stock_threshold = 5
         db_session.commit()
         
-        assert product.is_low_stock() is False
+        assert product.is_low_stock is False
     
     @pytest.mark.unit
     def test_is_low_stock_at_threshold(self, db_session, product):
@@ -35,7 +35,7 @@ class TestProductModel:
         product.low_stock_threshold = 5
         db_session.commit()
         
-        assert product.is_low_stock() is True
+        assert product.is_low_stock is True
     
     @pytest.mark.unit
     def test_update_stock_positive(self, db_session, product):

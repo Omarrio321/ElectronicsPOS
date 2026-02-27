@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from flask_login import login_required
 from app.models import Product, Category
 from app import db
 from sqlalchemy import or_
@@ -6,11 +7,13 @@ from sqlalchemy import or_
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 @api_bp.route('/categories')
+@login_required
 def get_categories():
     categories = Category.query.all()
     return jsonify([{'id': c.id, 'name': c.name} for c in categories])
 
 @api_bp.route('/products')
+@login_required
 def get_products():
     category_id = request.args.get('category_id')
     search = request.args.get('search')

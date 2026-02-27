@@ -28,8 +28,8 @@ def get_wkhtmltopdf_path():
 WKHTMLTOPDF_PATH = get_wkhtmltopdf_path()
 
 # Template settings - needed at module level for from_pyfile
-TEMPLATES_AUTO_RELOAD = True
-DEBUG = True
+TEMPLATES_AUTO_RELOAD = os.environ.get('FLASK_ENV', 'development') == 'development'
+DEBUG = os.environ.get('FLASK_ENV', 'development') == 'development'
 
 
 class Config:

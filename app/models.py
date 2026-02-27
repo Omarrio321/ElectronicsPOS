@@ -84,7 +84,9 @@ class Product(db.Model):
     def __repr__(self):
         return f'<Product {self.name}>'
     
+    @property
     def is_low_stock(self):
+        """Check if product stock is at or below the low stock threshold."""
         return self.quantity_in_stock <= self.low_stock_threshold
     
     def get_price(self, price_type='RETAIL'):

@@ -62,12 +62,19 @@ def dashboard():
     # 1. Total Expenses (Paid only)
     total_expenses = db.session.query(func.sum(Expense.amount)).filter(Expense.status == ExpenseStatus.PAID).scalar() or 0
     
-    # 2. Real Profit from Sales
-    # Iterate all sales to sum real_profit (since it's a property logic, not simple SQL sum)
-    # For performance on large DB, this logic should be moved to SQL/hybrid_property, but for now we iterate.
-    # We'll limit to recent history or sum all if DB is small. PROD NOTE: Optimize this later.
-    all_sales = Sale.query.all()
-    gross_profit = sum(sale.real_profit for sale in all_sales)
+    # 2. Real Profit from Sales — computed entirely in SQL
+    #    Logic: SUM( GREATEST(0, amount_paid - COALESCE(item_cost, 0)) )
+    #    This mirrors the Python `real_profit` property: max(0, collected - cost)
+    item_cost_subq = db.session.query(
+        SaleItem.sale_id,
+        func.coalesce(func.sum(SaleItem.quantity_sold * Product.cost_price), 0).label('total_cost')
+    ).join(Product).group_by(SaleItem.sale_id).subquery()
+
+    gross_profit = db.session.query(
+        func.coalesce(func.sum(
+            func.greatest(0, Sale.amount_paid - func.coalesce(item_cost_subq.c.total_cost, 0))
+        ), 0)
+    ).outerjoin(item_cost_subq, Sale.id == item_cost_subq.c.sale_id).scalar() or 0
 
     # 3. Net Profit = Real Gross Profit - Paid Expenses
     net_profit = float(gross_profit) - float(total_expenses)
