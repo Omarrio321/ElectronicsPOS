@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Sale #{{ sale.id }} - {{ company_name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1><i class="bi bi-receipt"></i> Sale #{{ sale.id }}</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-list-ul"></i> Sale Items</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>SKU</th>
+                                <th>Quantity</th>
+                                <th>Unit Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in sale.sale_items %}
+                            <tr>
+                                <td>{{ item.product.name }}</td>
+                                <td>{{ item.product.sku }}</td>
+                                <td>{{ item.quantity_sold }}</td>
+                                <td>{{ format_currency(item.unit_price_at_time) }}</td>
+                                <td>{{ format_currency(item.total_price) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> Sale Details</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-5">Date:</dt>
+                    <dd class="col-sm-7">{{ sale.created_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+
+                    <dt class="col-sm-5">Cashier:</dt>
+                    <dd class="col-sm-7">{{ sale.user.username }}</dd>
+
+                    <dt class="col-sm-5">Payment:</dt>
+                    <dd class="col-sm-7">
+                        {% if sale.payments|length > 1 %}
+                        <span class="badge bg-primary">Split Payment</span>
+                        {% else %}
+                        {% set method = sale.payment_method %}
+                        {% set method_str = method.value if method.value is defined else method|string %}
+
+                        {# Fallback: If method_str is empty but we have payments, use the first payment's method #}
+                        {% if not method_str and sale.payments %}
+                        {% set p_method = sale.payments[0].payment_method %}
+                        {% set method_str = p_method.value if p_method.value is defined else p_method|string %}
+                        {% endif %}
+
+                        {% if method_str == 'Cash' or method_str == 'CASH' %}
+                        <span class="badge bg-secondary text-white">Cash</span>
+                        {% elif method_str == 'Card' or method_str == 'CARD' %}
+                        <span class="badge bg-info text-white">Card</span>
+                        {% elif method_str in ['E-Dahab', 'E_DAHAB'] %}
+                        <span class="badge text-white" style="background-color: #f59e0b;">E-Dahab</span>
+                        {% elif method_str in ['Zaad', 'ZAAD'] %}
+                        <span class="badge text-white" style="background-color: #10b981;">Zaad</span>
+                        {% elif method_str in ['Store Credit', 'STORE_CREDIT'] or not method_str %}
+                        <span class="badge text-white" style="background-color: #6f42c1;">Credit</span>
+                        {% elif method_str in ['Mobile Money', 'MOBILE_MONEY'] %}
+                        <span class="badge bg-success text-white">Mobile</span>
+                        {% else %}
+                        <span class="badge bg-dark text-white">{{ method_str }}</span>
+                        {% endif %}
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-5">Status:</dt>
+                    <dd class="col-sm-7">
+                        <span class="badge bg-{{ 'success' if sale.sale_status.value == 'COMPLETED' else 'warning' }}">
+                            {{ sale.sale_status.value if sale.sale_status.value is defined else sale.sale_status }}
+                        </span>
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-calculator"></i> Summary</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-5">Subtotal:</dt>
+                    <dd class="col-sm-7">{{ format_currency(sale.subtotal) }}</dd>
+
+                    <dt class="col-sm-5">Tax ({{ (sale.tax_rate * 100)|round(2) }}%):</dt>
+                    <dd class="col-sm-7">{{ format_currency(sale.tax_amount) }}</dd>
+
+                    <dt class="col-sm-5">Discount:</dt>
+                    <dd class="col-sm-7">{{ format_currency(sale.discount) }}</dd>
+
+                    <dt class="col-sm-5">Total:</dt>
+                    <dd class="col-sm-7"><strong>{{ format_currency(sale.grand_total) }}</strong></dd>
+                </dl>
+
+                {% if sale.notes %}
+                <hr>
+                <h6>Notes:</h6>
+                <p>{{ sale.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Payment Breakdown Card -->
+        {% if sale.payments %}
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-credit-card"></i> Payment Breakdown</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for payment in sale.payments %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            {% set method = payment.payment_method %}
+                            {% set method_str = method.value if method.value is defined else method|string %}
+
+                            {% if method_str == 'Cash' or method_str == 'CASH' %}
+                            <i class="bi bi-cash me-2"></i><span class="badge bg-secondary text-white">Cash</span>
+                            {% elif method_str == 'Card' or method_str == 'CARD' %}
+                            <i class="bi bi-credit-card me-2"></i><span class="badge bg-info text-white">Card</span>
+                            {% elif method_str in ['E-Dahab', 'E_DAHAB'] %}
+                            <i class="bi bi-phone me-2"></i><span class="badge text-white"
+                                style="background-color: #f59e0b;">E-Dahab</span>
+                            {% elif method_str in ['Zaad', 'ZAAD'] %}
+                            <i class="bi bi-phone me-2"></i><span class="badge text-white"
+                                style="background-color: #10b981;">Zaad</span>
+                            {% elif method_str in ['Store Credit', 'STORE_CREDIT'] or not method_str %}
+                            <i class="bi bi-wallet2 me-2"></i><span class="badge text-white"
+                                style="background-color: #6f42c1;">Credit</span>
+                            {% elif method_str in ['Mobile Money', 'MOBILE_MONEY'] %}
+                            <i class="bi bi-phone me-2"></i><span class="badge bg-success text-white">Mobile</span>
+                            {% else %}
+                            <i class="bi bi-wallet me-2"></i><span class="badge bg-dark text-white">{{ method_str
+                                }}</span>
+                            {% endif %}
+
+                            {% if payment.reference %}
+                            <small class="text-muted ms-2">({{ payment.reference }})</small>
+                            {% endif %}
+                        </div>
+                        <span class="fw-bold">{{ format_currency(payment.amount) }}</span>
+                    </li>
+                    {% endfor %}
+                    <li class="list-group-item d-flex justify-content-between bg-light">
+                        <strong>Total Paid</strong>
+                        <strong class="text-success">{{ format_currency(sale.amount_paid) }}</strong>
+                    </li>
+                    {% if sale.change_given > 0 %}
+                    <li class="list-group-item d-flex justify-content-between bg-warning bg-opacity-10">
+                        <strong>Change Given</strong>
+                        <strong class="text-warning">{{ format_currency(sale.change_given) }}</strong>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="d-grid gap-2">
+            <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}" class="btn btn-primary">
+                <i class="bi bi-receipt"></i> Print Receipt
+            </a>
+
+            <a href="{{ url_for('sales.index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Sales
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

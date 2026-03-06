@@ -211,8 +211,8 @@
         // Global configuration
         window.CURRENCY_SYMBOL = "{{ currency_symbol }}";
 
-        // Auto-dismiss alerts
-        document.querySelectorAll('.alert').forEach(alert => {
+        // Auto-dismiss alerts (exclude alerts inside modals — those must persist while modal is open)
+        document.querySelectorAll('.alert:not(.modal .alert)').forEach(alert => {
             setTimeout(() => {
                 const bsAlert = new bootstrap.Alert(alert);
                 bsAlert.close();

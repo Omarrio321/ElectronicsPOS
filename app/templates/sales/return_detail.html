@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Return {{ return_txn.return_no }} - {{ company_name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('sales.index') }}">Sales</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('sales.detail', sale_id=sale.id) }}">Sale #{{ sale.id }}</a></li>
+                <li class="breadcrumb-item active">Return {{ return_txn.return_no }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="mb-0">
+                <i class="bi bi-arrow-return-left me-1"></i> {{ return_txn.return_no }}
+            </h1>
+            {% if return_txn.status.value == 'Reversed' %}
+            <span class="badge bg-warning text-dark fs-6">REVERSED</span>
+            {% else %}
+            <span class="badge bg-success fs-6">COMPLETED</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Return Items -->
+    <div class="col-md-8">
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-box-seam me-2"></i>Returned Items</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th class="text-center">Qty Returned</th>
+                                <th class="text-end">Unit Price</th>
+                                <th class="text-end pe-3">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in return_txn.items %}
+                            <tr>
+                                <td>
+                                    <div class="fw-medium">{{ item.product.name }}</div>
+                                    <small class="text-muted">{{ item.product.sku }}</small>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-danger">{{ item.quantity_returned }}</span>
+                                </td>
+                                <td class="text-end">{{ format_currency(item.unit_price_at_sale) }}</td>
+                                <td class="text-end pe-3 fw-semibold">{{ format_currency(item.total_price) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audit Info -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Audit Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Processed By:</dt>
+                    <dd class="col-sm-8">{{ return_txn.processed_by_user.username }}</dd>
+
+                    <dt class="col-sm-4">Date/Time:</dt>
+                    <dd class="col-sm-8">{{ return_txn.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+
+                    <dt class="col-sm-4">Reason:</dt>
+                    <dd class="col-sm-8">{{ return_txn.reason }}</dd>
+
+                    {% if return_txn.notes %}
+                    <dt class="col-sm-4">Notes:</dt>
+                    <dd class="col-sm-8">{{ return_txn.notes }}</dd>
+                    {% endif %}
+
+                    {% if return_txn.approved_by_user %}
+                    <dt class="col-sm-4">Approved/Reversed By:</dt>
+                    <dd class="col-sm-8">{{ return_txn.approved_by_user.username }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="col-md-4">
+        <!-- Return Summary -->
+        <div class="card mb-4 shadow-sm border-danger border-opacity-25">
+            <div class="card-header bg-danger bg-opacity-10 border-danger border-opacity-25">
+                <h5 class="mb-0 text-danger"><i class="bi bi-calculator me-2"></i>Return Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Return Type:</span>
+                    {% if return_txn.return_type.value == 'Return & Refund' %}
+                    <span class="badge bg-danger">Refund</span>
+                    {% else %}
+                    <span class="badge bg-info">Store Credit</span>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Subtotal:</span>
+                    <span>{{ format_currency(return_txn.subtotal) }}</span>
+                </div>
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Discount:</span>
+                    <span class="text-success">-{{ format_currency(return_txn.discount_amount) }}</span>
+                </div>
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Tax:</span>
+                    <span>{{ format_currency(return_txn.tax_amount) }}</span>
+                </div>
+
+                <hr class="my-2">
+                <div class="d-flex justify-content-between">
+                    <span class="fs-5 fw-bold">Refund Total:</span>
+                    <span class="fs-5 fw-bold text-danger">{{ format_currency(return_txn.refund_total) }}</span>
+                </div>
+
+                {% if return_txn.refund_method %}
+                <div class="d-flex justify-content-between mt-2">
+                    <span class="text-muted">Refund Method:</span>
+                    <span class="badge bg-secondary">{{ return_txn.refund_method.value }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Original Sale Reference -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-receipt me-2"></i>Original Sale</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-5">Invoice:</dt>
+                    <dd class="col-7">
+                        <a href="{{ url_for('sales.detail', sale_id=sale.id) }}">{{ sale.invoice_no }}</a>
+                    </dd>
+                    <dt class="col-5">Date:</dt>
+                    <dd class="col-7">{{ sale.created_at.strftime('%Y-%m-%d') }}</dd>
+                    <dt class="col-5">Total:</dt>
+                    <dd class="col-7">{{ format_currency(sale.grand_total) }}</dd>
+                    {% if sale.customer %}
+                    <dt class="col-5">Customer:</dt>
+                    <dd class="col-7">{{ sale.customer.full_name }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-grid gap-2">
+            <a href="{{ url_for('returns.return_receipt', return_id=return_txn.id) }}" class="btn btn-primary">
+                <i class="bi bi-printer me-1"></i> Print Return Receipt
+            </a>
+
+            {% if return_txn.status.value == 'Completed' %}
+            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#reverseModal">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Reverse Return
+            </button>
+            {% endif %}
+
+            <a href="{{ url_for('sales.detail', sale_id=sale.id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to Sale
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Reverse Return Modal -->
+{% if return_txn.status.value == 'Completed' %}
+<div class="modal fade" id="reverseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning bg-opacity-25">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Reverse Return</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <strong>Warning:</strong> This will reverse the return, deduct stock back, and undo any refund.
+                    Manager/Admin approval required.
+                </div>
+                <div class="mb-3">
+                    <label for="reversalReason" class="form-label fw-medium">
+                        Reason for Reversal <span class="text-danger">*</span>
+                    </label>
+                    <textarea class="form-control" id="reversalReason" rows="3" required
+                        placeholder="Why is this return being reversed?"></textarea>
+                </div>
+                <div id="reverseAlert" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="confirmReverseBtn">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Confirm Reversal
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var confirmBtn = document.getElementById('confirmReverseBtn');
+    if (confirmBtn) {
+        var csrfToken = document.querySelector('meta[name="csrf-token"]');
+        csrfToken = csrfToken ? csrfToken.getAttribute('content') : '';
+        var reverseAlert = document.getElementById('reverseAlert');
+        var returnId = {{ return_txn.id }};
+
+        confirmBtn.addEventListener('click', function() {
+            var reason = document.getElementById('reversalReason').value.trim();
+            if (!reason) {
+                reverseAlert.style.display = '';
+                reverseAlert.className = 'alert alert-warning';
+                reverseAlert.textContent = 'Please provide a reason for the reversal.';
+                return;
+            }
+
+            reverseAlert.style.display = 'none';
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing...';
+
+            fetch('/sales/returns/' + returnId + '/reverse', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ reason: reason })
+            })
+            .then(function(response) {
+                return response.json().then(function(data) {
+                    data._status = response.status;
+                    return data;
+                });
+            })
+            .then(function(data) {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    reverseAlert.style.display = '';
+                    reverseAlert.className = 'alert alert-danger';
+                    reverseAlert.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>' + (data.message || 'Reversal failed.');
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = '<i class="bi bi-arrow-counterclockwise me-1"></i> Confirm Reversal';
+                }
+            })
+            .catch(function(err) {
+                reverseAlert.style.display = '';
+                reverseAlert.className = 'alert alert-danger';
+                reverseAlert.textContent = 'Network error: ' + err.message + '. Please refresh and try again.';
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="bi bi-arrow-counterclockwise me-1"></i> Confirm Reversal';
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

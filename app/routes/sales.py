@@ -1,7 +1,7 @@
 # app/sales.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, send_file
 from flask_login import login_required, current_user
-from app.models import db, Sale, SaleItem, Product, User, SystemSetting, PaymentMethod, SaleStatus, Expense, ExpenseCategory, ExpenseStatus, Payment, Customer, InvoiceStatus
+from app.models import db, Sale, SaleItem, Product, User, SystemSetting, PaymentMethod, SaleStatus, Expense, ExpenseCategory, ExpenseStatus, Payment, Customer, InvoiceStatus, ReturnTransaction, ReturnStatus
 from sqlalchemy import func, and_
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -83,10 +83,25 @@ def index():
 def detail(sale_id):
     sale = Sale.query.get_or_404(sale_id)
     items = SaleItem.query.filter_by(sale_id=sale.id).order_by(SaleItem.id).all()
+
+    # Safely load returns and void transaction (tables may not exist if migration pending)
+    sale_returns = []
+    void_txn = None
+    try:
+        sale_returns = sale.returns or []
+    except Exception:
+        pass
+    try:
+        void_txn = sale.void_transaction
+    except Exception:
+        pass
+
     return render_template(
         'sales/detail.html',
         sale=sale,
         items=items,
+        sale_returns=sale_returns,
+        void_txn=void_txn,
         format_currency=format_currency,
         PaymentMethod=PaymentMethod,
         SaleStatus=SaleStatus
@@ -458,13 +473,14 @@ def reports():
         end_date = today
         start_date = today - timedelta(days=30)
 
-    # Build daily sales query and fill gaps
+    # Build daily sales query and fill gaps (EXCLUDE VOIDED)
     rows = db.session.query(
         func.date(Sale.created_at).label('date'),
         func.coalesce(func.sum(Sale.grand_total), 0).label('sales')
     ).filter(
         func.date(Sale.created_at) >= start_date,
-        func.date(Sale.created_at) <= end_date
+        func.date(Sale.created_at) <= end_date,
+        Sale.sale_status != SaleStatus.VOIDED
     ).group_by(func.date(Sale.created_at)).order_by(func.date(Sale.created_at)).all()
 
     row_map = {str(r.date): float(r.sales or 0) for r in rows}
@@ -499,21 +515,24 @@ def reports():
         pm_labels.append(label)
         pm_values.append(float(r.total or 0))
 
-    # Totals and aggregates
+    # Totals and aggregates (EXCLUDE VOIDED)
     # Invoiced Total (Accrual Basis - what we sold)
     total_sales_count = db.session.query(func.count(Sale.id)).filter(
         func.date(Sale.created_at) >= start_date,
-        func.date(Sale.created_at) <= end_date
+        func.date(Sale.created_at) <= end_date,
+        Sale.sale_status != SaleStatus.VOIDED
     ).scalar() or 0
 
     total_invoiced = db.session.query(func.coalesce(func.sum(Sale.grand_total), 0)).filter(
         func.date(Sale.created_at) >= start_date,
-        func.date(Sale.created_at) <= end_date
+        func.date(Sale.created_at) <= end_date,
+        Sale.sale_status != SaleStatus.VOIDED
     ).scalar() or 0
 
     total_items = db.session.query(func.coalesce(func.sum(SaleItem.quantity_sold), 0)).join(Sale, SaleItem.sale).filter(
         func.date(Sale.created_at) >= start_date,
-        func.date(Sale.created_at) <= end_date
+        func.date(Sale.created_at) <= end_date,
+        Sale.sale_status != SaleStatus.VOIDED
     ).scalar() or 0
 
     low_stock_count = Product.query.filter(Product.quantity_in_stock <= Product.low_stock_threshold).count()
@@ -526,36 +545,66 @@ def reports():
         func.date(Payment.created_at) <= end_date
     ).scalar() or 0
 
-    # 2. COGS (Cost of Goods Sold)
+    # 2. COGS (Cost of Goods Sold) - EXCLUDE VOIDED
     cogs = db.session.query(
         func.coalesce(func.sum(SaleItem.quantity_sold * Product.cost_price), 0)
     ).join(Product).join(Sale, SaleItem.sale).filter(
         func.date(Sale.created_at) >= start_date,
-        func.date(Sale.created_at) <= end_date
+        func.date(Sale.created_at) <= end_date,
+        Sale.sale_status != SaleStatus.VOIDED
     ).scalar() or 0
 
-    # 3. Real Profit (Iterating sales to use property logic max(0, paid - cost))
-    # Note: Ideally this loop only runs over sales that had activity in period, 
-    # but for simplicity/correctness we sum real_profit of sales created in this period.
-    # Strict cash basis might say profit is realized when payment is made, but per-sale profit
-    # is usually tied to the sale lifecycle. We'll stick to "Profit from Sales in this Period".
+    # 3. Real Profit - EXCLUDE VOIDED
     period_sales = Sale.query.filter(
         func.date(Sale.created_at) >= start_date,
-        func.date(Sale.created_at) <= end_date
+        func.date(Sale.created_at) <= end_date,
+        Sale.sale_status != SaleStatus.VOIDED
     ).all()
     gross_profit = sum(sale.real_profit for sale in period_sales)
+
+    # --- VOIDED SALES METRICS ---
+    voided_count = db.session.query(func.count(Sale.id)).filter(
+        func.date(Sale.created_at) >= start_date,
+        func.date(Sale.created_at) <= end_date,
+        Sale.sale_status == SaleStatus.VOIDED
+    ).scalar() or 0
+
+    voided_value = db.session.query(func.coalesce(func.sum(Sale.grand_total), 0)).filter(
+        func.date(Sale.created_at) >= start_date,
+        func.date(Sale.created_at) <= end_date,
+        Sale.sale_status == SaleStatus.VOIDED
+    ).scalar() or 0
+
+    # --- RETURNS METRICS ---
+    return_count = db.session.query(func.count(ReturnTransaction.id)).filter(
+        func.date(ReturnTransaction.created_at) >= start_date,
+        func.date(ReturnTransaction.created_at) <= end_date,
+        ReturnTransaction.status == ReturnStatus.COMPLETED
+    ).scalar() or 0
+
+    return_value = db.session.query(
+        func.coalesce(func.sum(ReturnTransaction.refund_total), 0)
+    ).filter(
+        func.date(ReturnTransaction.created_at) >= start_date,
+        func.date(ReturnTransaction.created_at) <= end_date,
+        ReturnTransaction.status == ReturnStatus.COMPLETED
+    ).scalar() or 0
+
+    # Net revenue = invoiced - returns
+    net_revenue = float(total_invoiced) - float(return_value)
 
     # Average Order Value (based on Invoiced Total)
     avg_order_value = float(total_invoiced) / float(total_sales_count) if total_sales_count > 0 else 0
 
-    # Top products
+    # Top products (EXCLUDE VOIDED)
     top_products = db.session.query(
         Product.name,
         func.coalesce(func.sum(SaleItem.quantity_sold), 0).label('total_sold'),
         func.coalesce(func.sum(SaleItem.total_price), 0).label('total_revenue')
     ).join(SaleItem).join(Sale).filter(
         func.date(Sale.created_at) >= start_date,
-        func.date(Sale.created_at) <= end_date
+        func.date(Sale.created_at) <= end_date,
+        Sale.sale_status != SaleStatus.VOIDED
     ).group_by(Product.id).order_by(func.sum(SaleItem.quantity_sold).desc()).limit(10).all()
 
     # Sales by cashier
@@ -583,8 +632,8 @@ def reports():
 
     total_expenses = float(paid_expenses) + float(pending_expenses)
 
-    # Net Income = Total Revenue - Total Expenses
-    net_profit = float(total_invoiced) - float(total_expenses)
+    # Net Income = Net Revenue - Total Expenses
+    net_profit = net_revenue - float(total_expenses)
 
     # Expense Distribution by Category (PAID only for chart accuracy)
     exp_stats = db.session.query(
@@ -679,6 +728,11 @@ def reports():
         top_products=top_products,
         user_sales=user_sales,
         top_customers=top_customers,
+        voided_count=voided_count,
+        voided_value=float(voided_value),
+        return_count=return_count,
+        return_value=float(return_value),
+        net_revenue=net_revenue,
         format_currency=format_currency
     )
 
@@ -877,8 +931,9 @@ def reports_pdf():
         Expense.status == ExpenseStatus.PENDING
     ).scalar() or 0
 
+    total_expenses = float(paid_expenses) + float(pending_expenses)
     net_profit = float(realized_gross_profit) - float(paid_expenses)
-    
+
     # 7. Top Customers
     top_customers = db.session.query(
         Customer.full_name,
@@ -902,7 +957,23 @@ def reports_pdf():
         Expense.date <= end_date
     ).order_by(Expense.date.desc()).all()
 
+    # Inventory Valuation
+    stock_stats = db.session.query(
+        func.coalesce(func.sum(Product.quantity_in_stock), 0).label('total_qty'),
+        func.coalesce(func.sum(Product.quantity_in_stock * Product.cost_price), 0).label('total_cost'),
+        func.coalesce(func.sum(Product.quantity_in_stock * Product.selling_price), 0).label('total_retail')
+    ).filter(Product.quantity_in_stock > 0).first()
 
+    if stock_stats:
+        inventory_qty = stock_stats.total_qty or 0
+        inventory_cost = stock_stats.total_cost or 0
+        inventory_retail = stock_stats.total_retail or 0
+    else:
+        inventory_qty = 0
+        inventory_cost = 0
+        inventory_retail = 0
+
+    inventory_profit = float(inventory_retail) - float(inventory_cost)
 
     html = render_template(
         'sales/reports_pdf.html',
@@ -1049,8 +1120,42 @@ def reports_excel():
     # Realized Gross Profit
     realized_gross_profit = realized_revenue - realized_cogs
 
-    # Average Order Value (based on Invoiced Total)
-    avg_order_value = float(total_invoiced) / float(total_sales_count) if total_sales_count > 0 else 0
+    # Average Order Value
+    avg_order_value = float(total_revenue) / float(total_sales) if total_sales > 0 else 0
+
+    # Expenses
+    paid_expenses = db.session.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
+        Expense.date >= start_date,
+        Expense.date <= end_date,
+        Expense.status == ExpenseStatus.PAID
+    ).scalar() or 0
+
+    pending_expenses = db.session.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
+        Expense.date >= start_date,
+        Expense.date <= end_date,
+        Expense.status == ExpenseStatus.PENDING
+    ).scalar() or 0
+
+    total_expenses = float(paid_expenses) + float(pending_expenses)
+    net_profit = float(realized_gross_profit) - float(paid_expenses)
+
+    # Daily Sales
+    daily_rows = db.session.query(
+        func.date(Sale.created_at).label('date'),
+        func.coalesce(func.sum(Sale.grand_total), 0).label('sales')
+    ).filter(
+        func.date(Sale.created_at) >= start_date,
+        func.date(Sale.created_at) <= end_date,
+        Sale.sale_status != SaleStatus.VOIDED
+    ).group_by(func.date(Sale.created_at)).order_by(func.date(Sale.created_at)).all()
+
+    daily_row_map = {str(r.date): float(r.sales or 0) for r in daily_rows}
+    daily_sales = []
+    cursor = start_date
+    while cursor <= end_date:
+        key = cursor.strftime('%Y-%m-%d')
+        daily_sales.append({'date': key, 'sales': float(daily_row_map.get(key, 0.0))})
+        cursor += timedelta(days=1)
 
     # Top products
     top_products = db.session.query(
@@ -1062,7 +1167,7 @@ def reports_excel():
         func.date(Sale.created_at) <= end_date
     ).group_by(Product.id).order_by(func.sum(SaleItem.quantity_sold).desc()).limit(10).all()
 
-    # Top Customers (New Widget)
+    # Top Customers
     top_customers = db.session.query(
         Customer.full_name,
         func.count(Sale.id).label('tx_count'),
@@ -1105,8 +1210,8 @@ def reports_excel():
         ["Total Transactions", int(total_sales)],
         ["Total Revenue", float(total_revenue)],
         ["Total Items Sold", int(total_items)],
-        ["Cost of Goods Sold (COGS)", float(cogs)],
-        ["Gross Profit", float(gross_profit)],
+        ["Cost of Goods Sold (COGS)", float(realized_cogs)],
+        ["Gross Profit", float(realized_gross_profit)],
         ["Average Order Value", float(avg_order_value)],
         ["Paid Expenses", float(paid_expenses)],
         ["Pending Expenses", float(pending_expenses)],

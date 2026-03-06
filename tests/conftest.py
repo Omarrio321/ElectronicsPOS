@@ -4,12 +4,21 @@ Configured for MySQL database
 """
 import os
 import pytest
-from config import TestingConfig
 
+# Load .env FIRST so TEST_DATABASE_URL is available
+from dotenv import load_dotenv
+load_dotenv()
 
 # Set environment variables before importing app
 os.environ.setdefault('SECRET_KEY', 'test-secret-key-for-testing-only')
 os.environ.setdefault('ADMIN_PASSWORD', 'test-admin-password')
+
+# Override DATABASE_URL with TEST_DATABASE_URL so create_app uses the test DB
+test_db_url = os.environ.get('TEST_DATABASE_URL')
+if test_db_url:
+    os.environ['DATABASE_URL'] = test_db_url
+
+from config import TestingConfig
 
 from app import create_app, db
 from app.models import User, Role, Product, Category, Sale, SaleItem

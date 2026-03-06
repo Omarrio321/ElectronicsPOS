@@ -3,38 +3,72 @@
 {% block title %}Sale #{{ sale.id }} - {{ company_name }}{% endblock %}
 
 {% block content %}
+{% set status_val = sale.sale_status.value if sale.sale_status else 'Completed' %}
+{% set invoice_val = sale.invoice_status.value if sale.invoice_status else '' %}
+{% set is_voided = status_val == 'Voided' %}
+{% set is_refunded = status_val == 'Refunded' %}
+{% set can_return = status_val in ['Completed', 'Partially Returned'] %}
+{% set has_payments = sale.payments|selectattr('amount', 'gt', 0)|list|length > 0 if sale.payments else false %}
+{% set can_void = not is_voided and not has_payments %}
+
 <div class="row mb-4">
     <div class="col-12">
-        <h1><i class="bi bi-receipt"></i> Sale #{{ sale.id }}</h1>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="mb-1">
+                    <i class="bi bi-receipt"></i> {{ sale.invoice_no or ('Sale #' ~ sale.id) }}
+                </h1>
+                <p class="text-muted mb-0">
+                    {{ sale.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    {% if sale.customer %}
+                    &mdash; <a href="{{ url_for('customers.profile', customer_id=sale.customer.id) }}">{{ sale.customer.full_name }}</a>
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                {% if status_val == 'Completed' %}
+                <span class="badge bg-success fs-6">{{ status_val }}</span>
+                {% elif status_val == 'Voided' %}
+                <span class="badge bg-danger fs-6">{{ status_val }}</span>
+                {% elif status_val == 'Refunded' %}
+                <span class="badge bg-warning text-dark fs-6">{{ status_val }}</span>
+                {% elif status_val == 'Partially Returned' %}
+                <span class="badge bg-info fs-6">{{ status_val }}</span>
+                {% else %}
+                <span class="badge bg-secondary fs-6">{{ status_val }}</span>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 
 <div class="row">
     <div class="col-md-8">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5><i class="bi bi-list-ul"></i> Sale Items</h5>
+        <!-- Sale Items -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Sale Items</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
                             <tr>
                                 <th>Product</th>
                                 <th>SKU</th>
-                                <th>Quantity</th>
-                                <th>Unit Price</th>
-                                <th>Total</th>
+                                <th class="text-center">Quantity</th>
+                                <th class="text-end">Unit Price</th>
+                                <th class="text-end pe-3">Total</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for item in sale.sale_items %}
                             <tr>
-                                <td>{{ item.product.name }}</td>
-                                <td>{{ item.product.sku }}</td>
-                                <td>{{ item.quantity_sold }}</td>
-                                <td>{{ format_currency(item.unit_price_at_time) }}</td>
-                                <td>{{ format_currency(item.total_price) }}</td>
+                                <td class="fw-medium">{{ item.product.name }}</td>
+                                <td><small class="text-muted">{{ item.product.sku }}</small></td>
+                                <td class="text-center">{{ item.quantity_sold }}</td>
+                                <td class="text-end">{{ format_currency(item.unit_price_at_time) }}</td>
+                                <td class="text-end pe-3 fw-semibold">{{ format_currency(item.total_price) }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -42,15 +76,95 @@
                 </div>
             </div>
         </div>
+
+        <!-- Return History -->
+        {% if sale_returns %}
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-danger bg-opacity-10">
+                <h5 class="mb-0 text-danger"><i class="bi bi-arrow-return-left me-2"></i>Return History</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Return #</th>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th class="text-center">Items</th>
+                                <th class="text-end">Refund</th>
+                                <th>Status</th>
+                                <th style="width:50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ret in sale_returns %}
+                            <tr>
+                                <td><strong>{{ ret.return_no }}</strong></td>
+                                <td>{{ ret.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if ret.return_type.value == 'Return & Refund' %}
+                                    <span class="badge bg-danger">Refund</span>
+                                    {% else %}
+                                    <span class="badge bg-info">Credit</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">{{ ret.items|length }}</td>
+                                <td class="text-end fw-bold">{{ format_currency(ret.refund_total) }}</td>
+                                <td>
+                                    {% if ret.status.value == 'Reversed' %}
+                                    <span class="badge bg-warning text-dark">Reversed</span>
+                                    {% else %}
+                                    <span class="badge bg-success">Completed</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('returns.return_detail', return_id=ret.id) }}"
+                                        class="btn btn-sm btn-outline-primary" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Void Info (if voided) -->
+        {% if is_voided and void_txn %}
+        <div class="card mb-4 border-danger shadow-sm">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Sale Voided</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Voided By:</dt>
+                    <dd class="col-sm-8">{{ void_txn.voided_by_user.username }}</dd>
+                    <dt class="col-sm-4">Date:</dt>
+                    <dd class="col-sm-8">{{ void_txn.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+                    <dt class="col-sm-4">Reason:</dt>
+                    <dd class="col-sm-8">{{ void_txn.reason }}</dd>
+                    {% if void_txn.approved_by_user %}
+                    <dt class="col-sm-4">Approved By:</dt>
+                    <dd class="col-sm-8">{{ void_txn.approved_by_user.username }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <div class="col-md-4">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5><i class="bi bi-info-circle"></i> Sale Details</h5>
+        <!-- Sale Details -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Sale Details</h5>
             </div>
             <div class="card-body">
-                <dl class="row">
+                <dl class="row mb-0">
                     <dt class="col-sm-5">Date:</dt>
                     <dd class="col-sm-7">{{ sale.created_at.strftime('%Y-%m-%d %H:%M') }}</dd>
 
@@ -63,12 +177,10 @@
                         <span class="badge bg-primary">Split Payment</span>
                         {% else %}
                         {% set method = sale.payment_method %}
-                        {% set method_str = method.value if method.value is defined else method|string %}
-
-                        {# Fallback: If method_str is empty but we have payments, use the first payment's method #}
+                        {% set method_str = method.value if method else '' %}
                         {% if not method_str and sale.payments %}
                         {% set p_method = sale.payments[0].payment_method %}
-                        {% set method_str = p_method.value if p_method.value is defined else p_method|string %}
+                        {% set method_str = p_method.value if p_method else '' %}
                         {% endif %}
 
                         {% if method_str == 'Cash' or method_str == 'CASH' %}
@@ -91,20 +203,44 @@
 
                     <dt class="col-sm-5">Status:</dt>
                     <dd class="col-sm-7">
-                        <span class="badge bg-{{ 'success' if sale.sale_status.value == 'COMPLETED' else 'warning' }}">
-                            {{ sale.sale_status.value if sale.sale_status.value is defined else sale.sale_status }}
-                        </span>
+                        {% if status_val == 'Completed' %}
+                        <span class="badge bg-success">{{ status_val }}</span>
+                        {% elif status_val == 'Voided' %}
+                        <span class="badge bg-danger">{{ status_val }}</span>
+                        {% elif status_val == 'Refunded' %}
+                        <span class="badge bg-warning text-dark">{{ status_val }}</span>
+                        {% elif status_val == 'Partially Returned' %}
+                        <span class="badge bg-info">{{ status_val }}</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ status_val }}</span>
+                        {% endif %}
                     </dd>
+
+                    {% if invoice_val %}
+                    <dt class="col-sm-5">Invoice:</dt>
+                    <dd class="col-sm-7">
+                        {% if invoice_val == 'Paid' %}
+                        <span class="badge bg-success">{{ invoice_val }}</span>
+                        {% elif invoice_val == 'Partial' %}
+                        <span class="badge bg-warning text-dark">{{ invoice_val }}</span>
+                        {% elif invoice_val == 'Unpaid' %}
+                        <span class="badge bg-danger">{{ invoice_val }}</span>
+                        {% elif invoice_val == 'Void' %}
+                        <span class="badge bg-dark">{{ invoice_val }}</span>
+                        {% endif %}
+                    </dd>
+                    {% endif %}
                 </dl>
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5><i class="bi bi-calculator"></i> Summary</h5>
+        <!-- Financial Summary -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-calculator me-2"></i>Summary</h5>
             </div>
             <div class="card-body">
-                <dl class="row">
+                <dl class="row mb-0">
                     <dt class="col-sm-5">Subtotal:</dt>
                     <dd class="col-sm-7">{{ format_currency(sale.subtotal) }}</dd>
 
@@ -121,16 +257,16 @@
                 {% if sale.notes %}
                 <hr>
                 <h6>Notes:</h6>
-                <p>{{ sale.notes }}</p>
+                <p class="mb-0">{{ sale.notes }}</p>
                 {% endif %}
             </div>
         </div>
 
         <!-- Payment Breakdown Card -->
         {% if sale.payments %}
-        <div class="card mb-4">
-            <div class="card-header bg-light">
-                <h5 class="mb-0"><i class="bi bi-credit-card"></i> Payment Breakdown</h5>
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-credit-card me-2"></i>Payment Breakdown</h5>
             </div>
             <div class="card-body p-0">
                 <ul class="list-group list-group-flush">
@@ -138,33 +274,32 @@
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
                             {% set method = payment.payment_method %}
-                            {% set method_str = method.value if method.value is defined else method|string %}
+                            {% set method_str = method.value if method else '' %}
 
                             {% if method_str == 'Cash' or method_str == 'CASH' %}
                             <i class="bi bi-cash me-2"></i><span class="badge bg-secondary text-white">Cash</span>
                             {% elif method_str == 'Card' or method_str == 'CARD' %}
                             <i class="bi bi-credit-card me-2"></i><span class="badge bg-info text-white">Card</span>
                             {% elif method_str in ['E-Dahab', 'E_DAHAB'] %}
-                            <i class="bi bi-phone me-2"></i><span class="badge text-white"
-                                style="background-color: #f59e0b;">E-Dahab</span>
+                            <i class="bi bi-phone me-2"></i><span class="badge text-white" style="background-color: #f59e0b;">E-Dahab</span>
                             {% elif method_str in ['Zaad', 'ZAAD'] %}
-                            <i class="bi bi-phone me-2"></i><span class="badge text-white"
-                                style="background-color: #10b981;">Zaad</span>
+                            <i class="bi bi-phone me-2"></i><span class="badge text-white" style="background-color: #10b981;">Zaad</span>
                             {% elif method_str in ['Store Credit', 'STORE_CREDIT'] or not method_str %}
-                            <i class="bi bi-wallet2 me-2"></i><span class="badge text-white"
-                                style="background-color: #6f42c1;">Credit</span>
+                            <i class="bi bi-wallet2 me-2"></i><span class="badge text-white" style="background-color: #6f42c1;">Credit</span>
                             {% elif method_str in ['Mobile Money', 'MOBILE_MONEY'] %}
                             <i class="bi bi-phone me-2"></i><span class="badge bg-success text-white">Mobile</span>
                             {% else %}
-                            <i class="bi bi-wallet me-2"></i><span class="badge bg-dark text-white">{{ method_str
-                                }}</span>
+                            <i class="bi bi-wallet me-2"></i><span class="badge bg-dark text-white">{{ method_str }}</span>
                             {% endif %}
 
                             {% if payment.reference %}
                             <small class="text-muted ms-2">({{ payment.reference }})</small>
                             {% endif %}
                         </div>
-                        <span class="fw-bold">{{ format_currency(payment.amount) }}</span>
+                        <span class="fw-bold {% if payment.amount < 0 %}text-danger{% endif %}">
+                            {{ format_currency(payment.amount) }}
+                            {% if payment.amount < 0 %}<small class="text-muted">(refund)</small>{% endif %}
+                        </span>
                     </li>
                     {% endfor %}
                     <li class="list-group-item d-flex justify-content-between bg-light">
@@ -182,15 +317,149 @@
         </div>
         {% endif %}
 
+        <!-- Action Buttons -->
         <div class="d-grid gap-2">
+            {% if not is_voided %}
             <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}" class="btn btn-primary">
-                <i class="bi bi-receipt"></i> Print Receipt
+                <i class="bi bi-receipt me-1"></i> Print Receipt
             </a>
+            {% endif %}
+
+            {% if can_return %}
+            <a href="{{ url_for('returns.return_form', sale_id=sale.id) }}" class="btn btn-warning">
+                <i class="bi bi-arrow-return-left me-1"></i> Return Items
+            </a>
+            {% endif %}
+
+            {% if not is_voided %}
+                {% if can_void %}
+                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#voidModal">
+                    <i class="bi bi-x-octagon me-1"></i> Void Sale
+                </button>
+                {% elif has_payments %}
+                <button type="button" class="btn btn-outline-danger" disabled
+                    title="Cannot void a paid sale. Use Return Items to process refunds.">
+                    <i class="bi bi-x-octagon me-1"></i> Void Sale
+                    <small class="d-block mt-1" style="font-size:0.7rem;">(Use Return for paid sales)</small>
+                </button>
+                {% endif %}
+            {% endif %}
 
             <a href="{{ url_for('sales.index') }}" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Back to Sales
+                <i class="bi bi-arrow-left me-1"></i> Back to Sales
             </a>
         </div>
     </div>
 </div>
+
+{% endblock %}
+
+{% block modals %}
+{% set _status_val = sale.sale_status.value if sale.sale_status else 'Completed' %}
+{% set _has_payments = sale.payments|selectattr('amount', 'gt', 0)|list|length > 0 if sale.payments else false %}
+{% set _can_void = (_status_val != 'Voided') and not _has_payments %}
+{% if _can_void %}
+<!-- Void Confirmation Modal (placed outside .fade-in to avoid CSS stacking context conflict) -->
+<div class="modal fade" id="voidModal" tabindex="-1" data-sale-id="{{ sale.id }}">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Void Sale</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger mb-3">
+                    <strong>Warning:</strong> Voiding this sale will:
+                    <ul class="mb-0 mt-1">
+                        <li>Mark the sale as <strong>VOIDED</strong></li>
+                        <li>Restore all inventory stock</li>
+                        <li>Exclude this sale from revenue reports</li>
+                    </ul>
+                </div>
+                {% if _status_val == 'Completed' %}
+                <div class="alert alert-warning mb-3">
+                    <i class="bi bi-shield-lock me-1"></i> This is a completed sale. Manager/Admin approval may be required.
+                </div>
+                {% endif %}
+                <div class="mb-3">
+                    <label for="voidReason" class="form-label fw-medium">
+                        Reason for Voiding <span class="text-danger">*</span>
+                    </label>
+                    <textarea class="form-control" id="voidReason" rows="3" required
+                        placeholder="Why is this sale being voided?"></textarea>
+                </div>
+                <!-- Status message area -->
+                <div id="voidAlert" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmVoidBtn">
+                    <i class="bi bi-x-octagon me-1"></i> Confirm Void
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var confirmVoidBtn = document.getElementById('confirmVoidBtn');
+    if (confirmVoidBtn) {
+        var csrfToken = document.querySelector('meta[name="csrf-token"]');
+        csrfToken = csrfToken ? csrfToken.getAttribute('content') : '';
+        var saleId = parseInt(document.getElementById('voidModal').dataset.saleId);
+        var voidAlert = document.getElementById('voidAlert');
+
+        confirmVoidBtn.addEventListener('click', function() {
+            var reason = document.getElementById('voidReason').value.trim();
+            if (!reason) {
+                voidAlert.style.display = '';
+                voidAlert.className = 'alert alert-warning';
+                voidAlert.textContent = 'Please provide a reason for voiding this sale.';
+                return;
+            }
+
+            voidAlert.style.display = 'none';
+            confirmVoidBtn.disabled = true;
+            confirmVoidBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing...';
+
+            fetch('/sales/' + saleId + '/void', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ reason: reason })
+            })
+            .then(function(response) {
+                return response.json().then(function(data) {
+                    data._status = response.status;
+                    return data;
+                });
+            })
+            .then(function(data) {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    voidAlert.style.display = '';
+                    voidAlert.className = 'alert alert-danger';
+                    voidAlert.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>' + (data.message || 'Void failed.');
+                    confirmVoidBtn.disabled = false;
+                    confirmVoidBtn.innerHTML = '<i class="bi bi-x-octagon me-1"></i> Confirm Void';
+                }
+            })
+            .catch(function(err) {
+                voidAlert.style.display = '';
+                voidAlert.className = 'alert alert-danger';
+                voidAlert.textContent = 'Network error: ' + err.message + '. Please refresh and try again.';
+                confirmVoidBtn.disabled = false;
+                confirmVoidBtn.innerHTML = '<i class="bi bi-x-octagon me-1"></i> Confirm Void';
+            });
+        });
+    }
+});
+</script>
 {% endblock %}

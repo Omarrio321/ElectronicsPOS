@@ -1,6 +1,7 @@
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
+from sqlalchemy import func
 from datetime import datetime, timedelta
 import enum
 from decimal import Decimal
@@ -114,6 +115,7 @@ class PaymentMethod(enum.Enum):
 
 class SaleStatus(enum.Enum):
     COMPLETED = "Completed"
+    PARTIALLY_RETURNED = "Partially Returned"
     REFUNDED = "Refunded"
     VOIDED = "Voided"
 
@@ -156,6 +158,19 @@ class LedgerEntryType(enum.Enum):
     ADJUSTMENT = "Adjustment"    # Manual adjustment
     CREDIT_EARNED = "Credit Earned"  # Credit: future use
     CREDIT_USED = "Credit Used"      # Debit: future use
+    REFUND = "Refund"                # Credit: refund issued
+
+
+class ReturnType(enum.Enum):
+    """Type of return transaction"""
+    RETURN_ONLY = "Return Only"           # No cash refund, store credit
+    RETURN_AND_REFUND = "Return & Refund" # Cash/card refund issued
+
+
+class ReturnStatus(enum.Enum):
+    """Status of a return transaction"""
+    COMPLETED = "Completed"
+    REVERSED = "Reversed"
 
 
 # =============================================================================
@@ -274,6 +289,8 @@ class Sale(db.Model):
     # Relationships
     sale_items = db.relationship('SaleItem', backref='sale', lazy=True, cascade="all, delete-orphan")
     payments = db.relationship('Payment', backref='sale', lazy=True, cascade="all, delete-orphan")
+    returns = db.relationship('ReturnTransaction', backref='sale', lazy=True)
+    void_transaction = db.relationship('VoidTransaction', backref='sale', uselist=False, lazy=True)
     
     def __repr__(self):
         return f'<Sale {self.invoice_no or self.id}>'
@@ -342,6 +359,37 @@ class Sale(db.Model):
         else:
             next_num = 1
         
+        return f'{prefix}{next_num:04d}'
+
+    def get_returnable_qty(self, sale_item_id):
+        """Calculate returnable quantity for a sale item (original qty - already returned)"""
+        sale_item = SaleItem.query.get(sale_item_id)
+        if not sale_item or sale_item.sale_id != self.id:
+            return 0
+        already_returned = db.session.query(
+            func.coalesce(func.sum(ReturnItem.quantity_returned), 0)
+        ).filter(
+            ReturnItem.sale_item_id == sale_item_id,
+            ReturnItem.return_transaction.has(ReturnTransaction.status == ReturnStatus.COMPLETED)
+        ).scalar()
+        return sale_item.quantity_sold - int(already_returned)
+
+    @staticmethod
+    def generate_return_no():
+        """Generate unique return number: RTN-YYYYMMDD-XXXX"""
+        today = datetime.utcnow().strftime('%Y%m%d')
+        prefix = f'RTN-{today}-'
+        last = ReturnTransaction.query.filter(
+            ReturnTransaction.return_no.like(f'{prefix}%')
+        ).order_by(ReturnTransaction.return_no.desc()).first()
+        if last and last.return_no:
+            try:
+                last_num = int(last.return_no.split('-')[-1])
+                next_num = last_num + 1
+            except:
+                next_num = 1
+        else:
+            next_num = 1
         return f'{prefix}{next_num:04d}'
 
 class SaleItem(db.Model):
@@ -489,3 +537,90 @@ class HeldSale(db.Model):
     
     def __repr__(self):
         return f'<HeldSale {self.id}: {self.customer_name or "Anonymous"}>'
+
+
+# =============================================================================
+# RETURN / REFUND MODELS
+# =============================================================================
+
+class ReturnTransaction(db.Model):
+    """Immutable return transaction record linked to an original sale"""
+    __tablename__ = 'return_transaction'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    return_no = db.Column(db.String(20), unique=True, nullable=False, index=True)
+    sale_id = db.Column(db.Integer, db.ForeignKey('sale.id'), nullable=False, index=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=True)
+    
+    return_type = db.Column(db.Enum(ReturnType), nullable=False)
+    status = db.Column(db.Enum(ReturnStatus), default=ReturnStatus.COMPLETED)
+    
+    # Financials (calculated from returned items)
+    subtotal = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    tax_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    discount_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    refund_total = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    
+    # Refund method (only if Return + Refund)
+    refund_method = db.Column(db.Enum(PaymentMethod), nullable=True)
+    
+    # Audit info
+    reason = db.Column(db.String(255), nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    processed_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    approved_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    
+    # Relationships
+    items = db.relationship('ReturnItem', backref='return_transaction', lazy=True, cascade="all, delete-orphan")
+    customer = db.relationship('Customer', backref='returns', lazy=True)
+    processed_by_user = db.relationship('User', foreign_keys=[processed_by], backref='processed_returns')
+    approved_by_user = db.relationship('User', foreign_keys=[approved_by])
+    
+    def __repr__(self):
+        return f'<ReturnTransaction {self.return_no}>'
+
+
+class ReturnItem(db.Model):
+    """Individual item in a return transaction"""
+    __tablename__ = 'return_item'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    return_id = db.Column(db.Integer, db.ForeignKey('return_transaction.id'), nullable=False)
+    sale_item_id = db.Column(db.Integer, db.ForeignKey('sale_item.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    
+    quantity_returned = db.Column(db.Integer, nullable=False)
+    unit_price_at_sale = db.Column(db.Numeric(10, 2), nullable=False)
+    total_price = db.Column(db.Numeric(12, 2), nullable=False)
+    
+    # Relationships
+    sale_item = db.relationship('SaleItem', backref='return_items', lazy=True)
+    product = db.relationship('Product', backref='return_items', lazy=True)
+    
+    def __repr__(self):
+        return f'<ReturnItem {self.id}: qty={self.quantity_returned}>'
+
+
+# =============================================================================
+# VOID TRANSACTION MODEL
+# =============================================================================
+
+class VoidTransaction(db.Model):
+    """Record of a voided sale - preserves audit trail"""
+    __tablename__ = 'void_transaction'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    sale_id = db.Column(db.Integer, db.ForeignKey('sale.id'), nullable=False, unique=True, index=True)
+    
+    reason = db.Column(db.String(255), nullable=False)
+    voided_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    approved_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    voided_by_user = db.relationship('User', foreign_keys=[voided_by], backref='voided_sales')
+    approved_by_user = db.relationship('User', foreign_keys=[approved_by])
+    
+    def __repr__(self):
+        return f'<VoidTransaction sale_id={self.sale_id}>'

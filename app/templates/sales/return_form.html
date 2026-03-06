@@ -1,0 +1,455 @@
+{% extends "base.html" %}
+
+{% block title %}Return Items — Sale #{{ sale.id }} - {{ company_name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('sales.index') }}">Sales</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('sales.detail', sale_id=sale.id) }}">Sale #{{ sale.id
+                        }}</a></li>
+                <li class="breadcrumb-item active">Return Items</li>
+            </ol>
+        </nav>
+        <h1 class="mb-1"><i class="bi bi-arrow-return-left"></i> Return Items</h1>
+        <p class="text-muted mb-0">
+            <strong>{{ sale.invoice_no or ('Sale #' ~ sale.id) }}</strong>
+            &mdash; {{ sale.created_at.strftime('%Y-%m-%d %H:%M') }}
+            {% if sale.customer %}
+            &mdash; Customer: <strong>{{ sale.customer.full_name }}</strong>
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<form id="returnForm" data-tax-rate="{{ sale.tax_rate|float }}" data-original-subtotal="{{ sale.subtotal|float }}"
+    data-original-discount="{{ sale.discount|float }}" data-sale-id="{{ sale.id }}">
+    <div class="row">
+        <!-- Left: Items Selection -->
+        <div class="col-lg-8">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-box-seam me-2"></i>Select Items to Return</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="returnItemsTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:45px;" class="ps-3">
+                                        <input type="checkbox" id="selectAll" class="form-check-input">
+                                    </th>
+                                    <th>Product</th>
+                                    <th class="text-center">Sold</th>
+                                    <th class="text-center">Returnable</th>
+                                    <th class="text-center" style="width:110px;">Return Qty</th>
+                                    <th class="text-end">Unit Price</th>
+                                    <th class="text-end pe-3">Line Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items_data %}
+                                <tr>
+                                    <td class="ps-3">
+                                        <input type="checkbox" class="form-check-input item-check"
+                                            data-sale-item-id="{{ item.sale_item_id }}"
+                                            data-unit-price="{{ item.unit_price }}"
+                                            data-max-qty="{{ item.returnable_qty }}">
+                                    </td>
+                                    <td>
+                                        <div class="fw-medium">{{ item.product_name }}</div>
+                                        <small class="text-muted">{{ item.product_sku }}</small>
+                                    </td>
+                                    <td class="text-center">{{ item.quantity_sold }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info bg-opacity-75">{{ item.returnable_qty }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="number"
+                                            class="form-control form-control-sm text-center return-qty mx-auto" min="0"
+                                            max="{{ item.returnable_qty }}" value="0" disabled style="width:75px;">
+                                    </td>
+                                    <td class="text-end">{{ format_currency(item.unit_price) }}</td>
+                                    <td class="text-end pe-3 fw-semibold item-return-total text-muted">$0.00</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Return Details -->
+        <div class="col-lg-4">
+            <!-- Return Summary -->
+            <div class="card mb-3 shadow-sm border-danger border-opacity-25">
+                <div class="card-header bg-danger bg-opacity-10 border-danger border-opacity-25">
+                    <h5 class="mb-0 text-danger"><i class="bi bi-calculator me-2"></i>Return Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Items Subtotal:</span>
+                        <span class="fw-medium" id="returnSubtotal">$0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Proportional Discount:</span>
+                        <span class="text-success" id="returnDiscount">-$0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Tax ({{ (sale.tax_rate * 100)|round(2) }}%):</span>
+                        <span id="returnTax">$0.00</span>
+                    </div>
+                    <hr class="my-2">
+                    <div class="d-flex justify-content-between">
+                        <span class="fs-5 fw-bold">Refund Total:</span>
+                        <span class="fs-5 fw-bold text-danger" id="refundTotal">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Return Type -->
+            <div class="card mb-3 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-arrow-left-right me-2"></i>Return Type</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="return_type" id="returnAndRefund"
+                            value="RETURN_AND_REFUND" checked>
+                        <label class="form-check-label" for="returnAndRefund">
+                            <strong>Return & Refund</strong>
+                            <small class="d-block text-muted">Issue refund to customer</small>
+                        </label>
+                    </div>
+                    {% if sale.customer_id %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="return_type" id="returnOnly"
+                            value="RETURN_ONLY">
+                        <label class="form-check-label" for="returnOnly">
+                            <strong>Return Only</strong>
+                            <small class="d-block text-muted">Store credit for registered customer</small>
+                        </label>
+                    </div>
+                    {% else %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="return_type" id="returnOnly"
+                            value="RETURN_ONLY" disabled>
+                        <label class="form-check-label text-muted" for="returnOnly">
+                            <strong class="text-muted">Return Only</strong>
+                            <small class="d-block text-muted">Not available — walk-in customer has no account for store
+                                credit</small>
+                        </label>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Refund Method -->
+            <div class="card mb-3 shadow-sm" id="refundMethodCard">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-credit-card me-2"></i>Refund Method</h5>
+                </div>
+                <div class="card-body">
+                    <select class="form-select" id="refundMethod">
+                        <option value="">Select refund method...</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Card">Card</option>
+                        <option value="Zaad">Zaad</option>
+                        <option value="E-Dahab">E-Dahab</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Reason & Notes -->
+            <div class="card mb-3 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-chat-left-text me-2"></i>Return Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="returnReason" class="form-label fw-medium">
+                            Reason <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="returnReason">
+                            <option value="">Select reason...</option>
+                            <option value="Defective product">Defective product</option>
+                            <option value="Wrong item">Wrong item</option>
+                            <option value="Customer changed mind">Customer changed mind</option>
+                            <option value="Duplicate purchase">Duplicate purchase</option>
+                            <option value="Quality issue">Quality issue</option>
+                            <option value="Other">Other (specify below)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="customReasonGroup" style="display:none;">
+                        <label for="customReason" class="form-label fw-medium">Specify Reason</label>
+                        <input type="text" class="form-control" id="customReason" placeholder="Enter reason...">
+                    </div>
+                    <div class="mb-0">
+                        <label for="returnNotes" class="form-label fw-medium">Notes <span
+                                class="text-muted fw-normal">(Optional)</span></label>
+                        <textarea class="form-control" id="returnNotes" rows="2"
+                            placeholder="Additional notes..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-grid gap-2 mb-4">
+                <button type="button" class="btn btn-danger btn-lg" id="processReturnBtn" disabled>
+                    <i class="bi bi-arrow-return-left me-1"></i> Process Return
+                </button>
+                <small class="text-muted text-center d-block mt-1">Select items and a reason to enable</small>
+                <a href="{{ url_for('sales.detail', sale_id=sale.id) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-lg me-1"></i> Cancel
+                </a>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Single Result Modal (replaces separate processing + success modals to avoid flicker) -->
+<div class="modal fade" id="resultModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-5">
+                <!-- Processing State -->
+                <div id="modalProcessing">
+                    <div class="spinner-border text-danger mb-3" role="status" style="width:3rem;height:3rem;">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                    <h5>Processing Return...</h5>
+                    <p class="text-muted mb-0">Please wait while the return is being processed.</p>
+                </div>
+
+                <!-- Success State (hidden initially) -->
+                <div id="modalSuccess" style="display:none;">
+                    <div class="mb-3">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size:4rem;"></i>
+                    </div>
+                    <h4 class="mb-2">Return Processed Successfully</h4>
+                    <p class="text-muted mb-1" id="successReturnNo"></p>
+                    <p class="fs-4 fw-bold text-danger mb-4" id="successRefundAmount"></p>
+                    <div class="d-grid gap-2">
+                        <a href="#" class="btn btn-primary" id="viewReturnBtn">
+                            <i class="bi bi-receipt me-1"></i> View Return Receipt
+                        </a>
+                        <a href="{{ url_for('sales.detail', sale_id=sale.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Back to Sale
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Error State (hidden initially) -->
+                <div id="modalError" style="display:none;">
+                    <div class="mb-3">
+                        <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size:4rem;"></i>
+                    </div>
+                    <h4 class="mb-2">Return Failed</h4>
+                    <p class="text-muted" id="errorMessage"></p>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var formEl = document.getElementById('returnForm');
+        var taxRate = parseFloat(formEl.dataset.taxRate);
+        var originalSubtotal = parseFloat(formEl.dataset.originalSubtotal);
+        var originalDiscount = parseFloat(formEl.dataset.originalDiscount);
+        var saleId = parseInt(formEl.dataset.saleId);
+        var csrfToken = document.querySelector('meta[name="csrf-token"]');
+        csrfToken = csrfToken ? csrfToken.getAttribute('content') : '';
+
+        var checkboxes = document.querySelectorAll('.item-check');
+        var selectAllCb = document.getElementById('selectAll');
+        var returnTypeRadios = document.querySelectorAll('input[name="return_type"]');
+        var refundMethodCard = document.getElementById('refundMethodCard');
+        var processBtn = document.getElementById('processReturnBtn');
+        var reasonSelect = document.getElementById('returnReason');
+        var customReasonGroup = document.getElementById('customReasonGroup');
+
+        // --- Select All ---
+        selectAllCb.addEventListener('change', function () {
+            var checked = this.checked;
+            checkboxes.forEach(function (cb) {
+                cb.checked = checked;
+                var row = cb.closest('tr');
+                var qtyInput = row.querySelector('.return-qty');
+                qtyInput.disabled = !checked;
+                qtyInput.value = checked ? cb.dataset.maxQty : 0;
+            });
+            recalculate();
+        });
+
+        // --- Individual checkbox ---
+        checkboxes.forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                var row = this.closest('tr');
+                var qtyInput = row.querySelector('.return-qty');
+                qtyInput.disabled = !this.checked;
+                qtyInput.value = this.checked ? this.dataset.maxQty : 0;
+                recalculate();
+            });
+        });
+
+        // --- Qty change ---
+        document.querySelectorAll('.return-qty').forEach(function (input) {
+            input.addEventListener('input', recalculate);
+        });
+
+        // --- Return type toggle ---
+        returnTypeRadios.forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                refundMethodCard.style.display = this.value === 'RETURN_AND_REFUND' ? '' : 'none';
+            });
+        });
+
+        // --- Reason "Other" toggle ---
+        reasonSelect.addEventListener('change', function () {
+            customReasonGroup.style.display = this.value === 'Other' ? '' : 'none';
+            recalculate();
+        });
+
+        // --- Recalculate totals ---
+        function recalculate() {
+            var subtotal = 0;
+            var rows = document.querySelectorAll('#returnItemsTable tbody tr');
+            rows.forEach(function (row) {
+                var cb = row.querySelector('.item-check');
+                var qtyInput = row.querySelector('.return-qty');
+                var totalCell = row.querySelector('.item-return-total');
+                var unitPrice = parseFloat(cb.dataset.unitPrice);
+                var qty = cb.checked ? (parseInt(qtyInput.value) || 0) : 0;
+                var total = qty * unitPrice;
+                totalCell.textContent = '$' + total.toFixed(2);
+                if (total > 0) {
+                    totalCell.classList.remove('text-muted');
+                    totalCell.classList.add('text-danger');
+                } else {
+                    totalCell.classList.add('text-muted');
+                    totalCell.classList.remove('text-danger');
+                }
+                subtotal += total;
+            });
+
+            var proportion = originalSubtotal > 0 ? subtotal / originalSubtotal : 0;
+            var discount = originalDiscount * proportion;
+            var taxableAmount = subtotal - discount;
+            var tax = taxableAmount * taxRate;
+            var refundTotal = taxableAmount + tax;
+
+            document.getElementById('returnSubtotal').textContent = '$' + subtotal.toFixed(2);
+            document.getElementById('returnDiscount').textContent = '-$' + discount.toFixed(2);
+            document.getElementById('returnTax').textContent = '$' + tax.toFixed(2);
+            document.getElementById('refundTotal').textContent = '$' + refundTotal.toFixed(2);
+
+            // Enable/disable process button
+            var hasItems = subtotal > 0;
+            var hasReason = reasonSelect.value !== '';
+            processBtn.disabled = !(hasItems && hasReason);
+        }
+
+        // --- Modal helpers ---
+        function showModalState(state) {
+            document.getElementById('modalProcessing').style.display = state === 'processing' ? '' : 'none';
+            document.getElementById('modalSuccess').style.display = state === 'success' ? '' : 'none';
+            document.getElementById('modalError').style.display = state === 'error' ? '' : 'none';
+        }
+
+        // --- Process Return ---
+        processBtn.addEventListener('click', function () {
+            var returnType = document.querySelector('input[name="return_type"]:checked').value;
+            var refundMethod = document.getElementById('refundMethod').value;
+            var reason = reasonSelect.value;
+
+            if (reason === 'Other') {
+                reason = document.getElementById('customReason').value.trim();
+                if (!reason) {
+                    alert('Please specify the return reason.');
+                    return;
+                }
+            }
+
+            if (!reason) {
+                alert('Please select a return reason.');
+                return;
+            }
+
+            if (returnType === 'RETURN_AND_REFUND' && !refundMethod) {
+                alert('Please select a refund method.');
+                return;
+            }
+
+            // Collect items
+            var items = [];
+            document.querySelectorAll('#returnItemsTable tbody tr').forEach(function (row) {
+                var cb = row.querySelector('.item-check');
+                var qtyInput = row.querySelector('.return-qty');
+                if (cb.checked && parseInt(qtyInput.value) > 0) {
+                    items.push({
+                        sale_item_id: parseInt(cb.dataset.saleItemId),
+                        quantity: parseInt(qtyInput.value)
+                    });
+                }
+            });
+
+            if (items.length === 0) {
+                alert('No items selected for return.');
+                return;
+            }
+
+            // Show processing state in modal
+            showModalState('processing');
+            var resultModal = new bootstrap.Modal(document.getElementById('resultModal'));
+            resultModal.show();
+
+            var payload = {
+                items: items,
+                reason: reason,
+                notes: document.getElementById('returnNotes').value.trim(),
+                return_type: returnType,
+                refund_method: returnType === 'RETURN_AND_REFUND' ? refundMethod : null
+            };
+
+            fetch('/sales/' + saleId + '/return', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(payload)
+            })
+                .then(function (response) {
+                    return response.json().then(function (data) {
+                        data._status = response.status;
+                        return data;
+                    });
+                })
+                .then(function (data) {
+                    if (data.success) {
+                        // Switch to success state (same modal, no flicker)
+                        document.getElementById('successReturnNo').textContent = 'Return #: ' + data.return_no;
+                        document.getElementById('successRefundAmount').textContent = 'Refund: $' + data.refund_total.toFixed(2);
+                        document.getElementById('viewReturnBtn').href = '/sales/returns/' + data.return_id + '/receipt';
+                        showModalState('success');
+                    } else {
+                        document.getElementById('errorMessage').textContent = data.message || 'An unknown error occurred.';
+                        showModalState('error');
+                    }
+                })
+                .catch(function (err) {
+                    document.getElementById('errorMessage').textContent = 'Network error: ' + err.message + '. Please refresh and try again.';
+                    showModalState('error');
+                });
+        });
+    });
+</script>
+{% endblock %}

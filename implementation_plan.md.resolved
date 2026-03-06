@@ -1,0 +1,221 @@
+# Return/Refund Management & Void Sale Implementation
+
+Implement two major features for the Electronics POS system: **Return/Refund Management** and **Void Sale Functionality**, with full inventory reversal, accounting safety, and audit trail.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Design Decision — Return Reversal vs Delete**: Returns are immutable once created. A "Return Reversal" is a separate audit-logged operation requiring Manager/Admin approval. We will NOT support deleting return records.
+
+> [!IMPORTANT]
+> **Void + Payments**: When voiding a sale that has existing payments, we will **block the void** and redirect to the refund flow. This is the safest accounting approach (no silent refunds).
+
+> [!IMPORTANT]
+> **Manager approval for voiding completed sales**: Controlled via a [SystemSetting](file:///d:/Projects/electronics_pos/app/models.py#396-420) key `void_completed_requires_approval` (default `'true'`). When enabled, only Admin/Manager roles can void completed sales.
+
+---
+
+## Proposed Changes
+
+### New Enums & Models
+
+
+#### [MODIFY] [models.py](file:///d:/Projects/electronics_pos/app/models.py)
+
+**New enums:**
+- `ReturnType` — `RETURN_ONLY`, `RETURN_AND_REFUND`
+- `ReturnStatus` — `COMPLETED`, `REVERSED`
+
+**Updated enums:**
+- [SaleStatus](file:///d:/Projects/electronics_pos/app/models.py#115-119) — add `PARTIALLY_RETURNED = "Partially Returned"`
+- [LedgerEntryType](file:///d:/Projects/electronics_pos/app/models.py#152-159) — add `REFUND = "Refund"`
+
+**New models:**
+
+`ReturnTransaction`:
+| Column | Type | Description |
+|--------|------|-------------|
+| id | Integer PK | |
+| return_no | String(20), unique | e.g. `RTN-20260227-0001` |
+| sale_id | FK → Sale | Must reference existing sale |
+| customer_id | FK → Customer, nullable | |
+| return_type | Enum(ReturnType) | Return Only / Return + Refund |
+| status | Enum(ReturnStatus) | Completed / Reversed |
+| subtotal | Numeric(12,2) | Sum of returned item prices |
+| tax_amount | Numeric(12,2) | Proportional tax on returned items |
+| discount_amount | Numeric(12,2) | Proportional discount |
+| refund_total | Numeric(12,2) | Net refund amount |
+| refund_method | Enum(PaymentMethod), nullable | Only if Return+Refund |
+| reason | String(255) | Mandatory reason |
+| notes | Text, nullable | |
+| processed_by | FK → User | Who processed it |
+| approved_by | FK → User, nullable | Manager who approved reversal |
+| created_at | DateTime | |
+
+`ReturnItem`:
+| Column | Type | Description |
+|--------|------|-------------|
+| id | Integer PK | |
+| return_id | FK → ReturnTransaction | |
+| sale_item_id | FK → SaleItem | Link to original sold item |
+| product_id | FK → Product | |
+| quantity_returned | Integer | Cannot exceed original qty sold minus already-returned |
+| unit_price_at_sale | Numeric(10,2) | Snapshot from original sale item |
+| total_price | Numeric(12,2) | qty × unit_price |
+
+`VoidTransaction`:
+| Column | Type | Description |
+|--------|------|-------------|
+| id | Integer PK | |
+| sale_id | FK → Sale | The voided sale |
+| reason | String(255) | Mandatory |
+| voided_by | FK → User | |
+| approved_by | FK → User, nullable | Manager who approved |
+| created_at | DateTime | |
+
+**Sale model updates:**
+- Add relationship: `returns = db.relationship('ReturnTransaction', ...)`
+- Add relationship: `void_transaction = db.relationship('VoidTransaction', uselist=False, ...)`
+- Add helper: `get_returnable_qty(sale_item_id)` — calculates (original qty − already returned)
+- Add static: `generate_return_no()` — `RTN-YYYYMMDD-XXXX` format
+
+---
+
+### Return/Refund Routes
+
+#### [NEW] [returns.py](file:///d:/Projects/electronics_pos/app/routes/returns.py)
+
+Blueprint `returns_bp` with prefix `/sales`:
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/<sale_id>/return` | GET | Show return form with items/quantities |
+| `/<sale_id>/return` | POST | Process return (JSON API) |
+| `/returns/<return_id>` | GET | Return detail page |
+| `/returns/<return_id>/receipt` | GET | Printable return receipt |
+| `/returns/<return_id>/reverse` | POST | Reverse a return (Manager only) |
+
+**Return processing logic:**
+1. Validate sale exists and is not VOIDED
+2. Validate each item's return qty ≤ returnable qty
+3. Calculate refund: sum(qty × unit_price_at_sale), apply proportional discount/tax
+4. Restore inventory for each item
+5. If Return+Refund: create negative Payment record, update customer balance/ledger
+6. If Return Only (customer sale): add store credit via ledger entry
+7. Update sale status: REFUNDED (full) or PARTIALLY_RETURNED (partial)
+8. Create AuditLog entry
+9. Return receipt URL
+
+---
+
+### Void Sale Routes
+
+#### [MODIFY] [sales.py](file:///d:/Projects/electronics_pos/app/routes/sales.py)
+
+Add two new routes to existing `sales_bp`:
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/<sale_id>/void` | POST | Process void (JSON API) |
+
+**Void processing logic:**
+1. Validate sale is not already VOIDED
+2. If sale has payments AND status is COMPLETED → block unless Manager
+3. If sale has payments → block void, flash message to use refund flow
+4. If no payments (UNPAID): void directly
+5. Restore all inventory
+6. Mark `sale_status = VOIDED`, `invoice_status = VOID`
+7. Create `VoidTransaction` record
+8. Create AuditLog entry
+
+---
+
+### Templates
+
+#### [MODIFY] [detail.html](file:///d:/Projects/electronics_pos/app/templates/sales/detail.html)
+- Add "Return Items" button (visible when sale is COMPLETED/PARTIALLY_RETURNED)
+- Add "Void Sale" button (role-protected, visible when not VOIDED)
+- Add void confirmation modal (reason input + confirmation)
+- Add return history section (if any returns exist)
+
+#### [NEW] [return_form.html](file:///d:/Projects/electronics_pos/app/templates/sales/return_form.html)
+- Displays sale items with checkboxes and quantity selectors
+- Shows max returnable qty per item
+- Reason field (required), notes field (optional)
+- Refund method selector (Cash/Card/Zaad/E-Dahab) + "Return Only" option
+- Live calculation of refund amount
+
+#### [NEW] [return_detail.html](file:///d:/Projects/electronics_pos/app/templates/sales/return_detail.html)
+- Shows return transaction details
+- Links back to original sale
+- Shows status, refund info, who processed it
+
+#### [NEW] [return_receipt.html](file:///d:/Projects/electronics_pos/app/templates/sales/return_receipt.html)
+- Printable receipt for the return transaction
+
+---
+
+### Reports Integration
+
+#### [MODIFY] [sales.py](file:///d:/Projects/electronics_pos/app/routes/sales.py) (reports function)
+- Filter out VOIDED sales from revenue totals
+- Subtract return amounts from net revenue
+- Add new metrics: `voided_count`, `voided_value`, `return_count`, `return_value`
+- Pass these to the reports template
+
+---
+
+### App Registration
+
+#### [MODIFY] [__init__.py](file:///d:/Projects/electronics_pos/app/__init__.py)
+- Import and register `returns_bp`
+
+#### [MODIFY] [routes/__init__.py](file:///d:/Projects/electronics_pos/app/routes/__init__.py)
+- Add `from app.routes.returns import returns_bp`
+
+---
+
+### Migration
+
+#### [NEW] migration script (auto-generated by Alembic)
+- Creates `return_transaction`, `return_item`, `void_transaction` tables
+- Alters `sale_status` enum to include `Partially Returned`
+- Alters `ledger_entry_type` enum to include `Refund`
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+All tests run via: `cd d:\Projects\electronics_pos && venv\Scripts\python.exe -m pytest tests/ -v`
+
+#### [NEW] [test_returns.py](file:///d:/Projects/electronics_pos/tests/test_returns.py)
+
+| Test | What it verifies |
+|------|------------------|
+| `test_return_qty_cannot_exceed_sold` | Return qty > sold qty is rejected |
+| `test_return_qty_cannot_exceed_remaining` | Return qty > (sold − already returned) is rejected |
+| `test_return_restores_stock` | Product stock increases by returned qty |
+| `test_full_return_marks_refunded` | Full return sets `sale_status = REFUNDED` |
+| `test_partial_return_marks_partially_returned` | Partial return sets `sale_status = PARTIALLY_RETURNED` |
+| `test_refund_total_correct_with_discount_tax` | Refund = qty × unit_price − proportional discount + proportional tax |
+| `test_void_restores_stock` | Voided sale restores all item stock |
+| `test_void_creates_audit_record` | AuditLog entry created for void |
+| `test_void_blocks_paid_sale_without_manager` | Cashier cannot void a paid/completed sale |
+| `test_return_creates_audit_record` | AuditLog entry created for return |
+| `test_cannot_return_voided_sale` | Return rejected for voided sales |
+| `test_cannot_void_already_voided` | Double void is rejected |
+
+### Existing Tests (must still pass)
+
+Run: `cd d:\Projects\electronics_pos && venv\Scripts\python.exe -m pytest tests/test_models.py tests/test_pos.py tests/test_auth.py -v`
+
+These cover product stock logic, sale calculation, user auth — must not regress.
+
+### Manual Verification
+
+1. **Browser test**: Navigate to a completed sale detail page → verify "Return Items" and "Void Sale" buttons are visible
+2. **Return flow**: Click "Return Items" → select items and quantities → submit → verify stock restored in Products page → verify return receipt prints correctly
+3. **Void flow**: Click "Void Sale" → enter reason → confirm → verify stock restored → verify sale shows as VOIDED
+4. **Reports**: Check reports page → ensure voided sales excluded from revenue, returns subtracted from net sales

@@ -14,6 +14,7 @@ These items require immediate attention to ensure system integrity and security.
 **Risk:** A malicious user (or tech-savvy employee) could manipulate the HTTP request to sell a $1,000 laptop for $1.00.
 **Fix:** The backend **MUST** look up the price from the database using the `product_id` and ignore the price sent by the frontend, or verify they match.
 
+
 ### ⚠️ Incomplete Payment Logic
 **Location:** `app/routes/pos.py`
 **Issue:** The frontend hardcodes 'Cash' and 'Zaad/E-Dahab', but the backend `PaymentMethod` Enum includes `CARD`. The mapping logic is brittle (`if payment_method_str == 'Cash': ... else: MOBILE_MONEY`).

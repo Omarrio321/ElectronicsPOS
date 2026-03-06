@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, flash, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
@@ -53,6 +53,7 @@ def create_app(config_class=None):
     from app.routes.api import api_bp
     from app.routes.expenses import expenses_bp
     from app.routes.customers import customers_bp
+    from app.routes.returns import returns_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -63,6 +64,7 @@ def create_app(config_class=None):
     app.register_blueprint(api_bp)
     app.register_blueprint(expenses_bp, url_prefix='/expenses')
     app.register_blueprint(customers_bp, url_prefix='/customers')
+    app.register_blueprint(returns_bp)
 
     
 
@@ -106,26 +108,32 @@ def create_app(config_class=None):
     app.cli.add_command(cli)
     
     # Add error handlers
+    from flask_wtf.csrf import CSRFError
+
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        if request.is_json or request.headers.get('Content-Type', '').startswith('application/json'):
+            return jsonify({'success': False, 'message': 'Session expired. Please refresh the page and try again.'}), 400
+        flash('Session expired. Please try again.', 'danger')
+        return redirect(request.referrer or '/')
+
     @app.errorhandler(404)
     def not_found_error(error):
-        # Return JSON for AJAX requests
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'error': 'Resource not found'}), 404
+            return jsonify({'success': False, 'message': 'Resource not found'}), 404
         return render_template('errors/404.html'), 404
-    
+
     @app.errorhandler(500)
     def internal_error(error):
         db.session.rollback()
-        # Return JSON for AJAX requests
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'error': 'Internal server error'}), 500
+            return jsonify({'success': False, 'message': 'Internal server error'}), 500
         return render_template('errors/500.html'), 500
-    
+
     @app.errorhandler(403)
     def forbidden_error(error):
-        # Return JSON for AJAX requests
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'error': 'Access forbidden'}), 403
+            return jsonify({'success': False, 'message': 'Access forbidden'}), 403
         return render_template('errors/403.html'), 403
     
     return app

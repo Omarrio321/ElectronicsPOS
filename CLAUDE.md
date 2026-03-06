@@ -91,6 +91,40 @@ Templates in `app/templates/` inherit from `base.html`. Context processor in `ap
 
 5. **Audit Logging**: Log important actions via `AuditLog` model or `app/services/audit_service.py`.
 
+## Returns & Void System
+
+### Returns Blueprint (`app/routes/returns.py`)
+The returns blueprint registers under `/sales` prefix (shares URL space with sales blueprint).
+
+**Routes:**
+- `GET /sales/<id>/return` - Return form with returnable quantities
+- `POST /sales/<id>/return` - Process return (JSON API)
+- `GET /sales/returns/<id>` - Return detail view
+- `GET /sales/returns/<id>/receipt` - Printable return receipt
+- `POST /sales/returns/<id>/reverse` - Reverse a return (Admin/Manager only)
+- `POST /sales/<id>/void` - Void a sale (JSON API)
+
+**Business Rules:**
+- Paid sales cannot be voided — use the Return/Refund flow instead
+- Voiding completed sales requires Manager/Admin (controlled by `void_completed_requires_approval` SystemSetting)
+- Returns calculate proportional discount and tax on returned items
+- Returns restore product inventory; reversals deduct it back
+- Customer ledger is updated on returns (refund credit) and reversals (debit adjustment)
+
+### Common Pitfalls (Avoid These)
+
+1. **MySQL ENUM changes**: Alembic does NOT auto-detect new values added to Python Enums. Always add explicit `ALTER TABLE ... MODIFY COLUMN` statements in migrations when expanding Enum values (e.g., SaleStatus gaining PARTIALLY_RETURNED, REFUNDED, VOIDED).
+
+2. **Template null safety**: When accessing Enum `.value` in Jinja2 templates, always guard against None: `sale.sale_status.value if sale.sale_status else 'Completed'`. Do NOT use `is defined` to test attribute existence — it only tests variable names in context.
+
+3. **Lazy-loaded relationships in templates**: If a relationship references a table that might not exist (migration not applied), the template will 500. Pass relationship data from the route with try/except fallback instead of relying on lazy loading.
+
+4. **Report functions must be self-contained**: Each route function (`reports`, `reports_pdf`, `reports_excel`) must compute ALL variables it uses. Do NOT reference variables from other functions — they are not shared.
+
+5. **Permission-aware tests**: Void tests that expect success (200) must use `authenticated_admin_client`, not `authenticated_cashier_client`, because the void route requires Admin/Manager for completed sales.
+
+6. **app/__init__.py imports**: All Flask helpers used in error handlers (`flash`, `redirect`, `jsonify`, `render_template`, `request`) must be imported at the top of the file.
+
 ## Known Issues
 
 **SECURITY**: POS checkout accepts prices from frontend without server-side verification (`app/routes/pos.py` lines 86, 122). Backend must verify prices from database.
@@ -116,6 +150,10 @@ Environment variables in `.env` (see `.env.example`):
 
 `tests/conftest.py` provides fixtures:
 - `app`, `client` - Flask app and test client
-- `auth_client` - Pre-authenticated client
+- `authenticated_admin_client`, `authenticated_cashier_client` - Pre-authenticated clients by role
 - `admin_user`, `manager_user`, `cashier_user` - Test users by role
-- `sample_category`, `sample_product` - Test inventory data
+- `category`, `product` - Test inventory data
+- `db_session` - Function-scoped DB session with automatic cleanup
+
+`tests/test_returns.py` adds:
+- `test_sale` - A completed, paid sale with 2 items for testing returns/voids
