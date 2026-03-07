@@ -2,209 +2,405 @@
 
 {% block title %}Sales - {{ company_name }}{% endblock %}
 
+{% block head %}
+<style>
+    .page-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.375rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin: 0;
+        letter-spacing: -0.01em;
+    }
+
+    .page-header .sub {
+        font-size: 0.8125rem;
+        color: var(--gray-500);
+        margin-top: 2px;
+    }
+
+    .panel {
+        background: #fff;
+        border: var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+
+    .panel-header {
+        padding: 0.875rem 1.25rem;
+        border-bottom: var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .panel-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .panel-title i {
+        color: var(--blue-600);
+    }
+
+    .filter-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-input {
+        border: var(--border);
+        border-radius: 6px;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8125rem;
+        color: var(--gray-900);
+        background: #fff;
+        outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .filter-input:focus {
+        border-color: var(--blue-500);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    }
+
+    .filter-label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--gray-500);
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    .filter-select {
+        border: var(--border);
+        border-radius: 6px;
+        padding: 0.375rem 1.75rem 0.375rem 0.625rem;
+        font-size: 0.8125rem;
+        color: var(--gray-700);
+        background: #fff;
+        outline: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.5rem center;
+    }
+
+    .pill {
+        display: inline-block;
+        padding: 0.125rem 0.5rem;
+        border-radius: 20px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+    }
+
+    .pill-blue {
+        background: var(--blue-50);
+        color: var(--blue-600);
+    }
+
+    .pill-green {
+        background: var(--green-50);
+        color: var(--green-600);
+    }
+
+    .pill-amber {
+        background: var(--amber-50);
+        color: var(--amber-600);
+    }
+
+    .pill-gray {
+        background: var(--gray-100);
+        color: var(--gray-500);
+    }
+
+    .pill-purple {
+        background: #F5F3FF;
+        color: #7C3AED;
+    }
+
+    .pill-teal {
+        background: #F0FDFA;
+        color: #0F766E;
+    }
+
+    .pill-red {
+        background: var(--red-50);
+        color: var(--red-600);
+    }
+
+    .act-btn {
+        width: 28px;
+        height: 28px;
+        border: var(--border);
+        background: #fff;
+        border-radius: 5px;
+        color: var(--gray-500);
+        font-size: 0.6875rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: all 0.12s;
+    }
+
+    .act-btn:hover {
+        background: var(--gray-100);
+        color: var(--gray-900);
+    }
+
+    .pagination-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        padding: 0.875rem 1.25rem;
+        border-top: var(--border);
+    }
+
+    .pg-btn {
+        width: 30px;
+        height: 30px;
+        border: var(--border);
+        background: #fff;
+        border-radius: 5px;
+        color: var(--gray-600);
+        font-size: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: all 0.12s;
+    }
+
+    .pg-btn:hover {
+        background: var(--gray-100);
+        color: var(--gray-900);
+    }
+
+    .pg-btn.active {
+        background: var(--blue-600);
+        border-color: var(--blue-600);
+        color: #fff;
+    }
+
+    .pg-info {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+        padding: 0 0.5rem;
+    }
+
+    .dropdown-menu-sm {
+        min-width: 160px;
+        border: var(--border);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-radius: 7px;
+        padding: 0.25rem;
+    }
+
+    .dropdown-menu-sm .dropdown-item {
+        border-radius: 5px;
+        padding: 0.4375rem 0.625rem;
+        font-size: 0.8125rem;
+        color: var(--gray-700);
+    }
+
+    .dropdown-menu-sm .dropdown-item:hover {
+        background: var(--gray-100);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <h1><i class="bi bi-receipt"></i> Sales</h1>
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-receipt me-2" style="color:var(--blue-600);font-size:1.1rem;"></i>Sales</h1>
+        <div class="sub">View and manage all sales transactions.</div>
     </div>
-    <div class="col-md-4 text-end">
+    <div style="display:flex;gap:0.5rem;">
         {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
+        <div class="dropdown">
+            <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-download" style="font-size:0.75rem;"></i> Export
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-sm">
+                <li><a class="dropdown-item" href="#" onclick="exportData('pdf'); return false;"><i
+                            class="fas fa-file-pdf text-danger"></i>PDF</a></li>
+                <li><a class="dropdown-item" href="#" onclick="exportData('excel'); return false;"><i
+                            class="fas fa-file-excel text-success"></i>Excel</a></li>
+            </ul>
+        </div>
         <a href="{{ url_for('sales.reports') }}" class="btn btn-primary">
-            <i class="bi bi-graph-up"></i> Reports
+            <i class="fas fa-chart-line" style="font-size:0.75rem;"></i> Reports
         </a>
         {% endif %}
     </div>
 </div>
 
-<!-- Filters -->
-<div class="card mb-4">
-    <div class="card-body">
-        <form method="GET" class="row g-3">
-            <div class="col-md-2">
-                <label class="form-label">Start Date</label>
-                <input type="date" name="start_date" class="form-control"
+<!-- Filter Panel -->
+<div class="panel" style="margin-bottom:1rem;">
+    <div class="panel-header">
+        <h5 class="panel-title"><i class="fas fa-filter"></i> Filters</h5>
+    </div>
+    <div style="padding:1rem 1.25rem;">
+        <form method="GET" class="filter-bar">
+            <div>
+                <div class="filter-label">Start Date</div>
+                <input type="date" name="start_date" class="filter-input"
                     value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
             </div>
-            <div class="col-md-2">
-                <label class="form-label">End Date</label>
-                <input type="date" name="end_date" class="form-control"
+            <div>
+                <div class="filter-label">End Date</div>
+                <input type="date" name="end_date" class="filter-input"
                     value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
             </div>
-            <div class="col-md-2">
-                <label class="form-label">Cashier</label>
-                <select name="user_id" class="form-select">
+            <div>
+                <div class="filter-label">Cashier</div>
+                <select name="user_id" class="filter-select">
                     <option value="">All Cashiers</option>
                     {% for user in users %}
-                    <option value="{{ user.id }}" {% if user_id==user.id %}selected{% endif %}>
-                        {{ user.username }}
+                    <option value="{{ user.id }}" {% if user_id==user.id %}selected{% endif %}>{{ user.username }}
                     </option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-3 d-flex gap-2 align-items-end">
-                <button type="submit" class="btn btn-primary flex-grow-1">
-                    <i class="bi bi-search"></i> Filter
+            <div style="display:flex;gap:0.375rem;align-items:flex-end;padding-bottom:0;">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-search" style="font-size:0.7rem;"></i> Apply
                 </button>
-                <a href="{{ url_for('sales.index') }}" class="btn btn-secondary flex-grow-1">
-                    <i class="bi bi-arrow-clockwise"></i> Reset
+                <a href="{{ url_for('sales.index') }}" class="btn btn-light btn-sm" style="border:var(--border);">
+                    <i class="fas fa-times" style="font-size:0.7rem;"></i> Reset
                 </a>
-            </div>
-            <div class="col-md-3 text-end d-flex gap-2 justify-content-end align-items-end">
-                <div class="btn-group">
-                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                        <i class="bi bi-download"></i> Export
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#" onclick="exportData('pdf'); return false;"><i
-                                    class="bi bi-file-earmark-pdf text-danger"></i> Export PDF</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="exportData('excel'); return false;"><i
-                                    class="bi bi-file-earmark-excel text-success"></i> Export Excel</a></li>
-                    </ul>
-                </div>
             </div>
         </form>
     </div>
 </div>
 
 <!-- Sales Table -->
-<div class="card">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Date</th>
-                        <th>Cashier</th>
-                        <th>Items</th>
-                        <th>Subtotal</th>
-                        <th>Tax</th>
-                        <th>Discount</th>
-                        <th>Total</th>
-                        <th>Payment</th>
-                        <th>Status</th>
-                        <th class="text-end">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if sales.items %}
-                    {% for sale in sales.items %}
-                    <tr>
-                        <td>{{ sale.id }}</td>
-                        <td>{{ sale.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                        <td>{{ sale.user.username }}</td>
-                        <td>{{ sale.sale_items|length }}</td>
-                        <td>{{ format_currency(sale.subtotal) }}</td>
-                        <td>{{ format_currency(sale.tax_amount) }}</td>
-                        <td>{{ format_currency(sale.discount) }}</td>
-                        <td>{{ format_currency(sale.grand_total) }}</td>
-                        <td>
-                            {% if sale.payments|length > 1 %}
-                            <span class="badge bg-primary text-white" title="Split Payment">Split</span>
-                            {% else %}
-                            {% set method = sale.payment_method %}
-                            {# Handle both Enum and String for backward compatibility #}
-                            {% set method_str = method.value if method.value is defined else method|string %}
-
-                            {# Fallback: If method_str is empty but we have payments, use the first payment's method #}
-                            {% if not method_str and sale.payments %}
-                            {% set p_method = sale.payments[0].payment_method %}
-                            {% set method_str = p_method.value if p_method.value is defined else p_method|string %}
-                            {% endif %}
-
-                            {% if method_str == 'Cash' or method_str == 'CASH' %}
-                            <span class="badge bg-secondary text-white">Cash</span>
-                            {% elif method_str == 'Card' or method_str == 'CARD' %}
-                            <span class="badge bg-info text-white">Card</span>
-                            {% elif method_str in ['E-Dahab', 'E_DAHAB'] %}
-                            <span class="badge text-white" style="background-color: #f59e0b;">E-Dahab</span>
-                            {% elif method_str in ['Zaad', 'ZAAD'] %}
-                            <span class="badge text-white" style="background-color: #10b981;">Zaad</span>
-                            {% elif method_str in ['Store Credit', 'STORE_CREDIT'] or not method_str %}
-                            <span class="badge text-white" style="background-color: #6f42c1;">Credit</span>
-                            {% elif method_str in ['Mobile Money', 'MOBILE_MONEY'] %}
-                            <span class="badge bg-success text-white">Mobile</span>
-                            {% else %}
-                            <span class="badge bg-dark text-white">{{ method_str }}</span>
-                            {% endif %}
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span
-                                class="badge bg-{{ 'success' if sale.sale_status == SaleStatus.COMPLETED else 'warning' }}">
-                                {{ sale.sale_status.value }}
-                            </span>
-                        </td>
-                        <td class="text-end">
-                            <div class="btn-group" role="group">
-                                <a href="{{ url_for('sales.detail', sale_id=sale.id) }}"
-                                    class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-eye"></i> View
-                                </a>
-                                <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}"
-                                    class="btn btn-sm btn-outline-success">
-                                    <i class="bi bi-printer"></i> Print
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
+<div class="panel">
+    <div class="panel-header">
+        <h5 class="panel-title"><i class="fas fa-list"></i> Transactions</h5>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Cashier</th>
+                <th style="text-align:center;">Items</th>
+                <th style="text-align:right;">Subtotal</th>
+                <th style="text-align:right;">Tax</th>
+                <th style="text-align:right;">Total</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th style="text-align:right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if sales.items %}
+            {% for sale in sales.items %}
+            <tr>
+                <td style="font-weight:600;color:var(--gray-900);">#{{ sale.id }}</td>
+                <td style="color:var(--gray-500);white-space:nowrap;">{{ sale.created_at.strftime('%b %d, %Y %H:%M') }}
+                </td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:0.375rem;">
+                        <div class="avatar-sm">{{ sale.user.username[0] | upper }}</div>
+                        <span>{{ sale.user.username }}</span>
+                    </div>
+                </td>
+                <td style="text-align:center;">{{ sale.sale_items | length }}</td>
+                <td style="text-align:right;">{{ format_currency(sale.subtotal) }}</td>
+                <td style="text-align:right;color:var(--gray-500);">{{ format_currency(sale.tax_amount) }}</td>
+                <td style="text-align:right;font-weight:700;">{{ format_currency(sale.grand_total) }}</td>
+                <td>
+                    {% if sale.payments | length > 1 %}
+                    <span class="pill pill-blue">Split</span>
                     {% else %}
-                    <tr>
-                        <td colspan="11" class="text-center py-4 text-muted">No sales found for this period.</td>
-                    </tr>
+                    {% set method = sale.payment_method %}
+                    {% set ms = method.value if method.value is defined else method | string %}
+                    {% if not ms and sale.payments %}{% set ms = sale.payments[0].payment_method.value %}{% endif %}
+                    {% if ms in ['Cash','CASH'] %}<span class="pill pill-gray">Cash</span>
+                    {% elif ms in ['Card','CARD'] %}<span class="pill pill-blue">Card</span>
+                    {% elif ms in ['E-Dahab','E_DAHAB'] %}<span class="pill pill-amber">E-Dahab</span>
+                    {% elif ms in ['Zaad','ZAAD'] %}<span class="pill pill-teal">Zaad</span>
+                    {% elif ms in ['Store Credit','STORE_CREDIT'] %}<span class="pill pill-purple">Credit</span>
+                    {% elif ms in ['Mobile Money','MOBILE_MONEY'] %}<span class="pill pill-green">Mobile</span>
+                    {% else %}<span class="pill pill-gray">{{ ms }}</span>
                     {% endif %}
-                </tbody>
-            </table>
-        </div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% set s = sale.sale_status.value if sale.sale_status else 'Completed' %}
+                    {% if s == 'Completed' %}<span class="pill pill-green">{{ s }}</span>
+                    {% elif s in ['Voided','VOIDED'] %}<span class="pill pill-red">Voided</span>
+                    {% elif s in ['Refunded','REFUNDED'] %}<span class="pill pill-purple">Refunded</span>
+                    {% elif s in ['Partially Returned','PARTIALLY_RETURNED'] %}<span class="pill pill-amber">Part.
+                        Returned</span>
+                    {% else %}<span class="pill pill-gray">{{ s }}</span>
+                    {% endif %}
+                </td>
+                <td style="text-align:right;">
+                    <div style="display:flex;gap:0.25rem;justify-content:flex-end;">
+                        <a href="{{ url_for('sales.detail', sale_id=sale.id) }}" class="act-btn" title="View"><i
+                                class="fas fa-eye"></i></a>
+                        <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}" class="act-btn" target="_blank"
+                            title="Print"><i class="fas fa-print"></i></a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="10" style="text-align:center;padding:2.5rem;color:var(--gray-400);">No sales found for this
+                    period.</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
 
-        <!-- Pagination -->
-        {% if sales.pages > 1 %}
-        <nav aria-label="Page navigation">
-            <ul class="pagination justify-content-center">
-                {% if sales.has_prev %}
-                <li class="page-item">
-                    <a class="page-link"
-                        href="{{ url_for('sales.index', page=sales.prev_num, start_date=start_date, end_date=end_date, user_id=user_id) }}">
-                        Previous
-                    </a>
-                </li>
-                {% endif %}
-
-                {% for page_num in sales.iter_pages() %}
-                {% if page_num %}
-                {% if page_num != sales.page %}
-                <li class="page-item">
-                    <a class="page-link"
-                        href="{{ url_for('sales.index', page=page_num, start_date=start_date, end_date=end_date, user_id=user_id) }}">
-                        {{ page_num }}
-                    </a>
-                </li>
-                {% else %}
-                <li class="page-item active">
-                    <span class="page-link">{{ page_num }}</span>
-                </li>
-                {% endif %}
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">...</span>
-                </li>
-                {% endif %}
-                {% endfor %}
-
-                {% if sales.has_next %}
-                <li class="page-item">
-                    <a class="page-link"
-                        href="{{ url_for('sales.index', page=sales.next_num, start_date=start_date, end_date=end_date, user_id=user_id) }}">
-                        Next
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
+    {% if sales.pages > 1 %}
+    <div class="pagination-bar">
+        {% if sales.has_prev %}
+        <a class="pg-btn"
+            href="{{ url_for('sales.index', page=sales.prev_num, start_date=start_date, end_date=end_date, user_id=user_id) }}"><i
+                class="fas fa-chevron-left"></i></a>
+        {% endif %}
+        {% for page_num in sales.iter_pages() %}
+        {% if page_num %}
+        <a class="pg-btn {% if page_num == sales.page %}active{% endif %}"
+            href="{{ url_for('sales.index', page=page_num, start_date=start_date, end_date=end_date, user_id=user_id) }}">{{
+            page_num }}</a>
+        {% else %}
+        <span class="pg-info">…</span>
+        {% endif %}
+        {% endfor %}
+        {% if sales.has_next %}
+        <a class="pg-btn"
+            href="{{ url_for('sales.index', page=sales.next_num, start_date=start_date, end_date=end_date, user_id=user_id) }}"><i
+                class="fas fa-chevron-right"></i></a>
         {% endif %}
     </div>
+    {% endif %}
 </div>
 {% endblock %}
 
@@ -212,16 +408,8 @@
 <script>
     function exportData(type) {
         const searchParams = new URLSearchParams(window.location.search);
-        let baseUrl = '';
-
-        if (type === 'pdf') {
-            baseUrl = "{{ url_for('sales.recent_pdf') }}";
-        } else if (type === 'excel') {
-            baseUrl = "{{ url_for('sales.export_excel') }}";
-        }
-
-        // redirect to export url with current filters
-        window.location.href = `${baseUrl}?${searchParams.toString()}`;
+        const baseUrl = type === 'pdf' ? "{{ url_for('sales.recent_pdf') }}" : "{{ url_for('sales.export_excel') }}";
+        window.location.href = baseUrl + '?' + searchParams.toString();
     }
 </script>
 {% endblock %}

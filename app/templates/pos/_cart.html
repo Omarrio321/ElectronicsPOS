@@ -1,40 +1,42 @@
 {# Cart Sidebar Partial - templates/pos/_cart.html #}
 <div class="pos-cart" role="region" aria-label="Cart">
+
     <div class="cart-header">
         <div>
-            <h5 class="mb-0"><i class="fas fa-shopping-cart me-2"></i> Current Sale</h5>
-            <small class="text-muted">Tap items to add — quantities adjustable</small>
+            <h5><i class="fas fa-shopping-cart me-2" style="color:var(--blue-600);font-size:0.875rem;"></i>Current Sale</h5>
+            <small>Tap items to add &mdash; quantities adjustable</small>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
             {# Held Sales Button #}
-            <button type="button" class="btn btn-outline-secondary btn-sm position-relative"
+            <button type="button" class="btn btn-light btn-sm position-relative" style="border:var(--border);width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;"
                 onclick="showHeldSalesModal()" title="View Held Sales">
-                <i class="fas fa-pause-circle"></i>
+                <i class="fas fa-pause-circle" style="font-size:0.875rem;color:var(--gray-500);"></i>
                 <span id="heldSalesBadge"
                     class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark"
-                    style="display: none; font-size: 0.65rem;">0</span>
+                    style="display:none;font-size:0.6rem;">0</span>
             </button>
-            <span class="badge bg-secondary" id="itemCount">0 Items</span>
+            <span style="background:var(--blue-50);color:var(--blue-600);border-radius:20px;padding:0.125rem 0.5rem;font-size:0.6875rem;font-weight:700;" id="itemCount">0 Items</span>
         </div>
     </div>
 
-    <div class="px-3 py-2 border-bottom">
-        <div class="btn-group w-100" role="group">
+    {# Sale Type Toggle #}
+    <div style="padding:0.5rem 1rem;border-bottom:var(--border);background:#fff;">
+        <div class="btn-group w-100" role="group" style="gap:4px;">
             <input type="radio" class="btn-check" name="saleType" id="saleTypeRetail" value="RETAIL" checked
                 onchange="updateSaleType()">
-            <label class="btn btn-outline-primary btn-sm" for="saleTypeRetail">Retail</label>
+            <label class="btn btn-outline-primary btn-sm" for="saleTypeRetail" style="flex:1;border-radius:6px!important;">Retail</label>
 
             <input type="radio" class="btn-check" name="saleType" id="saleTypeWholesale" value="WHOLESALE"
                 onchange="updateSaleType()">
-            <label class="btn btn-outline-primary btn-sm" for="saleTypeWholesale">Wholesale</label>
+            <label class="btn btn-outline-primary btn-sm" for="saleTypeWholesale" style="flex:1;border-radius:6px!important;">Wholesale</label>
         </div>
     </div>
 
     <div id="cartList" class="cart-items">
-        <div class="text-center text-muted py-5">
-            <i class="fas fa-basket-shopping fa-3x mb-3 opacity-25"></i>
-            <p class="mb-1">Cart is empty</p>
-            <p class="small mb-0">Click products to add them</p>
+        <div style="text-align:center;padding:3rem 1.5rem;color:var(--gray-400);">
+            <i class="fas fa-shopping-basket" style="font-size:2.5rem;opacity:0.2;display:block;margin-bottom:0.75rem;"></i>
+            <div style="font-size:0.875rem;font-weight:500;margin-bottom:0.25rem;">Cart is empty</div>
+            <div style="font-size:0.75rem;">Click products to add them</div>
         </div>
     </div>
 
@@ -45,15 +47,12 @@
             <div class="row total"><span>Total</span><span id="totalDisplay">$0.00</span></div>
         </div>
 
-        {# Action Buttons #}
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-warning flex-shrink-0" onclick="holdCurrentSale()"
-                title="Hold this sale for later">
-                <i class="fas fa-pause-circle"></i>
+        <div style="display:flex;gap:0.5rem;">
+            <button type="button" class="btn btn-light" style="border:var(--border);flex-shrink:0;width:42px;height:42px;padding:0;display:flex;align-items:center;justify-content:center;" onclick="holdCurrentSale()" title="Hold sale for later">
+                <i class="fas fa-pause-circle" style="color:var(--amber-600);font-size:1rem;"></i>
             </button>
-            <button type="button" class="btn btn-primary flex-grow-1 py-3 fw-bold fs-5" id="checkoutBtn"
-                onclick="openCheckoutModal()">
-                <i class="fas fa-cash-register me-2"></i>Proceed to Checkout
+            <button type="button" class="btn btn-primary" style="flex:1;font-size:0.9375rem;font-weight:700;height:42px;" id="checkoutBtn" onclick="openCheckoutModal()">
+                <i class="fas fa-cash-register me-2" style="font-size:0.8125rem;"></i>Checkout
             </button>
         </div>
     </div>

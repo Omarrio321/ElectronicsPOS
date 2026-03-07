@@ -125,6 +125,11 @@ The returns blueprint registers under `/sales` prefix (shares URL space with sal
 
 6. **app/__init__.py imports**: All Flask helpers used in error handlers (`flash`, `redirect`, `jsonify`, `render_template`, `request`) must be imported at the top of the file.
 
+7. **Jinja2 in `style=""` or `<script>` — Linter false positives**: VS Code's CSS and JS validators parse inline `style=""` attributes and `<script>` blocks as pure CSS/JS, so `{{ variable }}` inside them triggers errors. **Never** put Jinja2 expressions inside `style=""` attributes or `<script>` tags. Instead:
+   - For conditional inline styles: use `data-*` attributes and apply via JS (`el.style.color = el.dataset.value`)
+   - For JS variables from server: add `data-*` attribute to an HTML element (e.g., `data-sale-id="{{ sale.id }}"`) and read it with `el.dataset.saleId`
+   - Examples in codebase: `data-negative` (payment colors), `data-pct` (stock bars), `data-return-id` (return reversal), `data-color` (expense category pills)
+
 ## Known Issues
 
 **SECURITY**: POS checkout accepts prices from frontend without server-side verification (`app/routes/pos.py` lines 86, 122). Backend must verify prices from database.

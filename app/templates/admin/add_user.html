@@ -1,100 +1,108 @@
 {% extends "base.html" %}
 
-{% block title %}Add New User - {{ company_name }}{% endblock %}
+{% block title %}Add User - {{ company_name }}{% endblock %}
+
+{% block head %}
+<style>
+    .form-page { max-width:560px; margin:0 auto; }
+    .page-header { display:flex; align-items:center; gap:0.75rem; margin-bottom:1.5rem; }
+    .page-header h1 { font-size:1.375rem; font-weight:700; color:var(--gray-900); margin:0; letter-spacing:-0.01em; }
+
+    .panel { background:#fff; border:var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; }
+    .panel-header { padding:0.875rem 1.25rem; border-bottom:var(--border); }
+    .panel-title { font-size:0.9375rem; font-weight:600; color:var(--gray-900); margin:0; display:flex; align-items:center; gap:0.5rem; }
+    .panel-title i { color:var(--blue-600); }
+    .panel-body { padding:1.5rem 1.25rem; }
+
+    .form-group { margin-bottom:1.125rem; }
+    .form-label { font-size:0.8125rem; font-weight:600; color:var(--gray-700); display:block; margin-bottom:0.375rem; }
+    .form-control, .form-select {
+        width:100%; border:var(--border); border-radius:6px; padding:0.4375rem 0.75rem;
+        font-size:0.875rem; color:var(--gray-900); background:#fff; outline:none;
+        transition:border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color:var(--blue-500); box-shadow:0 0 0 3px rgba(59,130,246,0.12);
+    }
+    .form-hint { font-size:0.75rem; color:var(--gray-400); margin-top:0.25rem; }
+    .field-error { font-size:0.75rem; color:var(--red-600); margin-top:0.25rem; }
+
+    .toggle-row { display:flex; align-items:center; justify-content:space-between; padding:0.875rem 1rem; background:var(--gray-50); border:var(--border); border-radius:8px; }
+    .toggle-label { font-size:0.875rem; font-weight:600; color:var(--gray-700); }
+    .toggle-sub { font-size:0.75rem; color:var(--gray-400); margin-top:1px; }
+
+    .form-footer { display:flex; align-items:center; justify-content:space-between; padding-top:1.25rem; border-top:var(--border); margin-top:0.25rem; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-6 col-md-8">
-            <div class="card shadow-sm border-0 rounded-4">
-                <div class="card-header bg-white py-3 border-bottom">
-                    <h4 class="card-title mb-0 fw-bold text-dark">
-                        <i class="bi bi-person-plus text-primary me-2"></i> Add New User
-                    </h4>
+<div class="form-page">
+    <div class="page-header">
+        <a href="{{ url_for('admin.users') }}" style="color:var(--gray-400);text-decoration:none;font-size:0.8125rem;display:flex;align-items:center;gap:0.25rem;">
+            <i class="fas fa-chevron-left" style="font-size:0.625rem;"></i> Users
+        </a>
+        <h1 style="font-size:1.375rem;">Add User</h1>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="fas fa-user-plus"></i> New Account</h5>
+        </div>
+        <div class="panel-body">
+            <form method="POST" action="{{ url_for('admin.add_user') }}" novalidate>
+                {{ form.hidden_tag() }}
+
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    {{ form.username(class="form-control", placeholder="Enter username") }}
+                    {% if form.username.errors %}
+                    <div class="field-error">{{ form.username.errors[0] }}</div>
+                    {% endif %}
                 </div>
-                <div class="card-body p-4">
-                    <form method="POST" action="{{ url_for('admin.add_user') }}" novalidate>
-                        {{ form.hidden_tag() }}
 
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Username</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i
-                                        class="bi bi-person text-muted"></i></span>
-                                {{ form.username(class="form-control border-start-0", placeholder="Enter username") }}
-                            </div>
-                            {% if form.username.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.username.errors %}{{ error }}{% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Email Address</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i
-                                        class="bi bi-envelope text-muted"></i></span>
-                                {{ form.email(class="form-control border-start-0", placeholder="Enter email") }}
-                            </div>
-                            {% if form.email.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.email.errors %}{{ error }}{% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Password</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i
-                                        class="bi bi-shield-lock text-muted"></i></span>
-                                {{ form.password(class="form-control border-start-0", placeholder="Minimum 6
-                                characters") }}
-                            </div>
-                            {% if form.password.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.password.errors %}{{ error }}{% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Access Level / Role</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i
-                                        class="bi bi-shield-shaded text-muted"></i></span>
-                                {{ form.role_id(class="form-select border-start-0") }}
-                            </div>
-                            {% if form.role_id.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.role_id.errors %}{{ error }}{% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-4">
-                            <div class="form-check form-switch card p-3 bg-light border-0">
-                                {{ form.is_active(class="form-check-input ms-0", checked=True) }}
-                                <label class="form-check-label ms-2 fw-semibold" for="{{ form.is_active.id }}">
-                                    Account Status: Active
-                                </label>
-                            </div>
-                        </div>
-
-                        <hr class="my-4">
-
-                        <div class="d-flex justify-content-between align-items-center">
-                            <a href="{{ url_for('admin.users') }}" class="btn btn-link text-decoration-none text-muted">
-                                <i class="bi bi-arrow-left"></i> Back to List
-                            </a>
-                            <button type="submit" class="btn btn-primary px-5 py-2 fw-bold rounded-3 shadow-sm">
-                                <i class="bi bi-person-plus-fill me-1"></i> Create User
-                            </button>
-                        </div>
-                    </form>
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    {{ form.email(class="form-control", placeholder="user@example.com") }}
+                    {% if form.email.errors %}
+                    <div class="field-error">{{ form.email.errors[0] }}</div>
+                    {% endif %}
                 </div>
-            </div>
+
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    {{ form.password(class="form-control", placeholder="Minimum 6 characters") }}
+                    {% if form.password.errors %}
+                    <div class="field-error">{{ form.password.errors[0] }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Role / Access Level</label>
+                    {{ form.role_id(class="form-select") }}
+                    {% if form.role_id.errors %}
+                    <div class="field-error">{{ form.role_id.errors[0] }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <div class="toggle-row">
+                        <div>
+                            <div class="toggle-label">Account Active</div>
+                            <div class="toggle-sub">Active users can log into the system</div>
+                        </div>
+                        {{ form.is_active(class="form-check-input", style="margin:0;width:18px;height:18px;cursor:pointer;") }}
+                    </div>
+                </div>
+
+                <div class="form-footer">
+                    <a href="{{ url_for('admin.users') }}" class="btn btn-light" style="border:var(--border);">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-user-plus" style="font-size:0.75rem;"></i> Create User
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

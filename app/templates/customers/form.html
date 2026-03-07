@@ -2,130 +2,160 @@
 
 {% block title %}{{ 'Edit' if customer else 'Add' }} Customer - {{ company_name }}{% endblock %}
 
+{% block head %}
+<style>
+    .page-header { display:flex; align-items:center; gap:0.75rem; margin-bottom:1.5rem; }
+    .page-header h1 { font-size:1.375rem; font-weight:700; color:var(--gray-900); margin:0; letter-spacing:-0.01em; }
+    .breadcrumb-nav { font-size:0.8125rem; color:var(--gray-400); display:flex; align-items:center; gap:0.375rem; }
+    .breadcrumb-nav a { color:var(--blue-600); text-decoration:none; }
+    .breadcrumb-nav a:hover { text-decoration:underline; }
+
+    .form-grid { display:grid; grid-template-columns:1fr 280px; gap:1rem; align-items:start; }
+    @media(max-width:860px){ .form-grid { grid-template-columns:1fr; } }
+
+    .panel { background:#fff; border:var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; }
+    .panel-header { padding:0.875rem 1.25rem; border-bottom:var(--border); }
+    .panel-title { font-size:0.875rem; font-weight:600; color:var(--gray-900); margin:0; display:flex; align-items:center; gap:0.5rem; }
+    .panel-title i { color:var(--blue-600); }
+    .panel-body { padding:1.25rem; }
+
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:0.875rem; margin-bottom:0.875rem; }
+    @media(max-width:600px){ .field-row { grid-template-columns:1fr; } }
+    .form-group { margin-bottom:0.875rem; }
+    .form-label { font-size:0.8125rem; font-weight:600; color:var(--gray-700); display:block; margin-bottom:0.3rem; }
+    .form-control, .form-select {
+        width:100%; border:var(--border); border-radius:6px; padding:0.4375rem 0.75rem;
+        font-size:0.875rem; color:var(--gray-900); background:#fff; outline:none;
+        transition:border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-control:focus, .form-select:focus { border-color:var(--blue-500); box-shadow:0 0 0 3px rgba(59,130,246,0.12); }
+    textarea.form-control { resize:vertical; min-height:64px; }
+
+    .req { color:var(--red-500); }
+    .form-hint { font-size:0.75rem; color:var(--gray-400); margin-top:0.25rem; }
+    .form-footer { display:flex; align-items:center; justify-content:space-between; padding-top:1.125rem; border-top:var(--border); margin-top:0.5rem; }
+
+    .stat-row { display:flex; justify-content:space-between; padding:0.5rem 0; border-bottom:var(--border); font-size:0.8125rem; }
+    .stat-row:last-child { border-bottom:none; }
+    .stat-row span { color:var(--gray-500); }
+
+    .tip-item { display:flex; gap:0.375rem; margin-bottom:0.625rem; font-size:0.8125rem; color:var(--gray-600); }
+    .tip-item:last-child { margin-bottom:0; }
+    .tip-item i { color:var(--blue-500); margin-top:2px; flex-shrink:0; font-size:0.6875rem; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url_for('customers.index') }}">Customers</a></li>
-                <li class="breadcrumb-item active">{{ 'Edit' if customer else 'Add New' }}</li>
-            </ol>
-        </nav>
-        <h1>
-            <i class="fas fa-{{ 'user-edit' if customer else 'user-plus' }} me-2"></i>
-            {{ 'Edit Customer' if customer else 'Add New Customer' }}
-        </h1>
+<div class="page-header">
+    <div class="breadcrumb-nav">
+        <a href="{{ url_for('customers.index') }}">Customers</a>
+        <i class="fas fa-chevron-right" style="font-size:0.5rem;"></i>
+        <span>{{ 'Edit' if customer else 'New Customer' }}</span>
     </div>
 </div>
+<h1 style="font-size:1.375rem;font-weight:700;color:var(--gray-900);margin:0 0 1.25rem;letter-spacing:-0.01em;">
+    <i class="fas fa-{{ 'user-edit' if customer else 'user-plus' }} me-2" style="color:var(--blue-600);font-size:1.1rem;"></i>
+    {{ 'Edit Customer' if customer else 'Add New Customer' }}
+</h1>
 
-<div class="row">
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-body">
-                <form method="POST" id="customerForm">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="form-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="fas fa-user"></i> Customer Information</h5>
+        </div>
+        <div class="panel-body">
+            <form method="POST" id="customerForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                    <!-- Full Name -->
-                    <div class="mb-3">
-                        <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="full_name" name="full_name"
-                            value="{{ customer.full_name if customer else '' }}" required
-                            placeholder="Enter customer's full name">
+                <div class="form-group">
+                    <label class="form-label">Full Name <span class="req">*</span></label>
+                    <input type="text" class="form-control" name="full_name"
+                        value="{{ customer.full_name if customer else '' }}" required
+                        placeholder="Customer's full name">
+                </div>
+
+                <div class="field-row">
+                    <div class="form-group">
+                        <label class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" name="phone"
+                            value="{{ customer.phone if customer else '' }}"
+                            placeholder="+252 61 234 5678">
+                        <div class="form-hint">Must be unique if provided</div>
                     </div>
-
-                    <div class="row">
-                        <!-- Phone -->
-                        <div class="col-md-6 mb-3">
-                            <label for="phone" class="form-label">Phone Number</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                                <input type="tel" class="form-control" id="phone" name="phone"
-                                    value="{{ customer.phone if customer else '' }}"
-                                    placeholder="e.g., +252 61 234 5678">
-                            </div>
-                            <div class="form-text">Must be unique if provided</div>
-                        </div>
-
-                        <!-- Email -->
-                        <div class="col-md-6 mb-3">
-                            <label for="email" class="form-label">Email Address</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                                <input type="email" class="form-control" id="email" name="email"
-                                    value="{{ customer.email if customer else '' }}" placeholder="customer@example.com">
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-control" name="email"
+                            value="{{ customer.email if customer else '' }}"
+                            placeholder="customer@example.com">
                     </div>
+                </div>
 
-                    <!-- Address -->
-                    <div class="mb-3">
-                        <label for="address" class="form-label">Address</label>
-                        <textarea class="form-control" id="address" name="address" rows="2"
-                            placeholder="Street address, city, etc.">{{ customer.address if customer else '' }}</textarea>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">Address</label>
+                    <textarea class="form-control" name="address" rows="2"
+                        placeholder="Street address, city, etc.">{{ customer.address if customer else '' }}</textarea>
+                </div>
 
-                    <!-- Notes -->
-                    <div class="mb-3">
-                        <label for="notes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="2"
-                            placeholder="Any additional notes about this customer...">{{ customer.notes if customer else '' }}</textarea>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea class="form-control" name="notes" rows="2"
+                        placeholder="Special preferences or additional notes...">{{ customer.notes if customer else '' }}</textarea>
+                </div>
 
-                    {% if customer %}
-                    <!-- Status (only for edit) -->
-                    <div class="mb-3">
-                        <label for="status" class="form-label">Status</label>
-                        <select class="form-select" id="status" name="status">
-                            <option value="Active" {% if customer.status.value=='Active' %}selected{% endif %}>Active
-                            </option>
-                            <option value="Inactive" {% if customer.status.value=='Inactive' %}selected{% endif %}>
-                                Inactive</option>
-                        </select>
-                    </div>
-                    {% endif %}
+                {% if customer %}
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" name="status">
+                        <option value="Active" {% if customer.status.value == 'Active' %}selected{% endif %}>Active</option>
+                        <option value="Inactive" {% if customer.status.value == 'Inactive' %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+                {% endif %}
 
-                    <hr>
-
-                    <div class="d-flex justify-content-between">
-                        <a href="{{ url_for('customers.index') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-arrow-left me-1"></i> Cancel
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i> {{ 'Update' if customer else 'Create' }} Customer
-                        </button>
-                    </div>
-                </form>
-            </div>
+                <div class="form-footer">
+                    <a href="{{ url_for('customers.index') }}" class="btn btn-light" style="border:var(--border);">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-{{ 'save' if customer else 'user-plus' }}" style="font-size:0.75rem;"></i>
+                        {{ 'Update' if customer else 'Create' }} Customer
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <div class="col-lg-4">
-        <div class="card bg-light">
-            <div class="card-body">
-                <h6 class="card-title"><i class="fas fa-info-circle me-1"></i> Tips</h6>
-                <ul class="small mb-0 ps-3">
-                    <li>Full name is required</li>
-                    <li>Phone numbers must be unique</li>
-                    <li>Email is optional but useful for receipts</li>
-                    <li>Notes can store special preferences</li>
-                </ul>
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="panel">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fas fa-info-circle"></i> Tips</h5>
+            </div>
+            <div class="panel-body">
+                <div class="tip-item"><i class="fas fa-check"></i><span>Full name is required</span></div>
+                <div class="tip-item"><i class="fas fa-check"></i><span>Phone numbers must be unique</span></div>
+                <div class="tip-item"><i class="fas fa-check"></i><span>Email is optional but useful for receipts</span></div>
+                <div class="tip-item"><i class="fas fa-check"></i><span>Notes can store special preferences</span></div>
             </div>
         </div>
 
         {% if customer %}
-        <div class="card mt-3 border-warning">
-            <div class="card-header bg-warning text-dark">
-                <i class="fas fa-chart-line me-1"></i> Customer Stats
+        <div class="panel">
+            <div class="panel-header">
+                <h5 class="panel-title" style="color:var(--amber-600);"><i class="fas fa-chart-line" style="color:var(--amber-600);"></i> Account Summary</h5>
             </div>
-            <div class="card-body">
-                <p class="mb-1"><strong>Outstanding:</strong>
-                    <span
-                        class="{% if customer.get_outstanding_balance() > 0 %}text-danger{% else %}text-success{% endif %}">
+            <div class="panel-body" style="padding:0.875rem 1.25rem;">
+                <div class="stat-row">
+                    <span>Outstanding</span>
+                    <strong class="{{ 'text-danger' if customer.get_outstanding_balance() > 0 else '' }}" style="color:var(--{{ 'red' if customer.get_outstanding_balance() > 0 else 'green' }}-600);">
                         {{ format_currency(customer.get_outstanding_balance()) }}
-                    </span>
-                </p>
-                <p class="mb-1"><strong>Credits:</strong> {{ format_currency(customer.credit_balance) }}</p>
-                <p class="mb-0"><strong>Member since:</strong> {{ customer.created_at.strftime('%b %d, %Y') }}</p>
+                    </strong>
+                </div>
+                <div class="stat-row">
+                    <span>Credits</span>
+                    <strong>{{ format_currency(customer.credit_balance) }}</strong>
+                </div>
+                <div class="stat-row">
+                    <span>Member since</span>
+                    <strong>{{ customer.created_at.strftime('%b %d, %Y') }}</strong>
+                </div>
             </div>
         </div>
         {% endif %}

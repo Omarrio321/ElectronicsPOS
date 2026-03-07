@@ -1,132 +1,142 @@
 {% extends "base.html" %}
 
-{% block title %}System Audit Logs - {{ company_name }}{% endblock %}
+{% block title %}Audit Logs - {{ company_name }}{% endblock %}
+
+{% block head %}
+<style>
+    .page-header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.5rem; }
+    .page-header h1 { font-size:1.375rem; font-weight:700; color:var(--gray-900); margin:0; letter-spacing:-0.01em; }
+    .page-header .sub { font-size:0.8125rem; color:var(--gray-500); margin-top:2px; }
+
+    .panel { background:#fff; border:var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; }
+    .panel-header { padding:0.875rem 1.25rem; border-bottom:var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .panel-title { font-size:0.875rem; font-weight:600; color:var(--gray-900); margin:0; display:flex; align-items:center; gap:0.5rem; }
+    .panel-title i { color:var(--blue-600); }
+
+    .action-pill { display:inline-block; padding:0.125rem 0.5rem; border-radius:20px; font-size:0.6875rem; font-weight:700; letter-spacing:0.03em; }
+    .pill-create { background:#F0FDF4; color:#15803D; }
+    .pill-update { background:#EFF6FF; color:#1D4ED8; }
+    .pill-delete { background:#FEF2F2; color:#DC2626; }
+    .pill-login  { background:#F5F3FF; color:#7C3AED; }
+    .pill-other  { background:var(--gray-100); color:var(--gray-600); }
+
+    .pagination-bar { display:flex; align-items:center; justify-content:center; gap:0.25rem; padding:0.875rem 1.25rem; border-top:var(--border); }
+    .pg-btn { width:30px; height:30px; border:var(--border); background:#fff; border-radius:5px; color:var(--gray-600); font-size:0.75rem; display:flex; align-items:center; justify-content:center; text-decoration:none; transition:all 0.12s; }
+    .pg-btn:hover { background:var(--gray-100); color:var(--gray-900); }
+    .pg-btn.active { background:var(--blue-600); border-color:var(--blue-600); color:#fff; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="fw-bold"><i class="bi bi-journal-text me-2"></i> System Audit Logs</h1>
-            <p class="text-muted">Track all administrative and system actions for security and accountability.</p>
-        </div>
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-history me-2" style="color:var(--blue-600);font-size:1.1rem;"></i>Audit Logs</h1>
+        <div class="sub">Track all administrative and system actions for security and accountability</div>
     </div>
+</div>
 
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="ps-4">Timestamp</th>
-                            <th>User</th>
-                            <th>Action</th>
-                            <th>Target</th>
-                            <th>Details</th>
-                            <th class="pe-4 text-end">IP Address</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if logs.items %}
-                        {% for log in logs.items %}
-                        <tr>
-                            <td class="ps-4">
-                                <span class="text-nowrap">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
-                            </td>
-                            <td>
-                                {% if log.user %}
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar-sm bg-primary-soft rounded-circle me-2 d-flex align-items-center justify-content-center"
-                                        style="width: 32px; height: 32px; background: rgba(13, 110, 253, 0.1);">
-                                        <i class="bi bi-person text-primary"></i>
-                                    </div>
-                                    <span class="fw-medium">{{ log.user.username }}</span>
-                                </div>
-                                {% else %}
-                                <span class="text-muted">System</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% set badge_class = 'bg-secondary' %}
-                                {% if 'CREATE' in log.action %}{% set badge_class = 'bg-success' %}
-                                {% elif 'UPDATE' in log.action %}{% set badge_class = 'bg-info text-dark' %}
-                                {% elif 'DELETE' in log.action %}{% set badge_class = 'bg-danger' %}
-                                {% elif 'LOGIN' in log.action %}{% set badge_class = 'bg-primary' %}
-                                {% endif %}
-                                <span class="badge {{ badge_class }}">{{ log.action }}</span>
-                            </td>
-                            <td>
-                                {% if log.target_type %}
-                                <span class="text-muted small text-uppercase fw-bold">{{ log.target_type }}</span>
-                                {% if log.target_id %}
-                                <span class="badge bg-light text-dark border ms-1">ID: {{ log.target_id }}</span>
-                                {% endif %}
-                                {% else %}
-                                -
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="text-muted small"
-                                    style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                                    title="{{ log.details | tojson if log.details else '' }}">
-                                    {% if log.details %}
-                                    {% if log.details is mapping %}
-                                    {% for k, v in log.details.items() %}
-                                    <strong>{{ k }}:</strong> {{ v }}{% if not loop.last %}, {% endif %}
-                                    {% endfor %}
-                                    {% else %}
-                                    {{ log.details }}
-                                    {% endif %}
-                                    {% else %}
-                                    <span class="fst-italic">No details</span>
-                                    {% endif %}
-                                </div>
-                            </td>
-                            <td class="pe-4 text-end">
-                                <code class="text-muted small">{{ log.ip_address or 'Unknown' }}</code><br>
-                                <small class="text-muted d-block"
-                                    style="font-size: 10px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; display: inline-block;"
-                                    title="{{ log.user_agent }}">{{ log.user_agent }}</small>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        {% else %}
-                        <tr>
-                            <td colspan="6" class="text-center py-5">
-                                <i class="bi bi-journal-x display-4 text-muted d-block mb-3"></i>
-                                <h5 class="text-muted">No audit logs found.</h5>
-                            </td>
-                        </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        {% if logs.pages > 1 %}
-        <div class="card-footer bg-white py-3">
-            <nav aria-label="Logs pagination">
-                <ul class="pagination pagination-sm mb-0 justify-content-center">
-                    <li class="page-item {{ 'disabled' if not logs.has_prev }}">
-                        <a class="page-link"
-                            href="{{ url_for('admin.logs', page=logs.prev_num) if logs.has_prev else '#' }}">Previous</a>
-                    </li>
-                    {% for page in logs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                    {% if page %}
-                    <li class="page-item {{ 'active' if page == logs.page }}">
-                        <a class="page-link" href="{{ url_for('admin.logs', page=page) }}">{{ page }}</a>
-                    </li>
+<div class="panel">
+    <div class="panel-header">
+        <h5 class="panel-title"><i class="fas fa-list"></i> Activity Log</h5>
+        <span style="font-size:0.75rem;color:var(--gray-400);">{{ logs.total }} entries</span>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Action</th>
+                <th>Target</th>
+                <th>Details</th>
+                <th>IP Address</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs.items %}
+            <tr>
+                <td style="white-space:nowrap;color:var(--gray-500);font-size:0.8125rem;">
+                    {{ log.created_at.strftime('%d %b %Y') }}
+                    <div style="font-size:0.6875rem;color:var(--gray-400);">{{ log.created_at.strftime('%H:%M:%S') }}</div>
+                </td>
+                <td>
+                    {% if log.user %}
+                    <div style="display:flex;align-items:center;gap:0.375rem;">
+                        <div style="width:26px;height:26px;border-radius:6px;background:var(--blue-50);color:var(--blue-600);font-weight:700;font-size:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            {{ log.user.username[0] | upper }}
+                        </div>
+                        <span style="font-weight:600;font-size:0.8125rem;">{{ log.user.username }}</span>
+                    </div>
                     {% else %}
-                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    <span style="color:var(--gray-400);font-size:0.8125rem;">System</span>
                     {% endif %}
-                    {% endfor %}
-                    <li class="page-item {{ 'disabled' if not logs.has_next }}">
-                        <a class="page-link"
-                            href="{{ url_for('admin.logs', page=logs.next_num) if logs.has_next else '#' }}">Next</a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
+                </td>
+                <td>
+                    {% if 'CREATE' in log.action %}
+                    <span class="action-pill pill-create">{{ log.action }}</span>
+                    {% elif 'UPDATE' in log.action %}
+                    <span class="action-pill pill-update">{{ log.action }}</span>
+                    {% elif 'DELETE' in log.action %}
+                    <span class="action-pill pill-delete">{{ log.action }}</span>
+                    {% elif 'LOGIN' in log.action %}
+                    <span class="action-pill pill-login">{{ log.action }}</span>
+                    {% else %}
+                    <span class="action-pill pill-other">{{ log.action }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if log.target_type %}
+                    <span style="font-size:0.6875rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--gray-500);">{{ log.target_type }}</span>
+                    {% if log.target_id %}
+                    <span style="font-size:0.6875rem;background:var(--gray-100);color:var(--gray-600);padding:0.0625rem 0.375rem;border-radius:4px;margin-left:0.25rem;">#{{ log.target_id }}</span>
+                    {% endif %}
+                    {% else %}
+                    <span style="color:var(--gray-300);">—</span>
+                    {% endif %}
+                </td>
+                <td style="max-width:240px;">
+                    <div style="font-size:0.75rem;color:var(--gray-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ log.details | tojson if log.details else '' }}">
+                        {% if log.details %}
+                            {% if log.details is mapping %}
+                                {% for k, v in log.details.items() %}<strong>{{ k }}:</strong> {{ v }}{% if not loop.last %}, {% endif %}{% endfor %}
+                            {% else %}
+                                {{ log.details }}
+                            {% endif %}
+                        {% else %}
+                        <span style="color:var(--gray-300);font-style:italic;">No details</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    <code style="font-size:0.75rem;color:var(--gray-500);background:var(--gray-50);padding:0.125rem 0.375rem;border-radius:4px;">{{ log.ip_address or '—' }}</code>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" style="text-align:center;padding:2.5rem;color:var(--gray-400);">
+                    <i class="fas fa-history" style="font-size:1.25rem;opacity:0.4;display:block;margin-bottom:0.5rem;"></i>
+                    No audit logs found.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if logs.pages > 1 %}
+    <div class="pagination-bar">
+        {% if logs.has_prev %}
+        <a class="pg-btn" href="{{ url_for('admin.logs', page=logs.prev_num) }}"><i class="fas fa-chevron-left"></i></a>
+        {% endif %}
+        {% for page_num in logs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if page_num %}
+            <a class="pg-btn {% if page_num == logs.page %}active{% endif %}" href="{{ url_for('admin.logs', page=page_num) }}">{{ page_num }}</a>
+        {% else %}
+            <span style="color:var(--gray-400);font-size:0.75rem;padding:0 0.25rem;">…</span>
+        {% endif %}
+        {% endfor %}
+        {% if logs.has_next %}
+        <a class="pg-btn" href="{{ url_for('admin.logs', page=logs.next_num) }}"><i class="fas fa-chevron-right"></i></a>
         {% endif %}
     </div>
+    {% endif %}
 </div>
 {% endblock %}

@@ -1,46 +1,59 @@
 {% extends "base.html" %}
 
-{% block title %}Login - Original Electronics System{% endblock %}
+{% block title %}Sign In - {{ company_name }}{% endblock %}
 
 {% block content %}
-<div class="min-vh-100 d-flex align-items-center justify-content-center">
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--gray-50);padding:1.5rem;">
+    <div style="width:100%;max-width:400px;">
 
-    <div style="width:100%; max-width:420px;">
-        <div class="card shadow-lg border-0 rounded-4">
-            <div class="card-body p-4 p-md-5">
+        <!-- Brand -->
+        <div style="text-align:center;margin-bottom:2rem;">
+            {% if company_logo %}
+            <img src="{{ url_for('static', filename=company_logo) }}" alt="{{ company_name }}" style="max-height:48px;margin-bottom:1rem;">
+            {% else %}
+            <div style="width:48px;height:48px;background:var(--blue-600);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                <i class="fas fa-bolt" style="color:#fff;font-size:1.25rem;"></i>
+            </div>
+            {% endif %}
+            <h1 style="font-size:1.25rem;font-weight:700;color:var(--gray-900);margin:0;letter-spacing:-0.01em;">{{ company_name }}</h1>
+            <p style="font-size:0.8125rem;color:var(--gray-500);margin-top:0.25rem;">Sign in to your account</p>
+        </div>
 
-                <div class="text-center mb-4">
-                    <i class="bi bi-box-arrow-in-right fs-1 text-primary"></i>
-                    <h4 class="fw-bold mt-2">{{ company_name }}</h4>
-                    <p class="text-muted small">Sign in to continue</p>
+        <!-- Form card -->
+        <div style="background:#fff;border:var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:2rem;">
+            <form method="POST" novalidate>
+                {{ form.hidden_tag() }}
+
+                <div style="margin-bottom:1.25rem;">
+                    {{ form.username.label(class="form-label") }}
+                    {{ form.username(class="form-control", placeholder="Enter your username") }}
+                    {% if form.username.errors %}
+                    <div style="font-size:0.75rem;color:var(--red-600);margin-top:0.25rem;">{{ form.username.errors[0] }}</div>
+                    {% endif %}
                 </div>
 
-                <form method="POST" novalidate>
-                    {{ form.hidden_tag() }}
+                <div style="margin-bottom:1.25rem;">
+                    {{ form.password.label(class="form-label") }}
+                    {{ form.password(class="form-control", placeholder="Enter your password") }}
+                    {% if form.password.errors %}
+                    <div style="font-size:0.75rem;color:var(--red-600);margin-top:0.25rem;">{{ form.password.errors[0] }}</div>
+                    {% endif %}
+                </div>
 
-                    <div class="mb-3">
-                        {{ form.username.label(class="form-label fw-semibold") }}
-                        {{ form.username(class="form-control form-control-lg") }}
-                    </div>
+                <div style="margin-bottom:1.5rem;display:flex;align-items:center;gap:0.5rem;">
+                    {{ form.remember_me(class="form-check-input", style="margin:0;") }}
+                    {{ form.remember_me.label(class="form-check-label", style="font-size:0.8125rem;color:var(--gray-600);cursor:pointer;margin:0;") }}
+                </div>
 
-                    <div class="mb-3">
-                        {{ form.password.label(class="form-label fw-semibold") }}
-                        {{ form.password(class="form-control form-control-lg") }}
-                    </div>
-
-                    <div class="form-check mb-4">
-                        {{ form.remember_me(class="form-check-input") }}
-                        {{ form.remember_me.label(class="form-check-label small") }}
-                    </div>
-
-                    <div class="d-grid">
-                        {{ form.submit(class="btn btn-primary btn-lg rounded-3") }}
-                    </div>
-                </form>
-
-            </div>
+                <button type="submit" class="btn btn-primary w-100" style="padding:0.5625rem;font-size:0.875rem;justify-content:center;">
+                    Sign In <i class="fas fa-arrow-right" style="font-size:0.75rem;"></i>
+                </button>
+            </form>
         </div>
-    </div>
 
+        <p style="text-align:center;font-size:0.75rem;color:var(--gray-400);margin-top:1.5rem;">
+            {{ company_name }} &mdash; Point of Sale System
+        </p>
+    </div>
 </div>
 {% endblock %}

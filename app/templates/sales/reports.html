@@ -4,14 +4,303 @@
 
 {% block head %}
 <style>
-    .chart-loader {
+    .page-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.375rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin: 0;
+        letter-spacing: -0.01em;
+    }
+
+    .page-header .sub {
+        font-size: 0.8125rem;
+        color: var(--gray-500);
+        margin-top: 2px;
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    @media(max-width:900px) {
+        .kpi-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media(max-width:480px) {
+        .kpi-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .kpi-tile {
+        background: #fff;
+        border: var(--border);
+        border-radius: var(--radius);
+        padding: 1rem 1.125rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .kpi-tile .t-label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--gray-500);
+        margin-bottom: 0.375rem;
+    }
+
+    .kpi-tile .t-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        line-height: 1;
+    }
+
+    .kpi-tile .t-value.blue {
+        color: var(--blue-600);
+    }
+
+    .kpi-tile .t-value.green {
+        color: var(--green-600);
+    }
+
+    .kpi-tile .t-value.red {
+        color: var(--red-600);
+    }
+
+    .kpi-tile .t-value.purple {
+        color: #7C3AED;
+    }
+
+    .kpi-tile .t-value.teal {
+        color: #0F766E;
+    }
+
+    .kpi-tile .t-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 250px;
-        color: #6c757d;
+        font-size: 0.75rem;
+        margin-bottom: 0.625rem;
     }
 
+    .t-icon.blue {
+        background: var(--blue-50);
+        color: var(--blue-600);
+    }
+
+    .t-icon.green {
+        background: var(--green-50);
+        color: var(--green-600);
+    }
+
+    .t-icon.red {
+        background: var(--red-50);
+        color: var(--red-600);
+    }
+
+    .t-icon.purple {
+        background: #F5F3FF;
+        color: #7C3AED;
+    }
+
+    .t-icon.teal {
+        background: #F0FDFA;
+        color: #0F766E;
+    }
+
+    .t-icon.amber {
+        background: var(--amber-50);
+        color: var(--amber-600);
+    }
+
+    .section-label {
+        font-size: 0.6875rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--gray-400);
+        margin-bottom: 0.75rem;
+        margin-top: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-label::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--gray-200);
+    }
+
+    .panel {
+        background: #fff;
+        border: var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+
+    .panel-header {
+        padding: 0.875rem 1.25rem;
+        border-bottom: var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .panel-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .panel-title i {
+        color: var(--blue-600);
+    }
+
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    @media(max-width:900px) {
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .tables-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    @media(max-width:900px) {
+        .tables-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .filter-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--gray-500);
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    .filter-input {
+        border: var(--border);
+        border-radius: 6px;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8125rem;
+        color: var(--gray-900);
+        background: #fff;
+        outline: none;
+        transition: border-color 0.15s;
+    }
+
+    .filter-input:focus {
+        border-color: var(--blue-500);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    }
+
+    .filter-select {
+        border: var(--border);
+        border-radius: 6px;
+        padding: 0.375rem 1.75rem 0.375rem 0.625rem;
+        font-size: 0.8125rem;
+        color: var(--gray-700);
+        background: #fff;
+        outline: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.5rem center;
+    }
+
+    .chart-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 240px;
+        color: var(--gray-400);
+        font-size: 0.8125rem;
+        gap: 0.5rem;
+    }
+
+    .pill {
+        display: inline-block;
+        padding: 0.125rem 0.5rem;
+        border-radius: 20px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+    }
+
+    .pill-green {
+        background: var(--green-50);
+        color: var(--green-600);
+    }
+
+    .pill-amber {
+        background: var(--amber-50);
+        color: var(--amber-600);
+    }
+
+    .dropdown-menu-sm {
+        min-width: 160px;
+        border: var(--border);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-radius: 7px;
+        padding: 0.25rem;
+    }
+
+    .dropdown-menu-sm .dropdown-item {
+        border-radius: 5px;
+        padding: 0.4375rem 0.625rem;
+        font-size: 0.8125rem;
+        color: var(--gray-700);
+    }
+
+    .dropdown-menu-sm .dropdown-item:hover {
+        background: var(--gray-100);
+    }
+
+    /* Toast */
     .toast-fixed {
         position: fixed;
         bottom: 20px;
@@ -20,371 +309,303 @@
         z-index: 1200;
         min-width: 280px;
     }
-
-    .card-stat {
-        color: #fff;
-        border: none;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    }
-
-    .card-stat .card-body div h4 {
-        margin: 0 0 4px;
-        font-weight: 700;
-    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="row mb-3">
-        <div class="col-md-8">
-            <h1 class="fw-bold"><i class="bi bi-graph-up"></i> Sales Reports</h1>
-            <p class="text-muted mb-0">Overview of business performance and sales trends</p>
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-chart-line me-2" style="color:var(--blue-600);font-size:1.1rem;"></i>Reports</h1>
+        <div class="sub">Business performance overview and sales analytics.</div>
+    </div>
+    <div style="display:flex;gap:0.5rem;flex-shrink:0;">
+        <div class="dropdown">
+            <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-download" style="font-size:0.75rem;"></i> Export
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-sm">
+                <li><a class="dropdown-item" href="#" onclick="exportReport('pdf'); return false;"><i
+                            class="fas fa-file-pdf text-danger"></i>PDF</a></li>
+                <li><a class="dropdown-item" href="#" onclick="exportReport('excel'); return false;"><i
+                            class="fas fa-file-excel text-success"></i>Excel</a></li>
+            </ul>
         </div>
-        <div class="col-md-4 text-md-end mt-2">
-            <div class="btn-group me-2">
-                <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"
-                    aria-expanded="false">
-                    <i class="bi bi-download"></i> Export
+        <a href="{{ url_for('sales.reports') }}" class="btn btn-light" style="border:var(--border);">
+            <i class="fas fa-sync-alt" style="font-size:0.75rem;"></i> Reset
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="panel" style="margin-bottom:1rem;">
+    <div class="panel-header">
+        <h5 class="panel-title"><i class="fas fa-filter"></i> Filter Period</h5>
+    </div>
+    <div style="padding:1rem 1.25rem;">
+        <form method="GET" id="reportForm" class="filter-bar">
+            <div>
+                <div class="filter-label">Report Type</div>
+                <select name="type" id="reportType" class="filter-select" onchange="onReportTypeChange()">
+                    <option value="daily" {% if report_type=='daily' %}selected{% endif %}>Today</option>
+                    <option value="weekly" {% if report_type=='weekly' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="monthly" {% if report_type=='monthly' %}selected{% endif %}>This Month</option>
+                    <option value="custom" {% if report_type=='custom' %}selected{% endif %}>Custom Range</option>
+                </select>
+            </div>
+            <div>
+                <div class="filter-label">Start Date</div>
+                <input type="date" name="start_date" id="startDate" class="filter-input"
+                    value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
+            </div>
+            <div>
+                <div class="filter-label">End Date</div>
+                <input type="date" name="end_date" id="endDate" class="filter-input"
+                    value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
+            </div>
+            <div style="display:flex;gap:0.375rem;align-items:flex-end;">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-search" style="font-size:0.7rem;"></i> Generate
                 </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" onclick="exportReport('pdf'); return false;"><i
-                                class="bi bi-file-earmark-pdf text-danger"></i> Export PDF</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="exportReport('excel'); return false;"><i
-                                class="bi bi-file-earmark-excel text-success"></i> Export Excel</a></li>
-                </ul>
             </div>
-            <a href="{{ url_for('sales.reports') }}" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-clockwise"></i> Reset Filters
-            </a>
-        </div>
-    </div>
-
-    <!-- Filters -->
-    <div class="card mb-3 shadow-sm border-0">
-        <div class="card-body">
-            <form method="GET" class="row g-3" id="reportForm">
-                <div class="col-md-3">
-                    <label class="form-label fw-bold small">Report Type</label>
-                    <select name="type" id="reportType" class="form-select select-sm" onchange="onReportTypeChange()">
-                        <option value="daily" {% if report_type=='daily' %}selected{% endif %}>Daily (Today)</option>
-                        <option value="weekly" {% if report_type=='weekly' %}selected{% endif %}>Weekly (Last 7 Days)
-                        </option>
-                        <option value="monthly" {% if report_type=='monthly' %}selected{% endif %}>Monthly (This Month)
-                        </option>
-                        <option value="custom" {% if report_type=='custom' %}selected{% endif %}>Custom Range</option>
-                    </select>
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label fw-bold small">Start Date</label>
-                    <input type="date" name="start_date" id="startDate" class="form-control"
-                        value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label fw-bold small">End Date</label>
-                    <input type="date" name="end_date" id="endDate" class="form-control"
-                        value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
-                </div>
-
-                <div class="col-md-3 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100 shadow-sm">
-                        <i class="bi bi-search me-1"></i> Generate Report
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    {% from 'components/card.html' import kpi_card %}
-
-    <!-- Financial Performance Section -->
-    <h5 class="fw-bold mb-3 text-secondary"><i class="bi bi-cash-coin me-2"></i>Financial Performance</h5>
-    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 card-group mb-4">
-        <div class="col">
-            {{ kpi_card("Total Revenue", format_currency(total_invoiced), "bi bi-receipt", icon_color="text-primary",
-            value_class="text-dark") }}
-        </div>
-        <div class="col">
-            {{ kpi_card("Total Collected", format_currency(total_collected), "bi bi-wallet2", icon_color="text-success",
-            value_class="text-dark") }}
-        </div>
-        <div class="col">
-            {{ kpi_card("Total Expenses", format_currency(total_expenses), "bi bi-dash-circle",
-            icon_color="text-danger", value_class="text-danger") }}
-        </div>
-        <div class="col">
-            {% set profit_color = 'text-success' if (net_profit or 0) >= 0 else 'text-danger' %}
-            {{ kpi_card("Net Income", format_currency(net_profit or 0), "bi bi-briefcase", icon_color=profit_color,
-            value_class=profit_color) }}
-        </div>
-    </div>
-
-    <!-- Inventory Assets Section -->
-    <h5 class="fw-bold mb-3 text-secondary"><i class="bi bi-box-seam me-2"></i>Inventory Assets (Current Stock)</h5>
-    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 card-group mb-4">
-        <div class="col">
-            {{ kpi_card("Asset Value (Cost)", format_currency(inventory_cost), "bi bi-tags-fill",
-            icon_color="text-purple", value_class="text-purple", card_class="border-start border-4 border-purple") }}
-        </div>
-        <div class="col">
-            {{ kpi_card("Retail Value", format_currency(inventory_retail), "bi bi-shop", icon_color="text-info",
-            value_class="text-dark") }}
-        </div>
-        <div class="col">
-            {{ kpi_card("Est. Future Profit", format_currency(inventory_profit), "bi bi-graph-up-arrow",
-            icon_color="text-teal", value_class="text-teal") }}
-        </div>
-        <div class="col">
-            {{ kpi_card("Total Items in Stock", inventory_qty|int ~ " Units", "bi bi-boxes", icon_color="text-warning",
-            value_class="text-dark") }}
-        </div>
+        </form>
     </div>
 </div>
 
-<style>
-    /* Custom Colors for Professional Cards */
-    .text-purple {
-        color: #6f42c1 !important;
-    }
+<!-- Financial KPIs -->
+<div class="section-label">Financial Performance</div>
+<div class="kpi-grid" style="margin-bottom:1.25rem;">
+    <div class="kpi-tile">
+        <div class="t-icon blue"><i class="fas fa-receipt"></i></div>
+        <div class="t-label">Total Revenue</div>
+        <div class="t-value blue">{{ format_currency(total_invoiced) }}</div>
+    </div>
+    <div class="kpi-tile">
+        <div class="t-icon green"><i class="fas fa-wallet"></i></div>
+        <div class="t-label">Collected</div>
+        <div class="t-value green">{{ format_currency(total_collected) }}</div>
+    </div>
+    <div class="kpi-tile">
+        <div class="t-icon red"><i class="fas fa-minus-circle"></i></div>
+        <div class="t-label">Expenses</div>
+        <div class="t-value red">{{ format_currency(total_expenses) }}</div>
+    </div>
+    <div class="kpi-tile">
+        {% set pc = 'green' if (net_profit or 0) >= 0 else 'red' %}
+        <div class="t-icon {{ pc }}"><i class="fas fa-briefcase"></i></div>
+        <div class="t-label">Net Income</div>
+        <div class="t-value {{ pc }}">{{ format_currency(net_profit or 0) }}</div>
+    </div>
+</div>
 
-    .border-purple {
-        border-color: #6f42c1 !important;
-    }
+<!-- Inventory KPIs -->
+<div class="section-label">Inventory Assets (Current Stock)</div>
+<div class="kpi-grid" style="margin-bottom:1.25rem;">
+    <div class="kpi-tile">
+        <div class="t-icon purple"><i class="fas fa-tags"></i></div>
+        <div class="t-label">Cost Value</div>
+        <div class="t-value purple">{{ format_currency(inventory_cost) }}</div>
+    </div>
+    <div class="kpi-tile">
+        <div class="t-icon blue"><i class="fas fa-store"></i></div>
+        <div class="t-label">Retail Value</div>
+        <div class="t-value blue">{{ format_currency(inventory_retail) }}</div>
+    </div>
+    <div class="kpi-tile">
+        <div class="t-icon teal"><i class="fas fa-chart-line"></i></div>
+        <div class="t-label">Est. Profit</div>
+        <div class="t-value teal">{{ format_currency(inventory_profit) }}</div>
+    </div>
+    <div class="kpi-tile">
+        <div class="t-icon amber"><i class="fas fa-boxes"></i></div>
+        <div class="t-label">Units in Stock</div>
+        <div class="t-value">{{ inventory_qty | int }}</div>
+    </div>
+</div>
 
-    .text-teal {
-        color: #20c997 !important;
-    }
-</style>
-
-<!-- Charts Section -->
-<div class="row mb-4 g-3">
-    <div class="col-md-8">
-        <div class="card p-3 shadow-sm border-0 h-100">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-graph-up me-2 text-primary"></i> Revenue Trend</h5>
-                <span class="badge bg-light text-dark">Timeline</span>
+<!-- Charts -->
+<div class="section-label">Analytics</div>
+<div class="charts-grid">
+    <!-- Revenue trend -->
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="fas fa-chart-line"></i> Revenue Trend</h5>
+        </div>
+        <div style="padding:1.25rem;min-height:280px;position:relative;">
+            <div class="chart-placeholder" id="salesLoader">
+                <div class="spinner-border spinner-border-sm"></div> Loading…
             </div>
-            <div id="salesChartWrap" style="min-height:300px;position:relative;">
-                <div class="chart-loader" id="salesLoader">
-                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                    <span>Loading chart...</span>
-                </div>
-                <div id="noSalesData" style="display:none;text-align:center;padding:100px 20px;color:#adb5bd;">
-                    <i class="bi bi-bar-chart-fill fs-1 d-block mb-2 opacity-25"></i>
-                    No sales data found for the selected period
-                </div>
-                <canvas id="salesChart" style="display:none;"></canvas>
+            <div id="noSalesData" style="display:none;" class="chart-placeholder">
+                <i class="fas fa-chart-bar" style="font-size:1.5rem;opacity:0.3;"></i> No data for selected period
             </div>
+            <canvas id="salesChart" style="display:none;"></canvas>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card p-3 shadow-sm border-0 h-100">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-pie-chart me-2 text-primary"></i> Payment Methods</h5>
-                <span class="badge bg-light text-dark">Distribution</span>
+    <!-- Right panel: payment + expense charts -->
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="panel">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fas fa-pie-chart"></i> Payment Methods</h5>
             </div>
-            <div class="mb-4" id="paymentChartWrap" style="min-height:220px;position:relative;">
-                <div class="chart-loader" id="paymentLoader">
-                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                    <span>Loading...</span>
+            <div style="padding:1rem;min-height:160px;position:relative;">
+                <div class="chart-placeholder" id="paymentLoader" style="height:140px;">
+                    <div class="spinner-border spinner-border-sm"></div>
                 </div>
-                <canvas id="paymentChart" style="display:none;"></canvas>
+                <canvas id="paymentChart" style="display:none;max-height:160px;"></canvas>
             </div>
-
-            <hr class="my-3">
-
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-tag me-2 text-danger"></i> Expense Breakdown</h5>
-                <span class="badge bg-light text-dark">Categories</span>
+        </div>
+        <div class="panel">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fas fa-tag" style="color:var(--red-600);"></i> Expense Breakdown</h5>
             </div>
-            <div id="expenseChartWrap" style="min-height:220px;position:relative;">
-                <div class="chart-loader" id="expenseLoader">
-                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                    <span>Loading...</span>
+            <div style="padding:1rem;min-height:160px;position:relative;">
+                <div class="chart-placeholder" id="expenseLoader" style="height:140px;">
+                    <div class="spinner-border spinner-border-sm"></div>
                 </div>
-                <div id="noExpenseData" style="display:none;text-align:center;padding:50px 10px;color:#adb5bd;">
-                    <small>No expenses recorded</small>
-                </div>
-                <canvas id="expenseChart" style="display:none;"></canvas>
+                <div id="noExpenseData" style="display:none;" class="chart-placeholder" style="height:140px;">No
+                    expenses</div>
+                <canvas id="expenseChart" style="display:none;max-height:160px;"></canvas>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Data Tables -->
-<div class="row g-4">
+<!-- Data tables -->
+<div class="section-label">Breakdown</div>
+<div class="tables-grid">
     <!-- Top Products -->
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-white border-0 pt-3">
-                <h6 class="mb-0 fw-bold"><i class="bi bi-trophy me-2 text-warning"></i> Best Selling Products</h6>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table mb-0 table-hover">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="ps-3 small text-uppercase text-muted">Product</th>
-                                <th class="text-center small text-uppercase text-muted">Qty</th>
-                                <th class="text-end pe-3 small text-uppercase text-muted">Revenue</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for p in top_products %}
-                            <tr>
-                                <td class="ps-3 text-truncate" style="max-width: 150px;">{{ p.name if p.name is defined
-                                    else p[0] }}</td>
-                                <td class="text-center"><span class="badge bg-secondary rounded-pill">{{ p.total_sold if
-                                        p.total_sold is defined else p[1] }}</span></td>
-                                <td class="text-end pe-3 fw-bold">{{ format_currency(p.total_revenue if p.total_revenue
-                                    is defined else p[2]) }}</td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="3" class="text-center text-muted py-4 small">No product data</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="fas fa-trophy"></i> Top Products</h5>
         </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th style="text-align:center;">Qty</th>
+                    <th style="text-align:right;">Revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in top_products %}
+                <tr>
+                    <td style="font-weight:500;">{{ p.name if p.name is defined else p[0] }}</td>
+                    <td style="text-align:center;"><span class="pill pill-green">{{ p.total_sold if p.total_sold is
+                            defined else p[1] }}</span></td>
+                    <td style="text-align:right;font-weight:700;color:var(--blue-600);">{{
+                        format_currency(p.total_revenue if p.total_revenue is defined else p[2]) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" style="text-align:center;padding:2rem;color:var(--gray-400);">No product data</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
     <!-- Top Customers -->
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-white border-0 pt-3">
-                <h6 class="mb-0 fw-bold"><i class="bi bi-person-check me-2 text-primary"></i> Top Customers</h6>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table mb-0 table-hover">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="ps-3 small text-uppercase text-muted" style="width: 5%">#</th>
-                                <th class="small text-uppercase text-muted">Customer</th>
-                                <th class="text-center small text-uppercase text-muted">Txns</th>
-                                <th class="text-end pe-3 small text-uppercase text-muted">Spent</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for c in top_customers %}
-                            <tr>
-                                <td class="ps-3 text-muted small align-middle">{{ loop.index }}</td>
-                                <td class="text-truncate align-middle" style="max-width: 140px; font-weight: 500;">
-                                    {{ c.full_name }}
-                                </td>
-                                <td class="text-center align-middle">
-                                    <span class="badge bg-light text-dark border">{{ c.tx_count }}</span>
-                                </td>
-                                <td class="text-end pe-3 fw-bold text-primary align-middle">{{
-                                    format_currency(c.total_spent) }}</td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="4" class="text-center text-muted py-4 small">No customer data</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="fas fa-users"></i> Top Customers</h5>
         </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:32px;">#</th>
+                    <th>Customer</th>
+                    <th style="text-align:center;">Txns</th>
+                    <th style="text-align:right;">Spent</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in top_customers %}
+                <tr>
+                    <td style="color:var(--gray-400);font-size:0.75rem;">{{ loop.index }}</td>
+                    <td style="font-weight:500;">{{ c.full_name }}</td>
+                    <td style="text-align:center;"><span class="pill pill-green">{{ c.tx_count }}</span></td>
+                    <td style="text-align:right;font-weight:700;color:var(--blue-600);">{{
+                        format_currency(c.total_spent) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align:center;padding:2rem;color:var(--gray-400);">No customer data</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
-    <!-- Sales by Cashier -->
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-white border-0 pt-3">
-                <h6 class="mb-0 fw-bold"><i class="bi bi-people me-2 text-info"></i> Performance by Cashier</h6>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table mb-0 table-hover">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="ps-3 small text-uppercase text-muted">Cashier</th>
-                                <th class="text-center small text-uppercase text-muted">Txns</th>
-                                <th class="text-end pe-3 small text-uppercase text-muted">Revenue</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for u in user_sales %}
-                            <tr>
-                                <td class="ps-3">{{ u.username if u.username is defined else u[0] }}</td>
-                                <td class="text-center">{{ u.count if u.count is defined else u[1] }}</td>
-                                <td class="text-end pe-3 fw-bold text-success">{{ format_currency(u.total if u.total is
-                                    defined else u[2]) }}</td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="3" class="text-center text-muted py-4 small">No cashier data</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    <!-- Cashier Performance -->
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="fas fa-users-cog"></i> By Cashier</h5>
         </div>
-    </div>
-
-    <!-- Recent Expenses in Period -->
-    <div class="col-md-12 mt-4">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white border-0 pt-3">
-                <h6 class="mb-0 fw-bold"><i class="bi bi-journal-text me-2 text-danger"></i> Recent Expenses in
-                    Period
-                </h6>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table mb-0 table-hover align-middle">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="ps-3 small text-uppercase text-muted">Date</th>
-                                <th class="small text-uppercase text-muted">Title</th>
-                                <th class="small text-uppercase text-muted">Category</th>
-                                <th class="text-center small text-uppercase text-muted">Status</th>
-                                <th class="text-end pe-3 small text-uppercase text-muted">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for exp in recent_expenses %}
-                            <tr>
-                                <td class="ps-3">{{ exp.date.strftime('%d %b %Y') }}</td>
-                                <td class="fw-semibold">{{ exp.title }}</td>
-                                <td><span class="badge px-2 py-1"
-                                        style="--bg-color: {{ exp.category.color }}; background-color: var(--bg-color);">{{
-                                        exp.category.name }}</span></td>
-                                <td class="text-center">
-                                    {% if exp.status.value == 'Paid' %}
-                                    <span class="badge bg-success">Paid</span>
-                                    {% else %}
-                                    <span class="badge bg-warning text-dark">Pending</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end pe-3 fw-bold text-danger">{{ format_currency(exp.amount) }}</td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-4 small">No expenses recorded for
-                                    this period</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Cashier</th>
+                    <th style="text-align:center;">Txns</th>
+                    <th style="text-align:right;">Revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in user_sales %}
+                <tr>
+                    <td style="font-weight:500;">{{ u.username if u.username is defined else u[0] }}</td>
+                    <td style="text-align:center;"><span class="pill pill-green">{{ u.count if u.count is defined else
+                            u[1] }}</span></td>
+                    <td style="text-align:right;font-weight:700;color:var(--green-600);">{{ format_currency(u.total if
+                        u.total is defined else u[2]) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" style="text-align:center;padding:2rem;color:var(--gray-400);">No cashier data</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
+
+<!-- Recent Expenses -->
+<div class="panel" style="margin-bottom:1rem;">
+    <div class="panel-header">
+        <h5 class="panel-title"><i class="fas fa-file-alt" style="color:var(--red-600);"></i> Expenses in Period</h5>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th style="text-align:center;">Status</th>
+                <th style="text-align:right;">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exp in recent_expenses %}
+            <tr>
+                <td style="color:var(--gray-500);white-space:nowrap;">{{ exp.date.strftime('%d %b %Y') }}</td>
+                <td style="font-weight:500;">{{ exp.title }}</td>
+                <td><span class="pill cat-pill" data-color="{{ exp.category.color }}">{{ exp.category.name }}</span></td>
+                <td style="text-align:center;">
+                    {% if exp.status.value == 'Paid' %}<span class="pill pill-green">Paid</span>
+                    {% else %}<span class="pill pill-amber">Pending</span>{% endif %}
+                </td>
+                <td style="text-align:right;font-weight:700;color:var(--red-600);">{{ format_currency(exp.amount) }}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-400);">No expenses for this
+                    period</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 
-<!-- Toast Notifications -->
 <div class="toast-fixed">
     <div id="reportsToast" class="toast align-items-center text-white bg-danger border-0" role="alert"
         aria-live="assertive" aria-atomic="true">
@@ -400,7 +621,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script type="application/json" id="report-data">
 {
-    "dailySales": {{ daily_sales | tojson }},
+    "dailySales":    {{ daily_sales | tojson }},
     "paymentLabels": {{ payment_method_labels | tojson }},
     "paymentValues": {{ payment_method_values | tojson }},
     "expenseLabels": {{ expense_labels | tojson }},
@@ -409,275 +630,105 @@
 }
 </script>
 <script>
-    // --- Toast Helper ---
     function showReportsToast(msg) {
-        const t = document.getElementById('reportsToast');
+        var t = document.getElementById('reportsToast');
         if (!t) return;
-        const body = document.getElementById('reportsToastBody');
-        if (body) body.innerText = msg;
-        const toast = new bootstrap.Toast(t);
-        toast.show();
+        document.getElementById('reportsToastBody').innerText = msg;
+        new bootstrap.Toast(t).show();
     }
 
-    // --- Export Function ---
     function exportReport(type) {
-        const searchParams = new URLSearchParams(window.location.search);
-        let baseUrl = '';
-
-        if (type === 'pdf') {
-            baseUrl = "{{ url_for('sales.reports_pdf') }}";
-        } else if (type === 'excel') {
-            baseUrl = "{{ url_for('sales.reports_excel') }}";
-        }
-
-        // redirect to export url with current filters
-        window.location.href = `${baseUrl}?${searchParams.toString()}`;
+        var params = new URLSearchParams(window.location.search);
+        var url = type === 'pdf' ? "{{ url_for('sales.reports_pdf') }}" : "{{ url_for('sales.reports_excel') }}";
+        window.location.href = url + '?' + params.toString();
     }
 
-    // --- Chart Variables ---
-    let salesChart = null;
-    let paymentChart = null;
+    function onReportTypeChange() {
+        var t = document.getElementById('reportType').value;
+        var start = document.getElementById('startDate');
+        var end = document.getElementById('endDate');
+        if (t === 'custom') { start.removeAttribute('disabled'); end.removeAttribute('disabled'); }
+        else { start.setAttribute('disabled', 'disabled'); end.setAttribute('disabled', 'disabled'); }
+    }
 
-    // --- Render Sales Chart (Line) ---
+    var salesChart = null, paymentChart = null;
+
     function renderSalesChart(labels, values) {
-        const loader = document.getElementById('salesLoader');
-        const noData = document.getElementById('noSalesData');
-        const canvas = document.getElementById('salesChart');
-
+        var loader = document.getElementById('salesLoader');
+        var noData = document.getElementById('noSalesData');
+        var canvas = document.getElementById('salesChart');
         if (loader) loader.style.display = 'none';
-
-        // Show empty state if all values are 0 or list is empty
-        const hasData = Array.isArray(values) && values.length > 0 && values.some(v => v > 0);
-        if (!hasData) {
-            if (noData) noData.style.display = 'block';
-            if (canvas) canvas.style.display = 'none';
-            return;
-        }
-
+        var hasData = Array.isArray(values) && values.length > 0 && values.some(function (v) { return v > 0; });
+        if (!hasData) { if (noData) noData.style.display = 'flex'; return; }
         if (noData) noData.style.display = 'none';
-        if (canvas) canvas.style.display = 'block';
-
-        const ctx = canvas.getContext('2d');
+        canvas.style.display = 'block';
+        var ctx = canvas.getContext('2d');
         if (salesChart) salesChart.destroy();
-
         salesChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: 'Daily Revenue',
-                    data: values,
-                    borderColor: '#0d6efd',
-                    backgroundColor: 'rgba(13, 110, 253, 0.05)',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: '#0d6efd',
-                    pointHoverRadius: 6
-                }]
+                datasets: [{ label: 'Revenue', data: values, borderColor: '#2563EB', backgroundColor: 'rgba(37,99,235,0.06)', borderWidth: 2, tension: 0.4, fill: true, pointRadius: 3, pointBackgroundColor: '#fff', pointBorderColor: '#2563EB', pointBorderWidth: 2, pointHoverRadius: 5 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        padding: 10,
-                        backgroundColor: 'rgba(0,0,0,0.8)'
-                    }
-                },
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, backgroundColor: '#fff', titleColor: '#0F172A', bodyColor: '#64748B', borderColor: '#E2E8F0', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function (c) { return window.CURRENCY_SYMBOL + c.parsed.y.toLocaleString(); } } } },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { borderDash: [5, 5], color: '#e9ecef' },
-                        ticks: {
-                            callback: function (value) { return window.CURRENCY_SYMBOL + value.toLocaleString(); }
-                        }
-                    },
-                    x: {
-                        grid: { display: false }
-                    }
+                    y: { beginAtZero: true, grid: { color: '#F1F5F9', borderDash: [3, 3] }, ticks: { color: '#94A3B8', font: { size: 11 }, callback: function (v) { return window.CURRENCY_SYMBOL + v; } }, border: { display: false } },
+                    x: { grid: { display: false }, ticks: { color: '#94A3B8', font: { size: 11 } }, border: { display: false } }
                 }
             }
         });
     }
 
-    // --- Render Payment Chart (Doughnut) ---
     function renderPaymentChart(labels, values) {
-        const loader = document.getElementById('paymentLoader');
-        const canvas = document.getElementById('paymentChart');
-
+        var loader = document.getElementById('paymentLoader');
+        var canvas = document.getElementById('paymentChart');
         if (loader) loader.style.display = 'none';
-
-        if (!values || !values.length || values.every(v => v === 0)) {
-            if (canvas) canvas.style.display = 'none';
-            return;
-        }
-
-        if (canvas) canvas.style.display = 'block';
-
-        const ctx = canvas.getContext('2d');
+        if (!values || !values.length || values.every(function (v) { return v === 0; })) return;
+        canvas.style.display = 'block';
+        var colors = labels.map(function (l) { l = String(l).toLowerCase(); if (l.includes('zaad')) return '#16A34A'; if (l.includes('dahab')) return '#D97706'; if (l.includes('credit')) return '#7C3AED'; if (l.includes('mobile')) return '#0891B2'; if (l.includes('card')) return '#2563EB'; return '#64748B'; });
         if (paymentChart) paymentChart.destroy();
-
-        // Match colors to payment type
-        const baseColors = labels.map(label => {
-            const l = String(label).toLowerCase();
-            if (l.includes('zaad')) return '#28a745';
-            if (l.includes('dahab')) return '#ffc107';
-            if (l.includes('credit')) return '#6f42c1'; // Purple for Credit
-            if (l.includes('mobile')) return '#17a2b8';
-            if (l.includes('card')) return '#0dcaf0';
-            return '#6c757d';
-        });
-
-        paymentChart = new Chart(ctx, {
+        paymentChart = new Chart(canvas.getContext('2d'), {
             type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: values,
-                    backgroundColor: baseColors,
-                    hoverOffset: 12,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '70%',
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 10,
-                            font: { size: 10 }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function (context) {
-                                let val = context.parsed || 0;
-                                return ' ' + context.label + ': ' + window.CURRENCY_SYMBOL + val.toLocaleString();
-                            }
-                        }
-                    }
-                }
-            }
+            data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0, hoverOffset: 8 }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 10, font: { size: 10 } } }, tooltip: { callbacks: { label: function (c) { return ' ' + c.label + ': ' + window.CURRENCY_SYMBOL + c.parsed.toLocaleString(); } } } } }
         });
     }
 
-    // --- Render Expense Chart (Pie) ---
     function renderExpenseChart(labels, values, colors) {
-        const loader = document.getElementById('expenseLoader');
-        const noData = document.getElementById('noExpenseData');
-        const canvas = document.getElementById('expenseChart');
-
+        var loader = document.getElementById('expenseLoader');
+        var noData = document.getElementById('noExpenseData');
+        var canvas = document.getElementById('expenseChart');
         if (loader) loader.style.display = 'none';
-
-        if (!values || !values.length || values.every(v => v === 0)) {
-            if (noData) noData.style.display = 'block';
-            if (canvas) canvas.style.display = 'none';
-            return;
-        }
-
+        if (!values || !values.length || values.every(function (v) { return v === 0; })) { if (noData) noData.style.display = 'flex'; return; }
         if (noData) noData.style.display = 'none';
-        if (canvas) canvas.style.display = 'block';
-
-        const ctx = canvas.getContext('2d');
+        canvas.style.display = 'block';
+        var defaultColors = ['#2563EB', '#16A34A', '#D97706', '#DC2626', '#7C3AED', '#0891B2', '#64748B'];
+        var chartColors = (colors && colors.length) ? colors : defaultColors;
         if (window.expenseChartObj) window.expenseChartObj.destroy();
-
-        // Default colors if none provided
-        const defaultColors = [
-            '#fd7e14', '#dc3545', '#6610f2', '#e83e8c', '#20c997', '#0dcaf0', '#6c757d'
-        ];
-
-        const chartColors = (colors && colors.length) ? colors : defaultColors;
-
-        window.expenseChartObj = new Chart(ctx, {
+        window.expenseChartObj = new Chart(canvas.getContext('2d'), {
             type: 'pie',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: values,
-                    backgroundColor: chartColors,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 10,
-                            font: { size: 10 }
-                        }
-                    }
-                }
-            }
+            data: { labels: labels, datasets: [{ data: values, backgroundColor: chartColors, borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 10, font: { size: 10 } } } } }
         });
     }
 
-    // --- Report Type Change Handler ---
-    function onReportTypeChange() {
-        const typeSelect = document.getElementById('reportType');
-        if (!typeSelect) return;
-
-        const t = typeSelect.value;
-        const start = document.getElementById('startDate');
-        const end = document.getElementById('endDate');
-
-        if (t === 'custom') {
-            if (start) start.removeAttribute('disabled');
-            if (end) end.removeAttribute('disabled');
-        } else {
-            if (start) start.setAttribute('disabled', 'disabled');
-            if (end) end.setAttribute('disabled', 'disabled');
-        }
-    }
-
-    // --- Initialize Charts ---
     document.addEventListener('DOMContentLoaded', function () {
         try {
-            const reportDataEl = document.getElementById('report-data');
-            if (!reportDataEl) {
-                throw new Error("Report data not found");
-            }
-
-            const reportData = JSON.parse(reportDataEl.textContent);
-
-            const dailySales = Array.isArray(reportData.dailySales)
-                ? reportData.dailySales
-                : [];
-
-            const paymentLabels = Array.isArray(reportData.paymentLabels)
-                ? reportData.paymentLabels
-                : [];
-
-            const paymentValues = Array.isArray(reportData.paymentValues)
-                ? reportData.paymentValues
-                : [];
-
-            const dates = dailySales.map(d => d.date);
-            const values = dailySales.map(d => d.sales);
-
-            renderSalesChart(dates, values);
-            renderPaymentChart(paymentLabels, paymentValues);
-            renderExpenseChart(reportData.expenseLabels, reportData.expenseValues, reportData.expenseColors);
-
-        } catch (e) {
-            console.error("Report Init Error:", e);
-            if (typeof showReportsToast === 'function') {
-                showReportsToast("An error occurred while loading charts.");
-            }
-        }
+            var data = JSON.parse(document.getElementById('report-data').textContent);
+            var dailySales = Array.isArray(data.dailySales) ? data.dailySales : [];
+            renderSalesChart(dailySales.map(function (d) { return d.date; }), dailySales.map(function (d) { return d.sales; }));
+            renderPaymentChart(data.paymentLabels || [], data.paymentValues || []);
+            renderExpenseChart(data.expenseLabels, data.expenseValues, data.expenseColors);
+            onReportTypeChange();
+        } catch (e) { console.error('Report init:', e); }
+        // Apply category pill colors from data attribute
+        document.querySelectorAll('.cat-pill[data-color]').forEach(function(el) {
+            var c = el.dataset.color;
+            el.style.background = c + '20';
+            el.style.color = c;
+        });
     });
 </script>
 {% endblock %}

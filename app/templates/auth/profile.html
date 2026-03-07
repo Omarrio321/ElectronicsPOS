@@ -1,69 +1,117 @@
 {% extends "base.html" %}
-{% from 'components/card.html' import card %}
 
 {% block title %}My Profile - {{ company_name }}{% endblock %}
 
+{% block head %}
+<style>
+    .profile-page { max-width:600px; margin:0 auto; }
+    .page-header { display:flex; align-items:center; gap:0.75rem; margin-bottom:1.5rem; }
+    .page-header h1 { font-size:1.375rem; font-weight:700; color:var(--gray-900); margin:0; letter-spacing:-0.01em; }
+
+    .panel { background:#fff; border:var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; margin-bottom:1rem; }
+    .panel-header { padding:0.875rem 1.25rem; border-bottom:var(--border); display:flex; align-items:center; gap:0.75rem; }
+    .panel-title { font-size:0.875rem; font-weight:600; color:var(--gray-900); margin:0; display:flex; align-items:center; gap:0.5rem; }
+    .panel-title i { color:var(--blue-600); }
+    .panel-body { padding:1.25rem; }
+
+    .user-avatar { width:52px; height:52px; border-radius:50%; background:var(--blue-600); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:1.125rem; flex-shrink:0; }
+
+    .form-group { margin-bottom:0.875rem; }
+    .form-label { font-size:0.8125rem; font-weight:600; color:var(--gray-700); display:block; margin-bottom:0.3rem; }
+    .form-control {
+        width:100%; border:var(--border); border-radius:6px; padding:0.4375rem 0.75rem;
+        font-size:0.875rem; color:var(--gray-900); background:#fff; outline:none;
+        transition:border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-control:focus { border-color:var(--blue-500); box-shadow:0 0 0 3px rgba(59,130,246,0.12); }
+    .field-error { font-size:0.75rem; color:var(--red-600); margin-top:0.25rem; }
+
+    .section-divider { border:none; border-top:var(--border); margin:1.25rem 0 1rem; }
+    .section-label { font-size:0.75rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--gray-500); margin-bottom:0.875rem; }
+
+    .role-pill { display:inline-block; padding:0.125rem 0.5rem; border-radius:20px; font-size:0.6875rem; font-weight:600; }
+    .role-admin { background:var(--blue-50); color:var(--blue-600); }
+    .role-manager { background:var(--green-50); color:var(--green-600); }
+    .role-cashier { background:var(--amber-50); color:var(--amber-600); }
+
+    .form-footer { display:flex; align-items:center; justify-content:space-between; padding-top:1.125rem; border-top:var(--border); margin-top:0.25rem; }
+    .hint-text { font-size:0.75rem; color:var(--gray-400); margin-top:0.25rem; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-        <div class="d-flex align-items-center mb-4">
-            <h1 class="h2 mb-0"><i class="fas fa-user-circle me-2"></i> My Profile</h1>
+<div class="profile-page">
+    <div class="page-header">
+        <h1><i class="fas fa-user-circle me-2" style="color:var(--blue-600);font-size:1.1rem;"></i>My Profile</h1>
+    </div>
+
+    <!-- Profile Info panel -->
+    <div class="panel">
+        <div class="panel-header">
+            <div class="user-avatar">{{ current_user.username[:2].upper() }}</div>
+            <div>
+                <div style="font-weight:700;color:var(--gray-900);font-size:0.9375rem;">{{ current_user.username }}</div>
+                <div style="display:flex;align-items:center;gap:0.5rem;margin-top:3px;">
+                    {% set role_name = current_user.role.name if current_user.role else 'User' %}
+                    {% if 'admin' in role_name.lower() %}
+                    <span class="role-pill role-admin">{{ role_name }}</span>
+                    {% elif 'manager' in role_name.lower() %}
+                    <span class="role-pill role-manager">{{ role_name }}</span>
+                    {% else %}
+                    <span class="role-pill role-cashier">{{ role_name }}</span>
+                    {% endif %}
+                    <span style="font-size:0.75rem;color:var(--gray-400);">{{ current_user.email or '' }}</span>
+                </div>
+            </div>
         </div>
+        <div class="panel-body">
+            <form method="POST">
+                {{ form.hidden_tag() }}
 
-        {% call card(title="Edit Profile", icon="fas fa-edit") %}
-        <form method="POST">
-            {{ form.hidden_tag() }}
+                <div class="section-label">Account Information</div>
 
-            <div class="mb-3">
-                {{ form.username.label(class="form-label") }}
-                {{ form.username(class="form-control") }}
-                {% if form.username.errors %}
-                {% for error in form.username.errors %}
-                <div class="text-danger small">{{ error }}</div>
-                {% endfor %}
-                {% endif %}
-            </div>
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.username.id }}">{{ form.username.label.text }}</label>
+                    {{ form.username(class="form-control") }}
+                    {% for error in form.username.errors %}
+                    <div class="field-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
 
-            <div class="mb-3">
-                {{ form.email.label(class="form-label") }}
-                {{ form.email(class="form-control") }}
-                {% if form.email.errors %}
-                {% for error in form.email.errors %}
-                <div class="text-danger small">{{ error }}</div>
-                {% endfor %}
-                {% endif %}
-            </div>
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.email.id }}">{{ form.email.label.text }}</label>
+                    {{ form.email(class="form-control") }}
+                    {% for error in form.email.errors %}
+                    <div class="field-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
 
-            <hr class="my-4">
-            <h5 class="mb-3 text-muted">Change Password</h5>
-            <p class="text-muted small mb-3">Leave blank if you don't want to change your password.</p>
+                <hr class="section-divider">
+                <div class="section-label">Change Password</div>
+                <div class="hint-text" style="margin-bottom:0.875rem;">Leave blank to keep your current password.</div>
 
-            <div class="mb-3">
-                {{ form.password.label(class="form-label") }}
-                {{ form.password(class="form-control") }}
-                {% if form.password.errors %}
-                {% for error in form.password.errors %}
-                <div class="text-danger small">{{ error }}</div>
-                {% endfor %}
-                {% endif %}
-            </div>
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.password.id }}">{{ form.password.label.text }}</label>
+                    {{ form.password(class="form-control") }}
+                    {% for error in form.password.errors %}
+                    <div class="field-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
 
-            <div class="mb-3">
-                {{ form.password_confirm.label(class="form-label") }}
-                {{ form.password_confirm(class="form-control") }}
-                {% if form.password_confirm.errors %}
-                {% for error in form.password_confirm.errors %}
-                <div class="text-danger small">{{ error }}</div>
-                {% endfor %}
-                {% endif %}
-            </div>
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.password_confirm.id }}">{{ form.password_confirm.label.text }}</label>
+                    {{ form.password_confirm(class="form-control") }}
+                    {% for error in form.password_confirm.errors %}
+                    <div class="field-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
 
-            <div class="d-grid gap-2">
-                {{ form.submit(class="btn btn-primary") }}
-                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
-            </div>
-        </form>
-        {% endcall %}
+                <div class="form-footer">
+                    <a href="{{ url_for('main.dashboard') }}" class="btn btn-light" style="border:var(--border);">Cancel</a>
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

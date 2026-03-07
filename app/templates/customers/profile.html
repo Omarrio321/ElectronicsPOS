@@ -1,363 +1,962 @@
 {% extends "base.html" %}
 
-{% block title %}{{ customer.full_name }} - Customer Profile{% endblock %}
+{% block title %}{{ customer.full_name }} — Profile{% endblock %}
 
 {% block head %}
 <style>
-    .stat-card {
-        border-left: 4px solid;
+    :root {
+        --blue-600: #2563EB;
+        --blue-500: #3B82F6;
+        --blue-50: #EFF6FF;
+        --gray-50: #F8FAFC;
+        --gray-100: #F1F5F9;
+        --gray-200: #E2E8F0;
+        --gray-400: #94A3B8;
+        --gray-500: #64748B;
+        --gray-700: #334155;
+        --gray-900: #0F172A;
+        --green-600: #16A34A;
+        --green-50: #F0FDF4;
+        --red-600: #DC2626;
+        --red-50: #FEF2F2;
+        --amber-600: #D97706;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+        --border: 1px solid var(--gray-200);
+        --radius: 8px;
     }
 
-    .stat-card.outstanding {
-        border-color: #dc3545;
+    body {
+        background: var(--gray-50);
     }
 
-    .stat-card.spent {
-        border-color: #6f42c1;
+    /* ── Breadcrumb ── */
+    .breadcrumb-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.8125rem;
+        color: var(--gray-500);
+        margin-bottom: 1.25rem;
     }
 
-    .stat-card.orders {
-        border-color: #fd7e14;
+    .breadcrumb-bar a {
+        color: var(--gray-500);
+        text-decoration: none;
     }
 
-    .stat-card.credit {
-        border-color: #198754;
+    .breadcrumb-bar a:hover {
+        color: var(--blue-600);
     }
 
-    .stat-card.invoices {
-        border-color: #0d6efd;
+    .breadcrumb-bar .sep {
+        color: var(--gray-300);
     }
 
-    .stat-value {
-        font-size: 1.5rem;
+    .breadcrumb-bar .current {
+        color: var(--gray-900);
+        font-weight: 500;
+    }
+
+    /* ── Panel ── */
+    .panel {
+        background: #fff;
+        border: var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+
+    .panel-header {
+        padding: 0.875rem 1.25rem;
+        border-bottom: var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .panel-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .panel-title i {
+        color: var(--blue-600);
+    }
+
+    /* ── Profile Hero ── */
+    .profile-hero {
+        background: #fff;
+        border: var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        padding: 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+
+    .profile-identity {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .profile-avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        background: var(--blue-50);
+        color: var(--blue-600);
         font-weight: 700;
+        font-size: 1.375rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border: var(--border);
     }
 
-    .ledger-debit {
-        color: #dc3545;
+    .profile-name {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+        margin-bottom: 0.25rem;
     }
 
-    .ledger-credit {
-        color: #198754;
+    .profile-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.25rem;
     }
 
-    .tab-content {
-        min-height: 300px;
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.8125rem;
+        color: var(--gray-500);
+    }
+
+    .meta-item i {
+        font-size: 0.7rem;
+        color: var(--gray-400);
+    }
+
+    /* ── Status badge ── */
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.25rem 0.625rem;
+        border-radius: 20px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+    }
+
+    .status-pill::before {
+        content: '';
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .status-active {
+        background: var(--green-50);
+        color: var(--green-600);
+    }
+
+    .status-active::before {
+        background: var(--green-600);
+    }
+
+    .status-inactive {
+        background: var(--gray-100);
+        color: var(--gray-500);
+    }
+
+    .status-inactive::before {
+        background: var(--gray-400);
+    }
+
+    /* ── Action buttons ── */
+    .btn-primary-solid {
+        background: var(--blue-600);
+        color: #fff;
+        border: none;
+        padding: 0.4375rem 0.875rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        transition: background 0.15s;
+        cursor: pointer;
+    }
+
+    .btn-primary-solid:hover {
+        background: #1D4ED8;
+        color: #fff;
+    }
+
+    .btn-success-solid {
+        background: var(--green-600);
+        color: #fff;
+        border: none;
+        padding: 0.4375rem 0.875rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        transition: background 0.15s;
+        cursor: pointer;
+    }
+
+    .btn-success-solid:hover {
+        background: #15803D;
+        color: #fff;
+    }
+
+    .btn-outline-soft {
+        background: #fff;
+        color: var(--gray-700);
+        border: var(--border);
+        padding: 0.4375rem 0.875rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        transition: background 0.15s;
+        cursor: pointer;
+    }
+
+    .btn-outline-soft:hover {
+        background: var(--gray-100);
+        color: var(--gray-900);
+    }
+
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        border: var(--border);
+        background: #fff;
+        border-radius: 6px;
+        color: var(--gray-500);
+        font-size: 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.12s;
+    }
+
+    .btn-icon:hover {
+        background: var(--gray-100);
+        color: var(--gray-900);
+    }
+
+    .profile-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    /* ── Stat grid ── */
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    @media (max-width: 1100px) {
+        .stat-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .stat-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .stat-card {
+        background: #fff;
+        border: var(--border);
+        border-radius: var(--radius);
+        padding: 1rem 1.125rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .stat-card .s-label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--gray-500);
+        margin-bottom: 0.375rem;
+    }
+
+    .stat-card .s-value {
+        font-size: 1.375rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        line-height: 1;
+    }
+
+    .stat-card .s-value.red {
+        color: var(--red-600);
+    }
+
+    .stat-card .s-value.green {
+        color: var(--green-600);
+    }
+
+    .stat-card .s-value.blue {
+        color: var(--blue-600);
+    }
+
+    .stat-card .s-sub {
+        font-size: 0.6875rem;
+        color: var(--gray-400);
+        margin-top: 0.25rem;
+    }
+
+    .stat-card .s-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 7px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8125rem;
+        margin-bottom: 0.625rem;
+    }
+
+    .s-icon.blue {
+        background: var(--blue-50);
+        color: var(--blue-600);
+    }
+
+    .s-icon.green {
+        background: var(--green-50);
+        color: var(--green-600);
+    }
+
+    .s-icon.red {
+        background: var(--red-50);
+        color: var(--red-600);
+    }
+
+    .s-icon.amber {
+        background: #FFFBEB;
+        color: var(--amber-600);
+    }
+
+    .s-icon.gray {
+        background: var(--gray-100);
+        color: var(--gray-500);
+    }
+
+    /* ── Tabs ── */
+    .tab-nav {
+        display: flex;
+        border-bottom: var(--border);
+        background: #fff;
+        padding: 0 1.25rem;
+    }
+
+    .tab-btn {
+        padding: 0.75rem 0.25rem;
+        margin-right: 1.5rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--gray-500);
+        border: none;
+        background: none;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        transition: color 0.15s, border-color 0.15s;
+        white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+        color: var(--gray-900);
+    }
+
+    .tab-btn.active {
+        color: var(--blue-600);
+        border-bottom-color: var(--blue-600);
+        font-weight: 600;
+    }
+
+    .tab-btn .tab-count {
+        background: var(--gray-100);
+        color: var(--gray-500);
+        border-radius: 20px;
+        padding: 0 0.375rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        line-height: 1.5;
+    }
+
+    .tab-btn.active .tab-count {
+        background: var(--blue-50);
+        color: var(--blue-600);
+    }
+
+    /* ── Tab panels ── */
+    .tab-panel {
+        display: none;
+    }
+
+    .tab-panel.active {
+        display: block;
+    }
+
+    /* ── Data table ── */
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table thead th {
+        padding: 0.5rem 0.875rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--gray-500);
+        background: var(--gray-50);
+        border-bottom: var(--border);
+        white-space: nowrap;
+    }
+
+    .data-table thead th:first-child {
+        padding-left: 1.25rem;
+    }
+
+    .data-table thead th:last-child {
+        padding-right: 1.25rem;
+    }
+
+    .data-table tbody tr {
+        border-bottom: var(--border);
+        transition: background 0.1s;
+    }
+
+    .data-table tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .data-table tbody tr:hover {
+        background: var(--gray-50);
+    }
+
+    .data-table tbody td {
+        padding: 0.6875rem 0.875rem;
+        font-size: 0.8125rem;
+        color: var(--gray-700);
+        vertical-align: middle;
+    }
+
+    .data-table tbody td:first-child {
+        padding-left: 1.25rem;
+    }
+
+    .data-table tbody td:last-child {
+        padding-right: 1.25rem;
+    }
+
+    .data-table .empty td {
+        text-align: center;
+        padding: 2.5rem;
+        color: var(--gray-400);
+    }
+
+    /* ── Pill badges ── */
+    .pill {
+        display: inline-block;
+        padding: 0.125rem 0.5rem;
+        border-radius: 20px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+    }
+
+    .pill-blue {
+        background: var(--blue-50);
+        color: var(--blue-600);
+    }
+
+    .pill-green {
+        background: var(--green-50);
+        color: var(--green-600);
+    }
+
+    .pill-red {
+        background: var(--red-50);
+        color: var(--red-600);
+    }
+
+    .pill-amber {
+        background: #FFFBEB;
+        color: var(--amber-600);
+    }
+
+    .pill-gray {
+        background: var(--gray-100);
+        color: var(--gray-500);
+    }
+
+    .pill-purple {
+        background: #F5F3FF;
+        color: #7C3AED;
+    }
+
+    .pill-teal {
+        background: #F0FDFA;
+        color: #0F766E;
+    }
+
+    /* ── Ledger ── */
+    .debit-val {
+        color: var(--red-600);
+        font-weight: 600;
+    }
+
+    .credit-val {
+        color: var(--green-600);
+        font-weight: 600;
+    }
+
+    .balance-val {
+        font-weight: 600;
+    }
+
+    /* ── Receipt link button ── */
+    .act-btn {
+        width: 28px;
+        height: 28px;
+        border: var(--border);
+        background: #fff;
+        border-radius: 5px;
+        color: var(--gray-500);
+        font-size: 0.6875rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: all 0.12s;
+    }
+
+    .act-btn:hover {
+        background: var(--gray-100);
+        color: var(--gray-900);
+    }
+
+    /* ── Notes panel ── */
+    .notes-body {
+        padding: 1rem 1.25rem;
+        font-size: 0.8125rem;
+        color: var(--gray-700);
+        line-height: 1.6;
+        white-space: pre-wrap;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+        padding: 3rem 1.25rem;
+        text-align: center;
+        color: var(--gray-400);
+        font-size: 0.8125rem;
+    }
+
+    .empty-state i {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        display: block;
+        opacity: 0.4;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url_for('customers.index') }}">Customers</a></li>
-                <li class="breadcrumb-item active">{{ customer.full_name }}</li>
-            </ol>
-        </nav>
-    </div>
+
+<!-- Breadcrumb -->
+<div class="breadcrumb-bar">
+    <a href="{{ url_for('customers.index') }}"><i class="fas fa-users" style="font-size:0.75rem;"></i> Customers</a>
+    <span class="sep"><i class="fas fa-chevron-right" style="font-size:0.6rem;"></i></span>
+    <span class="current">{{ customer.full_name }}</span>
 </div>
 
-<!-- Customer Header -->
-<div class="card mb-4">
-    <div class="card-body">
-        <div class="row align-items-center">
-            <div class="col-auto">
-                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
-                    style="width: 64px; height: 64px; font-size: 1.5rem; font-weight: 600;">
-                    {{ customer.full_name[0].upper() }}
-                </div>
-            </div>
-            <div class="col">
-                <h3 class="mb-1">{{ customer.full_name }}</h3>
-                <div class="text-muted">
-                    {% if customer.phone %}<i class="fas fa-phone me-1"></i> {{ customer.phone }} &nbsp;{% endif %}
-                    {% if customer.email %}<i class="fas fa-envelope me-1"></i> {{ customer.email }}{% endif %}
-                </div>
-                {% if customer.address %}
-                <div class="text-muted small mt-1"><i class="fas fa-map-marker-alt me-1"></i> {{ customer.address }}
-                </div>
+<!-- Profile Hero -->
+<div class="profile-hero">
+    <div class="profile-identity">
+        <div class="profile-avatar">{{ customer.full_name[0] | upper }}</div>
+        <div>
+            <div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:0.125rem;">
+                <div class="profile-name">{{ customer.full_name }}</div>
+                {% if customer.status.value == 'Active' %}
+                <span class="status-pill status-active">Active</span>
+                {% else %}
+                <span class="status-pill status-inactive">Inactive</span>
                 {% endif %}
             </div>
-            <div class="col-auto">
-                <span
-                    class="badge {% if customer.status.value == 'Active' %}bg-success{% else %}bg-secondary{% endif %} fs-6">
-                    {{ customer.status.value }}
-                </span>
-            </div>
-            <div class="col-auto">
-                <a href="{{ url_for('customers.receive_payment', customer_id=customer.id) }}"
-                    class="btn btn-success me-2">
-                    <i class="fas fa-money-bill-wave me-1"></i> Receive Payment
-                </a>
-                <a href="{{ url_for('customers.edit', customer_id=customer.id) }}" class="btn btn-outline-primary me-2">
-                    <i class="fas fa-edit me-1"></i> Edit
-                </a>
-                <form action="{{ url_for('customers.recalculate_balance', customer_id=customer.id) }}" method="POST"
-                    class="d-inline"
-                    onsubmit="return confirm('Recalculate balance based on all invoices and payments?');">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-outline-warning" title="Recalculate Ledger">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </form>
+            <div class="profile-meta">
+                {% if customer.phone %}
+                <span class="meta-item"><i class="fas fa-phone"></i> {{ customer.phone }}</span>
+                {% endif %}
+                {% if customer.email %}
+                <span class="meta-item"><i class="fas fa-envelope"></i> {{ customer.email }}</span>
+                {% endif %}
+                {% if customer.address %}
+                <span class="meta-item"><i class="fas fa-map-marker-alt"></i> {{ customer.address }}</span>
+                {% endif %}
             </div>
         </div>
+    </div>
+
+    <div class="profile-actions">
+        <a href="{{ url_for('customers.receive_payment', customer_id=customer.id) }}" class="btn-success-solid">
+            <i class="fas fa-money-bill-wave" style="font-size:0.75rem;"></i> Receive Payment
+        </a>
+        <a href="{{ url_for('customers.edit', customer_id=customer.id) }}" class="btn-outline-soft">
+            <i class="fas fa-pencil-alt" style="font-size:0.75rem;"></i> Edit
+        </a>
+        <form action="{{ url_for('customers.recalculate_balance', customer_id=customer.id) }}" method="POST"
+            style="display:inline;" onsubmit="return confirm('Recalculate balance from all invoices and payments?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-icon" title="Recalculate ledger balance">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </form>
     </div>
 </div>
 
-<!-- Stats Cards -->
-<div class="row row-cols-1 row-cols-md-3 g-4 mb-4">
-    <div class="col">
-        <div class="card stat-card outstanding h-100">
-            <div class="card-body">
-                <div class="text-muted small">Outstanding Balance</div>
-                <div
-                    class="stat-value {% if customer.get_current_debt() > 0 %}text-danger{% else %}text-success{% endif %}">
-                    {{ format_currency(customer.get_current_debt()) }}
-                </div>
-            </div>
+<!-- Stat Cards -->
+{% set debt = customer.get_current_debt() %}
+{% set credit = customer.get_available_credit() %}
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="s-icon {% if debt > 0 %}red{% else %}green{% endif %}">
+            <i class="fas fa-file-invoice-dollar"></i>
         </div>
+        <div class="s-label">Outstanding</div>
+        <div class="s-value {% if debt > 0 %}red{% elif debt == 0 %}green{% endif %}">
+            {{ format_currency(debt) }}
+        </div>
+        <div class="s-sub">{% if debt > 0 %}Amount owed{% else %}No balance due{% endif %}</div>
     </div>
-    <div class="col">
-        <div class="card stat-card credit h-100">
-            <div class="card-body">
-                <div class="text-muted small">Credit Balance</div>
-                <div class="stat-value text-success">
-                    {{ format_currency(customer.get_available_credit()) }}
-                </div>
-                <div class="text-muted small">Available for future use</div>
-            </div>
-        </div>
+    <div class="stat-card">
+        <div class="s-icon green"><i class="fas fa-wallet"></i></div>
+        <div class="s-label">Credit Balance</div>
+        <div class="s-value {% if credit > 0 %}green{% endif %}">{{ format_currency(credit) }}</div>
+        <div class="s-sub">Available to use</div>
     </div>
-    <div class="col">
-        <div class="card stat-card invoices h-100">
-            <div class="card-body">
-                <div class="text-muted small">Unpaid Invoices</div>
-                <div class="stat-value text-primary">
-                    {{ unpaid_invoices|length }}
-                </div>
-                <div class="text-muted small">Pending payment</div>
-            </div>
+    <div class="stat-card">
+        <div class="s-icon amber"><i class="fas fa-file-alt"></i></div>
+        <div class="s-label">Unpaid Invoices</div>
+        <div class="s-value {% if unpaid_invoices|length > 0 %}red{% else %}green{% endif %}">
+            {{ unpaid_invoices | length }}
         </div>
+        <div class="s-sub">Pending payment</div>
     </div>
-    <div class="col">
-        <div class="card stat-card orders h-100">
-            <div class="card-body">
-                <div class="text-muted small">Total Orders</div>
-                <div class="stat-value text-warning" style="color: #fd7e14 !important;">
-                    {{ total_orders }}
-                </div>
-                <div class="text-muted small">Lifetime purchases</div>
-            </div>
-        </div>
+    <div class="stat-card">
+        <div class="s-icon gray"><i class="fas fa-shopping-bag"></i></div>
+        <div class="s-label">Total Orders</div>
+        <div class="s-value">{{ total_orders }}</div>
+        <div class="s-sub">Lifetime purchases</div>
     </div>
-    <div class="col">
-        <div class="card stat-card spent h-100">
-            <div class="card-body">
-                <div class="text-muted small">Total Spent</div>
-                <div class="stat-value text-info" style="color: #6f42c1 !important;">
-                    {{ format_currency(total_spent) }}
-                </div>
-                <div class="text-muted small">Lifetime value</div>
-            </div>
-        </div>
+    <div class="stat-card">
+        <div class="s-icon blue"><i class="fas fa-chart-line"></i></div>
+        <div class="s-label">Total Spent</div>
+        <div class="s-value blue">{{ format_currency(total_spent) }}</div>
+        <div class="s-sub">Lifetime value</div>
     </div>
 </div>
 
 <!-- Tabs -->
-<ul class="nav nav-tabs" id="customerTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="invoices-tab" data-bs-toggle="tab" data-bs-target="#invoices" type="button"
-            role="tab">
-            <i class="fas fa-file-invoice me-1"></i> Invoices
+<div class="panel">
+    <div class="tab-nav" id="tabNav">
+        <button class="tab-btn active" data-target="tab-invoices">
+            <i class="fas fa-file-invoice"></i> Invoices
+            <span class="tab-count">{{ invoices | length }}</span>
         </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button"
-            role="tab">
-            <i class="fas fa-money-bill-wave me-1"></i> Payments
+        <button class="tab-btn" data-target="tab-payments">
+            <i class="fas fa-money-bill-wave"></i> Payments
+            <span class="tab-count">{{ payments | length }}</span>
         </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="ledger-tab" data-bs-toggle="tab" data-bs-target="#ledger" type="button" role="tab">
-            <i class="fas fa-book me-1"></i> Ledger
+        <button class="tab-btn" data-target="tab-ledger" id="ledger-tab-btn">
+            <i class="fas fa-book"></i> Ledger
+            <span class="tab-count">{{ ledger_entries | length }}</span>
         </button>
-    </li>
-</ul>
-
-<div class="tab-content border border-top-0 rounded-bottom" id="customerTabsContent">
-    <!-- Invoices Tab -->
-    <div class="tab-pane fade show active p-3" id="invoices" role="tabpanel">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Invoice #</th>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th class="text-end">Total</th>
-                        <th class="text-end">Paid</th>
-                        <th class="text-end">Due</th>
-                        <th>Status</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for sale in invoices %}
-                    <tr>
-                        <td><strong>{{ sale.invoice_no or sale.id }}</strong></td>
-                        <td>{{ sale.created_at.strftime('%b %d, %Y %H:%M') }}</td>
-                        <td>
-                            {% if sale.sale_type %}
-                            <span
-                                class="badge bg-{% if sale.sale_type.value == 'Wholesale' %}warning text-dark{% else %}info{% endif %}">
-                                {{ sale.sale_type.value }}
-                            </span>
-                            {% else %}
-                            <span class="badge bg-info">Retail</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-end">{{ format_currency(sale.grand_total) }}</td>
-                        <td class="text-end">{{ format_currency(sale.amount_paid) }}</td>
-                        <td class="text-end">{{ format_currency(sale.amount_due or 0) }}</td>
-                        <td>
-                            {% if sale.invoice_status %}
-                            <span
-                                class="badge bg-{% if sale.invoice_status.value == 'Paid' %}success{% elif sale.invoice_status.value == 'Partial' %}warning text-dark{% else %}danger{% endif %}">
-                                {{ sale.invoice_status.value }}
-                            </span>
-                            {% else %}
-                            <span class="badge bg-success">Paid</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}"
-                                class="btn btn-sm btn-outline-secondary" target="_blank">
-                                <i class="fas fa-receipt"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="8" class="text-center text-muted py-4">No invoices found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
     </div>
 
-    <!-- Payments Tab -->
-    <div class="tab-pane fade p-3" id="payments" role="tabpanel">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Date</th>
-                        <th>Invoice</th>
-                        <th>Method</th>
-                        <th class="text-end">Amount</th>
-                        <th>Reference</th>
-                        <th>Note</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for payment in payments %}
-                    <tr>
-                        <td>{{ payment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
-                        <td>
-                            {% if payment.sale %}
-                            <a href="{{ url_for('sales.receipt', sale_id=payment.sale_id) }}" target="_blank">
-                                {{ payment.sale.invoice_no or payment.sale_id }}
-                            </a>
-                            {% else %}
-                            -
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% set method = payment.payment_method %}
-                            {% set method_str = method.value if method.value is defined else method|string %}
-
-                            {% if method_str == 'Cash' or method_str == 'CASH' %}
-                            <span class="badge bg-secondary">Cash</span>
-                            {% elif method_str == 'Card' or method_str == 'CARD' %}
-                            <span class="badge bg-info text-white">Card</span>
-                            {% elif method_str in ['E-Dahab', 'E_DAHAB'] %}
-                            <span class="badge" style="background-color: #f59e0b; color: white;">E-Dahab</span>
-                            {% elif method_str in ['Zaad', 'ZAAD'] %}
-                            <span class="badge" style="background-color: #10b981; color: white;">Zaad</span>
-                            {% elif method_str in ['Store Credit', 'STORE_CREDIT'] or not method_str %}
-                            <span class="badge" style="background-color: #6f42c1; color: white;">Credit</span>
-                            {% elif method_str in ['Mobile Money', 'MOBILE_MONEY'] %}
-                            <span class="badge bg-success">Mobile</span>
-                            {% else %}
-                            <span class="badge bg-dark">{{ method_str }}</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-end text-success fw-semibold">{{ format_currency(payment.amount) }}</td>
-                        <td>{{ payment.reference or '-' }}</td>
-                        <td>{{ payment.note or '-' }}</td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center text-muted py-4">No payments found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <!-- Invoices -->
+    <div class="tab-panel active" id="tab-invoices">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Invoice #</th>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th style="text-align:right;">Total</th>
+                    <th style="text-align:right;">Paid</th>
+                    <th style="text-align:right;">Due</th>
+                    <th>Status</th>
+                    <th style="text-align:right;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in invoices %}
+                <tr>
+                    <td>
+                        <span style="font-weight:600;color:var(--gray-900);">{{ sale.invoice_no or ('#' ~ sale.id)
+                            }}</span>
+                    </td>
+                    <td style="color:var(--gray-500);">{{ sale.created_at.strftime('%b %d, %Y') }}</td>
+                    <td>
+                        {% if sale.sale_type and sale.sale_type.value == 'Wholesale' %}
+                        <span class="pill pill-amber">Wholesale</span>
+                        {% else %}
+                        <span class="pill pill-blue">Retail</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right;font-weight:600;">{{ format_currency(sale.grand_total) }}</td>
+                    <td style="text-align:right;color:var(--green-600);">{{ format_currency(sale.amount_paid) }}</td>
+                    <td style="text-align:right;">
+                        {% if sale.amount_due and sale.amount_due > 0 %}
+                        <span style="color:var(--red-600);font-weight:600;">{{ format_currency(sale.amount_due)
+                            }}</span>
+                        {% else %}
+                        <span style="color:var(--gray-400);">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if sale.invoice_status %}
+                        {% set s = sale.invoice_status.value %}
+                        {% if s == 'Paid' %}
+                        <span class="pill pill-green">Paid</span>
+                        {% elif s == 'Partial' %}
+                        <span class="pill pill-amber">Partial</span>
+                        {% else %}
+                        <span class="pill pill-red">Unpaid</span>
+                        {% endif %}
+                        {% else %}
+                        <span class="pill pill-green">Paid</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right;">
+                        <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}" class="act-btn" target="_blank"
+                            title="View receipt">
+                            <i class="fas fa-receipt"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr class="empty">
+                    <td colspan="8">
+                        <div class="empty-state">
+                            <i class="fas fa-file-invoice"></i>
+                            No invoices on record.
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
-    <!-- Ledger Tab -->
-    <div class="tab-pane fade p-3" id="ledger" role="tabpanel">
-        <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th class="text-end">Debit</th>
-                        <th class="text-end">Credit</th>
-                        <th class="text-end">Balance</th>
-                        <th>Note</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for entry in ledger_entries %}
-                    <tr>
-                        <td class="small">{{ entry.created_at.strftime('%b %d, %Y %H:%M') }}</td>
-                        <td>
-                            <span
-                                class="badge bg-{% if entry.entry_type.value == 'Invoice' %}primary{% elif entry.entry_type.value == 'Payment' %}success{% else %}secondary{% endif %}">
-                                {{ entry.entry_type.value }}
-                            </span>
-                        </td>
-                        <td class="text-end ledger-debit">
-                            {% if entry.debit > 0 %}{{ format_currency(entry.debit) }}{% endif %}
-                        </td>
-                        <td class="text-end ledger-credit">
-                            {% if entry.credit > 0 %}{{ format_currency(entry.credit) }}{% endif %}
-                        </td>
-                        <td class="text-end fw-semibold">{{ format_currency(entry.balance_after) }}</td>
-                        <td class="small">{{ entry.note or '-' }}</td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center text-muted py-4">No ledger entries found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <!-- Payments -->
+    <div class="tab-panel" id="tab-payments">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Invoice</th>
+                    <th>Method</th>
+                    <th style="text-align:right;">Amount</th>
+                    <th>Reference</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td style="color:var(--gray-500);">{{ payment.created_at.strftime('%b %d, %Y') }}</td>
+                    <td>
+                        {% if payment.sale %}
+                        <a href="{{ url_for('sales.receipt', sale_id=payment.sale_id) }}" target="_blank"
+                            style="color:var(--blue-600);font-weight:600;text-decoration:none;">
+                            {{ payment.sale.invoice_no or ('#' ~ payment.sale_id) }}
+                        </a>
+                        {% else %}
+                        <span style="color:var(--gray-400);">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% set method = payment.payment_method %}
+                        {% set ms = method.value if method.value is defined else method | string %}
+                        {% if ms in ['Cash', 'CASH'] %}
+                        <span class="pill pill-gray">Cash</span>
+                        {% elif ms in ['Card', 'CARD'] %}
+                        <span class="pill pill-blue">Card</span>
+                        {% elif ms in ['E-Dahab', 'E_DAHAB'] %}
+                        <span class="pill pill-amber">E-Dahab</span>
+                        {% elif ms in ['Zaad', 'ZAAD'] %}
+                        <span class="pill pill-teal">Zaad</span>
+                        {% elif ms in ['Store Credit', 'STORE_CREDIT'] %}
+                        <span class="pill pill-purple">Credit</span>
+                        {% elif ms in ['Mobile Money', 'MOBILE_MONEY'] %}
+                        <span class="pill pill-green">Mobile</span>
+                        {% else %}
+                        <span class="pill pill-gray">{{ ms }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right;">
+                        <span class="credit-val">{{ format_currency(payment.amount) }}</span>
+                    </td>
+                    <td style="color:var(--gray-500);">{{ payment.reference or '—' }}</td>
+                    <td style="color:var(--gray-500);">{{ payment.note or '—' }}</td>
+                </tr>
+                {% else %}
+                <tr class="empty">
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <i class="fas fa-money-bill-wave"></i>
+                            No payments recorded.
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Ledger -->
+    <div class="tab-panel" id="tab-ledger">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th style="text-align:right;">Debit</th>
+                    <th style="text-align:right;">Credit</th>
+                    <th style="text-align:right;">Balance</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in ledger_entries %}
+                <tr>
+                    <td style="color:var(--gray-500);white-space:nowrap;">
+                        {{ entry.created_at.strftime('%b %d, %Y %H:%M') }}
+                    </td>
+                    <td>
+                        {% set et = entry.entry_type.value %}
+                        {% if et == 'Invoice' %}
+                        <span class="pill pill-blue">Invoice</span>
+                        {% elif et == 'Payment' %}
+                        <span class="pill pill-green">Payment</span>
+                        {% else %}
+                        <span class="pill pill-gray">{{ et }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right;">
+                        {% if entry.debit > 0 %}
+                        <span class="debit-val">{{ format_currency(entry.debit) }}</span>
+                        {% else %}
+                        <span style="color:var(--gray-300);">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right;">
+                        {% if entry.credit > 0 %}
+                        <span class="credit-val">{{ format_currency(entry.credit) }}</span>
+                        {% else %}
+                        <span style="color:var(--gray-300);">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right;">
+                        <span
+                            class="balance-val {% if entry.balance_after > 0 %}debit-val{% elif entry.balance_after < 0 %}credit-val{% endif %}">
+                            {{ format_currency(entry.balance_after) }}
+                        </span>
+                    </td>
+                    <td style="color:var(--gray-500);font-size:0.75rem;">{{ entry.note or '—' }}</td>
+                </tr>
+                {% else %}
+                <tr class="empty">
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <i class="fas fa-book"></i>
+                            No ledger entries found.
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 
+<!-- Notes -->
 {% if customer.notes %}
-<div class="card mt-4">
-    <div class="card-header"><i class="fas fa-sticky-note me-1"></i> Notes</div>
-    <div class="card-body">{{ customer.notes }}</div>
+<div class="panel" style="margin-top:1rem;">
+    <div class="panel-header">
+        <h5 class="panel-title"><i class="fas fa-sticky-note"></i> Notes</h5>
+    </div>
+    <div class="notes-body">{{ customer.notes }}</div>
 </div>
 {% endif %}
+
+<script>
+    // Tab switching
+    (function () {
+        var nav = document.getElementById('tabNav');
+        nav.addEventListener('click', function (e) {
+            var btn = e.target.closest('.tab-btn');
+            if (!btn) return;
+            nav.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+            document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.target).classList.add('active');
+        });
+
+        // Deep-link to ledger via #ledger in URL
+        if (window.location.hash === '#ledger') {
+            document.getElementById('ledger-tab-btn').click();
+            setTimeout(function () {
+                document.getElementById('tab-ledger').scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+    })();
+</script>
 {% endblock %}

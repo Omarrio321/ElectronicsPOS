@@ -4,376 +4,770 @@
 
 {% block head %}
 <style>
-    .customer-card {
-        transition: all 0.2s ease;
+    :root {
+        --blue-600: #2563EB;
+        --blue-500: #3B82F6;
+        --blue-50:  #EFF6FF;
+        --blue-100: #DBEAFE;
+        --gray-50:  #F8FAFC;
+        --gray-100: #F1F5F9;
+        --gray-200: #E2E8F0;
+        --gray-400: #94A3B8;
+        --gray-500: #64748B;
+        --gray-700: #334155;
+        --gray-900: #0F172A;
+        --green-600: #16A34A;
+        --red-600:   #DC2626;
+        --red-50:    #FEF2F2;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+        --border:    1px solid var(--gray-200);
+        --radius:    8px;
     }
 
-    .customer-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    body { background: var(--gray-50); }
+
+    /* ── Page header ── */
+    .page-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.75rem;
+    }
+    .page-header h1 {
+        font-size: 1.375rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin: 0;
+        letter-spacing: -0.01em;
+    }
+    .page-header .sub {
+        font-size: 0.8125rem;
+        color: var(--gray-500);
+        margin-top: 2px;
+    }
+    .page-actions { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
+
+    /* ── Buttons ── */
+    .btn-primary-solid {
+        background: var(--blue-600);
+        color: #fff;
+        border: none;
+        padding: 0.4375rem 0.875rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        transition: background 0.15s;
+        cursor: pointer;
+    }
+    .btn-primary-solid:hover { background: #1D4ED8; color: #fff; }
+
+    .btn-outline-soft {
+        background: #fff;
+        color: var(--gray-700);
+        border: var(--border);
+        padding: 0.4375rem 0.875rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        transition: background 0.15s, border-color 0.15s;
+        cursor: pointer;
+    }
+    .btn-outline-soft:hover { background: var(--gray-100); border-color: var(--gray-300); color: var(--gray-900); }
+
+    /* ── Stat cards ── */
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    @media (max-width: 1024px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 576px)  { .stat-grid { grid-template-columns: 1fr; } }
+
+    .stat-card {
+        background: #fff;
+        border: var(--border);
+        border-radius: var(--radius);
+        padding: 1.125rem 1.25rem;
+        box-shadow: var(--shadow-sm);
+    }
+    .stat-card .label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--gray-500);
+        margin-bottom: 0.375rem;
+    }
+    .stat-card .value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+    .stat-card .value.blue   { color: var(--blue-600); }
+    .stat-card .value.green  { color: var(--green-600); }
+    .stat-card .value.red    { color: var(--red-600); }
+    .stat-card .icon-wrap {
+        width: 36px; height: 36px;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.875rem;
+        flex-shrink: 0;
+        margin-bottom: 0.75rem;
+        background: var(--blue-50);
+        color: var(--blue-600);
+    }
+    .stat-card .icon-wrap.green { background: #F0FDF4; color: var(--green-600); }
+    .stat-card .icon-wrap.red   { background: var(--red-50); color: var(--red-600); }
+    .stat-card .icon-wrap.amber { background: #FFFBEB; color: #D97706; }
+    .stat-card .secondary-row {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+        margin-top: 0.25rem;
     }
 
-    .balance-positive {
-        color: #dc3545;
+    /* secondary stat strip (row 2) */
+    .stat-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    @media (max-width: 1024px) { .stat-strip { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 576px)  { .stat-strip { grid-template-columns: 1fr; } }
+
+    .strip-card {
+        background: #fff;
+        border: var(--border);
+        border-radius: var(--radius);
+        padding: 0.875rem 1.25rem;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .strip-card .s-label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--gray-500);
+    }
+    .strip-card .s-val {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-top: 2px;
+    }
+    .strip-card .s-val.blue  { color: var(--blue-600); }
+    .strip-card .s-val.green { color: var(--green-600); }
+
+    /* ── Cards (panels) ── */
+    .panel {
+        background: #fff;
+        border: var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+    .panel-header {
+        padding: 0.875rem 1.25rem;
+        border-bottom: var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .panel-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .panel-title i { color: var(--blue-600); }
+
+    /* ── Tables ── */
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table thead th {
+        padding: 0.5rem 0.875rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--gray-500);
+        background: var(--gray-50);
+        border-bottom: var(--border);
+        white-space: nowrap;
+    }
+    .data-table thead th:first-child { padding-left: 1.25rem; }
+    .data-table thead th:last-child  { padding-right: 1.25rem; }
+    .data-table tbody tr { border-bottom: var(--border); transition: background 0.1s; }
+    .data-table tbody tr:last-child { border-bottom: none; }
+    .data-table tbody tr:hover { background: var(--gray-50); }
+    .data-table tbody tr.row-debt { background: #FEF2F2; }
+    .data-table tbody tr.row-debt:hover { background: #FEE2E2; }
+    .data-table tbody td {
+        padding: 0.6875rem 0.875rem;
+        font-size: 0.8125rem;
+        color: var(--gray-700);
+        vertical-align: middle;
+    }
+    .data-table tbody td:first-child { padding-left: 1.25rem; }
+    .data-table tbody td:last-child  { padding-right: 1.25rem; }
+
+    /* ── Badges ── */
+    .badge-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.1875rem 0.5rem;
+        border-radius: 20px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+    }
+    .badge-status::before {
+        content: '';
+        width: 5px; height: 5px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .badge-active  { background: #F0FDF4; color: #15803D; }
+    .badge-active::before { background: #16A34A; }
+    .badge-inactive { background: var(--gray-100); color: var(--gray-500); }
+    .badge-inactive::before { background: var(--gray-400); }
+
+    .debt-badge {
+        display: inline-block;
+        background: var(--red-50);
+        color: var(--red-600);
+        border: 1px solid #FECACA;
+        border-radius: 4px;
+        padding: 0.125rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .credit-text {
+        color: var(--green-600);
+        font-size: 0.75rem;
         font-weight: 600;
     }
 
-    .balance-zero {
-        color: #198754;
+    /* ── Rank badge ── */
+    .rank-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px; height: 24px;
+        border-radius: 50%;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        background: var(--blue-50);
+        color: var(--blue-600);
     }
+    .rank-num.r1 { background: #FEF9C3; color: #854D0E; }
+    .rank-num.r2 { background: var(--gray-100); color: var(--gray-600); }
+    .rank-num.r3 { background: #FFF7ED; color: #9A3412; }
+
+    /* ── Avatar ── */
+    .avatar-xs {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        background: var(--blue-50);
+        color: var(--blue-600);
+        font-weight: 700;
+        font-size: 0.75rem;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+
+    /* ── Search / filter bar ── */
+    .filter-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .filter-input-wrap {
+        position: relative;
+        flex: 1;
+        min-width: 160px;
+        max-width: 240px;
+    }
+    .filter-input-wrap i {
+        position: absolute;
+        left: 0.625rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray-400);
+        font-size: 0.75rem;
+        pointer-events: none;
+    }
+    .filter-input {
+        width: 100%;
+        border: var(--border);
+        border-radius: 6px;
+        padding: 0.375rem 0.625rem 0.375rem 1.75rem;
+        font-size: 0.8125rem;
+        color: var(--gray-900);
+        background: #fff;
+        outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .filter-input:focus {
+        border-color: var(--blue-500);
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+    }
+    .filter-select {
+        border: var(--border);
+        border-radius: 6px;
+        padding: 0.375rem 1.75rem 0.375rem 0.625rem;
+        font-size: 0.8125rem;
+        color: var(--gray-700);
+        background: #fff;
+        outline: none;
+        transition: border-color 0.15s;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.5rem center;
+        cursor: pointer;
+    }
+    .filter-select:focus { border-color: var(--blue-500); }
+    .btn-filter-go {
+        border: var(--border);
+        background: var(--gray-100);
+        color: var(--gray-600);
+        padding: 0.375rem 0.625rem;
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .btn-filter-go:hover { background: var(--gray-200); color: var(--gray-900); }
+
+    /* ── Row action buttons ── */
+    .row-actions { display: flex; gap: 0.25rem; justify-content: flex-end; }
+    .act-btn {
+        width: 28px; height: 28px;
+        border: var(--border);
+        background: #fff;
+        border-radius: 5px;
+        color: var(--gray-500);
+        font-size: 0.6875rem;
+        display: flex; align-items: center; justify-content: center;
+        text-decoration: none;
+        transition: background 0.12s, border-color 0.12s, color 0.12s;
+    }
+    .act-btn:hover { background: var(--gray-100); border-color: var(--gray-300); color: var(--gray-900); }
+    .act-btn.danger:hover { background: var(--red-50); border-color: #FECACA; color: var(--red-600); }
+
+    /* ── Pagination ── */
+    .pagination-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        padding: 0.875rem 1.25rem;
+        border-top: var(--border);
+    }
+    .pg-btn {
+        width: 30px; height: 30px;
+        border: var(--border);
+        background: #fff;
+        border-radius: 5px;
+        color: var(--gray-600);
+        font-size: 0.75rem;
+        display: flex; align-items: center; justify-content: center;
+        text-decoration: none;
+        transition: all 0.12s;
+    }
+    .pg-btn:hover { background: var(--gray-100); color: var(--gray-900); }
+    .pg-info {
+        padding: 0 0.625rem;
+        font-size: 0.75rem;
+        color: var(--gray-500);
+    }
+
+    /* ── Leaderboard metric dropdown ── */
+    .metric-btn {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--gray-600);
+        background: var(--gray-100);
+        border: var(--border);
+        border-radius: 6px;
+        padding: 0.3125rem 0.625rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    .metric-btn:hover { background: var(--gray-200); }
+
+    /* ── Empty state ── */
+    .empty-row td {
+        text-align: center;
+        padding: 2.5rem;
+        color: var(--gray-400);
+        font-size: 0.8125rem;
+    }
+
+    /* ── Progress bar (leaderboard) ── */
+    .lb-bar-track {
+        flex: 1;
+        height: 4px;
+        background: var(--gray-100);
+        border-radius: 2px;
+        overflow: hidden;
+        min-width: 60px;
+    }
+    .lb-bar-fill {
+        height: 100%;
+        border-radius: 2px;
+        background: var(--blue-500);
+        transition: width 0.3s ease;
+    }
+    .lb-bar-fill.debt { background: var(--red-600); }
+
+    /* ── Export dropdown override ── */
+    .dropdown-menu-sm {
+        min-width: 160px;
+        font-size: 0.8125rem;
+        border: var(--border);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        border-radius: 7px;
+        padding: 0.25rem;
+    }
+    .dropdown-menu-sm .dropdown-item {
+        border-radius: 5px;
+        padding: 0.4375rem 0.625rem;
+        font-size: 0.8125rem;
+        color: var(--gray-700);
+    }
+    .dropdown-menu-sm .dropdown-item:hover { background: var(--gray-100); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <h1><i class="fas fa-users me-2"></i>Customers Dashboard</h1>
-        <p class="text-muted">Manage your customer base and track performance.</p>
+
+<!-- ── Page Header ── -->
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-users me-2" style="color:var(--blue-600);font-size:1.1rem;"></i>Customers</h1>
+        <div class="sub">Manage your customer base and track outstanding balances.</div>
     </div>
-    <div class="col-md-4 text-end">
-        <!-- Export Dropdown -->
-        <div class="btn-group me-2">
-            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown"
-                aria-expanded="false">
-                <i class="fas fa-file-export me-1"></i> Export List
+    <div class="page-actions">
+        <!-- Export -->
+        <div class="dropdown">
+            <button class="btn-outline-soft dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-download" style="font-size:0.75rem;"></i> Export
             </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item"
-                        href="{{ url_for('customers.export_excel', search=search, status=status_filter) }}">
+            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-sm">
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('customers.export_excel', search=search, status=status_filter) }}">
                         <i class="fas fa-file-excel text-success me-2"></i>Excel (.xlsx)
-                    </a></li>
-                <li><a class="dropdown-item"
-                        href="{{ url_for('customers.export_pdf', search=search, status=status_filter) }}">
-                        <i class="fas fa-file-pdf text-danger me-2"></i>PDF
-                    </a></li>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('customers.export_pdf', search=search, status=status_filter) }}">
+                        <i class="fas fa-file-pdf text-danger me-2"></i>PDF Report
+                    </a>
+                </li>
             </ul>
         </div>
-        <a href="{{ url_for('customers.create') }}" class="btn btn-primary">
-            <i class="fas fa-user-plus me-1"></i> Add Customer
+        <a href="{{ url_for('customers.create') }}" class="btn-primary-solid">
+            <i class="fas fa-plus" style="font-size:0.75rem;"></i> Add Customer
         </a>
     </div>
 </div>
 
-<!-- 1. DASHBOARD OVERVIEW (CARDS) -->
+<!-- ── Stat Cards Row 1 ── -->
 {% if stats %}
-<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3 mb-4">
-    <!-- Row 1: Customer Base -->
-    <div class="col">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-                <div class="d-flex align-items-center mb-2">
-                    <div class="bg-primary bg-opacity-10 text-primary rounded p-2 me-3">
-                        <i class="fas fa-users fa-lg"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted mb-0 small text-uppercase fw-bold">Total Customers</h6>
-                        <h3 class="mb-0 fw-bold">{{ stats.total_customers }}</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="icon-wrap"><i class="fas fa-users"></i></div>
+        <div class="label">Total Customers</div>
+        <div class="value blue">{{ stats.total_customers }}</div>
     </div>
-    <div class="col">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-                <div class="d-flex align-items-center mb-2">
-                    <div class="bg-success bg-opacity-10 text-success rounded p-2 me-3">
-                        <i class="fas fa-user-check fa-lg"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted mb-0 small text-uppercase fw-bold">Active (30d)</h6>
-                        <h3 class="mb-0 fw-bold">{{ stats.active_customers }}</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="stat-card">
+        <div class="icon-wrap green"><i class="fas fa-user-check"></i></div>
+        <div class="label">Active (30 days)</div>
+        <div class="value green">{{ stats.active_customers }}</div>
     </div>
-    <div class="col">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-                <div class="d-flex align-items-center mb-2">
-                    <div class="bg-warning bg-opacity-10 text-warning rounded p-2 me-3">
-                        <i class="fas fa-exclamation-circle fa-lg"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted mb-0 small text-uppercase fw-bold">With Balance Due</h6>
-                        <h3 class="mb-0 fw-bold">{{ stats.balance_due_count }}</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="stat-card">
+        <div class="icon-wrap amber"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="label">With Balance Due</div>
+        <div class="value">{{ stats.balance_due_count }}</div>
     </div>
-    <div class="col">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-                <div class="d-flex align-items-center mb-2">
-                    <div class="bg-danger bg-opacity-10 text-danger rounded p-2 me-3">
-                        <i class="fas fa-hand-holding-usd fa-lg"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted mb-0 small text-uppercase fw-bold">Receivables</h6>
-                        <h3 class="mb-0 fw-bold text-danger">{{ format_currency(stats.total_outstanding) }}</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="stat-card">
+        <div class="icon-wrap red"><i class="fas fa-file-invoice-dollar"></i></div>
+        <div class="label">Total Receivables</div>
+        <div class="value red">{{ format_currency(stats.total_outstanding) }}</div>
     </div>
+</div>
 
-    <!-- Row 2: Monthly Financials -->
-    <div class="col">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-                <div class="text-muted small text-uppercase fw-bold mb-1">Paid This Month</div>
-                <h4 class="mb-0 text-success fw-bold">{{ format_currency(stats.paid_this_month) }}</h4>
-            </div>
+<!-- ── Stat Strip Row 2 ── -->
+<div class="stat-strip">
+    <div class="strip-card">
+        <div>
+            <div class="s-label">Paid This Month</div>
+            <div class="s-val green">{{ format_currency(stats.paid_this_month) }}</div>
         </div>
+        <i class="fas fa-check-circle" style="color:#16A34A;opacity:.25;font-size:1.5rem;"></i>
     </div>
-    <div class="col">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-                <div class="text-muted small text-uppercase fw-bold mb-1">Wholesale (Month)</div>
-                <h4 class="mb-0 text-info fw-bold">{{ format_currency(stats.wholesale_sales) }}</h4>
-            </div>
+    <div class="strip-card">
+        <div>
+            <div class="s-label">Wholesale (Month)</div>
+            <div class="s-val blue">{{ format_currency(stats.wholesale_sales) }}</div>
         </div>
+        <i class="fas fa-boxes" style="color:var(--blue-600);opacity:.2;font-size:1.5rem;"></i>
     </div>
-    <div class="col">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-                <div class="text-muted small text-uppercase fw-bold mb-1">Retail (Month)</div>
-                <h4 class="mb-0 text-primary fw-bold">{{ format_currency(stats.retail_sales) }}</h4>
-            </div>
+    <div class="strip-card">
+        <div>
+            <div class="s-label">Retail (Month)</div>
+            <div class="s-val blue">{{ format_currency(stats.retail_sales) }}</div>
         </div>
+        <i class="fas fa-shopping-cart" style="color:var(--blue-600);opacity:.2;font-size:1.5rem;"></i>
     </div>
-    <div class="col">
-        <div class="card h-100 border-0 shadow-sm"
-            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-            <div class="card-body">
-                <div class="small text-uppercase fw-bold mb-1 opacity-75">Top Customer (Month)</div>
-                {% if stats.top_customer %}
-                <h5 class="mb-0 fw-bold text-truncate">{{ stats.top_customer.full_name }}</h5>
-                <div class="small opacity-75">{{ format_currency(stats.top_customer.total_spent) }}</div>
-                {% else %}
-                <h5 class="mb-0">-</h5>
-                {% endif %}
-            </div>
+    <div class="strip-card">
+        <div>
+            <div class="s-label">Top Customer (Month)</div>
+            {% if stats.top_customer %}
+            <div class="s-val" style="font-size:0.875rem;">{{ stats.top_customer.full_name }}</div>
+            <div style="font-size:0.6875rem;color:var(--gray-500);margin-top:1px;">{{ format_currency(stats.top_customer.total_spent) }}</div>
+            {% else %}
+            <div class="s-val" style="color:var(--gray-400);">—</div>
+            {% endif %}
         </div>
+        <i class="fas fa-star" style="color:#D97706;opacity:.25;font-size:1.5rem;"></i>
     </div>
 </div>
 {% endif %}
 
-<div class="row mb-4">
-    <!-- 2. LEADERBOARD -->
-    <div class="col-lg-5 mb-4 mb-lg-0">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center py-3">
-                <h5 class="mb-0 fw-bold"><i class="fas fa-trophy text-warning me-2"></i>Leaderboard</h5>
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        {% if current_metric == 'top_spenders_month' %}Top Spenders (Month)
-                        {% elif current_metric == 'top_spenders_all' %}Top Spenders (All Time)
-                        {% elif current_metric == 'most_orders' %}Most Orders
-                        {% elif current_metric == 'most_owed' %}Highest Debt
-                        {% else %}Metric{% endif %}
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item"
-                                href="{{ url_for('customers.index', metric='top_spenders_month') }}">Top Spenders
-                                (Month)</a></li>
-                        <li><a class="dropdown-item"
-                                href="{{ url_for('customers.index', metric='top_spenders_all') }}">Top Spenders (All
-                                Time)</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('customers.index', metric='most_orders') }}">Most
-                                Orders</a></li>
-                        <li>
-                            <hr class="dropdown-divider">
-                        </li>
-                        <li><a class="dropdown-item text-danger"
-                                href="{{ url_for('customers.index', metric='most_owed') }}">Highest Debt</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead class="table-light small text-uppercase">
-                            <tr>
-                                <th class="ps-4">Rank</th>
-                                <th>Customer</th>
-                                <th class="text-end pe-4">Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in leaderboard %}
-                            <tr>
-                                <td class="ps-4 text-muted fw-bold">#{{ loop.index }}</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar-sm rounded-circle bg-light text-primary d-flex align-items-center justify-content-center me-2"
-                                            style="width: 32px; height: 32px; font-weight: bold;">
-                                            {{ row.name[0] }}
-                                        </div>
-                                        <a href="{{ url_for('customers.profile', customer_id=row.id) }}"
-                                            class="text-dark text-decoration-none fw-semibold">
-                                            {{ row.name }}
-                                        </a>
-                                    </div>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <div class="fw-bold text-dark">
-                                        {% if current_metric == 'most_orders' %}
-                                        {{ row.value }} Orders
-                                        {% else %}
-                                        {{ format_currency(row.value) }}
-                                        {% endif %}
-                                    </div>
-                                    <small class="text-muted">{{ row.label }}</small>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="3" class="text-center py-4 text-muted">No data available</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+<!-- ── Leaderboard (full-width) ── -->
+<div class="panel" style="margin-bottom:1rem;">
+    <div class="panel-header">
+        <h5 class="panel-title"><i class="fas fa-trophy"></i> Leaderboard</h5>
+        <div class="dropdown">
+            <button class="metric-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                {% if current_metric == 'top_spenders_month' %}Top Spenders — This Month
+                {% elif current_metric == 'top_spenders_all' %}Top Spenders — All Time
+                {% elif current_metric == 'most_orders' %}Most Orders
+                {% elif current_metric == 'most_owed' %}Highest Outstanding Debt
+                {% else %}Select Metric{% endif %}
+                <i class="fas fa-chevron-down" style="font-size:0.6rem;"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-sm">
+                <li><a class="dropdown-item" href="{{ url_for('customers.index', metric='top_spenders_month') }}">Top Spenders (Month)</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('customers.index', metric='top_spenders_all') }}">Top Spenders (All Time)</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('customers.index', metric='most_orders') }}">Most Orders</a></li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li><a class="dropdown-item" href="{{ url_for('customers.index', metric='most_owed') }}" style="color:var(--red-600);">Highest Debt</a></li>
+            </ul>
         </div>
     </div>
 
-    <!-- 3. MAIN CUSTOMER LIST -->
-    <div class="col-lg-7">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent border-0 py-3">
-                <div class="d-flex justify-content-between flex-wrap gap-2">
-                    <h5 class="mb-0 fw-bold"><i class="fas fa-list me-2"></i>Customer List</h5>
-
-                    <!-- Search Form -->
-                    <form method="GET" class="d-flex gap-2">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-white border-end-0"><i
-                                    class="fas fa-search text-muted"></i></span>
-                            <input type="text" name="search" class="form-control border-start-0 ps-0"
-                                placeholder="Find customer..." value="{{ search }}">
+    {% if leaderboard %}
+    {% set max_val = leaderboard[0].value if leaderboard[0].value > 0 else 1 %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width:52px;">#</th>
+                <th>Customer</th>
+                <th style="width:42%;">Distribution</th>
+                <th style="text-align:right; width:140px;">
+                    {% if current_metric == 'most_orders' %}Orders{% else %}Amount{% endif %}
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in leaderboard %}
+            {% set pct = ((row.value / max_val) * 100) | round | int %}
+            <tr>
+                <td>
+                    <span class="rank-num {% if loop.index == 1 %}r1{% elif loop.index == 2 %}r2{% elif loop.index == 3 %}r3{% endif %}">
+                        {{ loop.index }}
+                    </span>
+                </td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <div class="avatar-xs">{{ row.name[0] | upper }}</div>
+                        <div>
+                            <a href="{{ url_for('customers.profile', customer_id=row.id) }}"
+                               style="color:var(--gray-900);font-weight:600;text-decoration:none;font-size:0.8125rem;display:block;line-height:1.2;">
+                                {{ row.name }}
+                            </a>
+                            {% if row.label %}
+                            <span style="font-size:0.6875rem;color:var(--gray-400);">{{ row.label }}</span>
+                            {% endif %}
                         </div>
-                        <select name="status" class="form-select form-select-sm" style="width: auto;">
-                            <option value="">All</option>
-                            <option value="Active" {% if status_filter=='Active' %}selected{% endif %}>Active</option>
-                            <option value="Inactive" {% if status_filter=='Inactive' %}selected{% endif %}>Inactive
-                            </option>
-                            <option disabled>─────────</option>
-                            <option value="Debtors" {% if status_filter=='Debtors' %}selected{% endif %}
-                                style="color: #dc3545;">⚠ Owes Money</option>
-                        </select>
-                        <button type="submit" class="btn btn-sm btn-light border"><i
-                                class="fas fa-arrow-right"></i></button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light small text-uppercase">
-                            <tr>
-                                <th class="ps-3">Customer</th>
-                                <th>Contact</th>
-                                <th class="text-end">Balance</th>
-                                <th class="text-center">Status</th>
-                                <th class="text-end pe-3">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for customer in customers.items %}
-                            {% set debt = customer.get_current_debt() %}
-                            {% set credit = customer.get_available_credit() %}
-                            <tr class="{% if debt > 0 %}bg-danger bg-opacity-10{% endif %}">
-                                <td class="ps-3">
-                                    <a href="{{ url_for('customers.profile', customer_id=customer.id) }}"
-                                        class="text-dark fw-bold text-decoration-none">
-                                        {{ customer.full_name }}
-                                    </a>
-                                </td>
-                                <td class="small text-muted">
-                                    {% if customer.phone %}<i class="fas fa-phone me-1"></i>{{ customer.phone }}{% endif
-                                    %}
-                                </td>
-                                <td class="text-end">
-                                    {% if debt > 0 %}
-                                    <span class="badge bg-danger text-white">{{ format_currency(debt) }}</span>
-                                    {% elif credit > 0 %}
-                                    <span class="text-success small fw-bold">Cred: {{ format_currency(credit) }}</span>
-                                    {% else %}
-                                    <span class="text-muted small">-</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-center">
-                                    {% if customer.status.value == 'Active' %}
-                                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill"
-                                        style="font-size: 0.7em;">Active</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill"
-                                        style="font-size: 0.7em;">Inactive</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end pe-3">
-                                    <div class="btn-group">
-                                        <a href="{{ url_for('customers.profile', customer_id=customer.id) }}"
-                                            class="btn btn-sm btn-light" title="View"><i
-                                                class="fas fa-eye small"></i></a>
-                                        <a href="{{ url_for('customers.edit', customer_id=customer.id) }}"
-                                            class="btn btn-sm btn-light" title="Edit"><i
-                                                class="fas fa-pencil-alt small"></i></a>
-                                        {% if debt > 0 %}
-                                        <a href="{{ url_for('customers.profile', customer_id=customer.id) }}#ledger"
-                                            class="btn btn-sm btn-outline-danger" title="Print Statement"><i
-                                                class="fas fa-print small"></i></a>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">
-                                    No customers found matching criteria.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Pagination -->
-            {% if customers.pages > 1 %}
-            <div class="card-footer bg-transparent border-0 py-3">
-                <nav aria-label="Page navigation">
-                    <ul class="pagination pagination-sm justify-content-center mb-0">
-                        {% if customers.has_prev %}
-                        <li class="page-item">
-                            <a class="page-link"
-                                href="{{ url_for('customers.index', page=customers.prev_num, search=search, status=status_filter) }}">
-                                <i class="fas fa-chevron-left"></i>
-                            </a>
-                        </li>
+                    </div>
+                </td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:0.625rem;">
+                        <div class="lb-bar-track">
+                            <div class="lb-bar-fill {% if current_metric == 'most_owed' %}debt{% endif %}"
+                                 data-pct="{{ pct }}"></div>
+                        </div>
+                        <span style="font-size:0.6875rem;color:var(--gray-400);width:32px;text-align:right;flex-shrink:0;">{{ pct }}%</span>
+                    </div>
+                </td>
+                <td style="text-align:right;">
+                    <span style="font-weight:700;font-size:0.875rem;color:var(--gray-900);">
+                        {% if current_metric == 'most_orders' %}
+                            {{ row.value }}
+                        {% else %}
+                            {{ format_currency(row.value) }}
                         {% endif %}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="padding:2.5rem;text-align:center;color:var(--gray-400);font-size:0.8125rem;">
+        No data available for this period.
+    </div>
+    {% endif %}
+</div>
 
-                        <li class="page-item disabled"><span class="page-link">Pg {{ customers.page }} of {{
-                                customers.pages }}</span></li>
-
-                        {% if customers.has_next %}
-                        <li class="page-item">
-                            <a class="page-link"
-                                href="{{ url_for('customers.index', page=customers.next_num, search=search, status=status_filter) }}">
-                                <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </li>
-                        {% endif %}
-                    </ul>
-                </nav>
-            </div>
+<!-- ── Customer List (full-width, bottom) ── -->
+<div class="panel">
+    <div class="panel-header">
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+            <h5 class="panel-title"><i class="fas fa-users"></i> All Customers</h5>
+            {% if customers.total is defined %}
+            <span style="font-size:0.6875rem;color:var(--gray-400);background:var(--gray-100);padding:0.125rem 0.5rem;border-radius:20px;font-weight:600;">
+                {{ customers.total }} total
+            </span>
             {% endif %}
         </div>
+        <form method="GET" class="filter-bar">
+            <div class="filter-input-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" name="search" class="filter-input"
+                       placeholder="Search by name or phone…" value="{{ search }}">
+            </div>
+            <select name="status" class="filter-select">
+                <option value="">All Status</option>
+                <option value="Active"   {% if status_filter == 'Active' %}selected{% endif %}>Active</option>
+                <option value="Inactive" {% if status_filter == 'Inactive' %}selected{% endif %}>Inactive</option>
+                <option disabled>──────────</option>
+                <option value="Debtors"  {% if status_filter == 'Debtors' %}selected{% endif %} style="color:var(--red-600);">Owes Money</option>
+            </select>
+            <button type="submit" class="btn-filter-go" title="Apply filter">
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </form>
     </div>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th style="text-align:right;">Balance</th>
+                <th style="text-align:center;">Status</th>
+                <th style="text-align:right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in customers.items %}
+            {% set debt   = customer.get_current_debt() %}
+            {% set credit = customer.get_available_credit() %}
+            <tr {% if debt > 0 %}class="row-debt"{% endif %}>
+                <td>
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <div class="avatar-xs">{{ customer.full_name[0] | upper }}</div>
+                        <a href="{{ url_for('customers.profile', customer_id=customer.id) }}"
+                           style="color:var(--gray-900);font-weight:600;text-decoration:none;">
+                            {{ customer.full_name }}
+                        </a>
+                    </div>
+                </td>
+                <td style="color:var(--gray-500);">
+                    {% if customer.phone %}{{ customer.phone }}{% else %}—{% endif %}
+                </td>
+                <td style="text-align:right;">
+                    {% if debt > 0 %}
+                        <span class="debt-badge">{{ format_currency(debt) }}</span>
+                    {% elif credit > 0 %}
+                        <span class="credit-text">+{{ format_currency(credit) }}</span>
+                    {% else %}
+                        <span style="color:var(--gray-400);font-size:0.75rem;">—</span>
+                    {% endif %}
+                </td>
+                <td style="text-align:center;">
+                    {% if customer.status.value == 'Active' %}
+                        <span class="badge-status badge-active">Active</span>
+                    {% else %}
+                        <span class="badge-status badge-inactive">Inactive</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="row-actions">
+                        <a href="{{ url_for('customers.profile', customer_id=customer.id) }}"
+                           class="act-btn" title="View profile">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{{ url_for('customers.edit', customer_id=customer.id) }}"
+                           class="act-btn" title="Edit customer">
+                            <i class="fas fa-pencil-alt"></i>
+                        </a>
+                        {% if debt > 0 %}
+                        <a href="{{ url_for('customers.profile', customer_id=customer.id) }}#ledger"
+                           class="act-btn danger" title="View statement">
+                            <i class="fas fa-receipt"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr class="empty-row">
+                <td colspan="5">No customers found matching your criteria.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if customers.pages > 1 %}
+    <div class="pagination-bar">
+        {% if customers.has_prev %}
+        <a class="pg-btn" href="{{ url_for('customers.index', page=customers.prev_num, search=search, status=status_filter) }}">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        {% endif %}
+        <span class="pg-info">Page {{ customers.page }} of {{ customers.pages }}</span>
+        {% if customers.has_next %}
+        <a class="pg-btn" href="{{ url_for('customers.index', page=customers.next_num, search=search, status=status_filter) }}">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
+
+<script>
+    document.querySelectorAll('.lb-bar-fill[data-pct]').forEach(function(el) {
+        el.style.width = el.dataset.pct + '%';
+    });
+</script>
 {% endblock %}

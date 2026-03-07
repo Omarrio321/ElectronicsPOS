@@ -1,95 +1,131 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ title }} - {{ company_name }}{% endblock %}
+
+{% block head %}
+<style>
+    .form-page { max-width:640px; margin:0 auto; }
+    .page-header { display:flex; align-items:center; gap:0.75rem; margin-bottom:1.5rem; }
+    .page-header h1 { font-size:1.375rem; font-weight:700; color:var(--gray-900); margin:0; letter-spacing:-0.01em; }
+
+    .panel { background:#fff; border:var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; }
+    .panel-header { padding:0.875rem 1.25rem; border-bottom:var(--border); }
+    .panel-title { font-size:0.875rem; font-weight:600; color:var(--gray-900); margin:0; display:flex; align-items:center; gap:0.5rem; }
+    .panel-title i { color:var(--blue-600); }
+    .panel-body { padding:1.25rem; }
+
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:0.875rem; margin-bottom:0.875rem; }
+    @media(max-width:540px){ .field-row { grid-template-columns:1fr; } }
+    .form-group { margin-bottom:0.875rem; }
+    .form-label { font-size:0.8125rem; font-weight:600; color:var(--gray-700); display:block; margin-bottom:0.3rem; }
+    .form-control, .form-select {
+        width:100%; border:var(--border); border-radius:6px; padding:0.4375rem 0.75rem;
+        font-size:0.875rem; color:var(--gray-900); background:#fff; outline:none;
+        transition:border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-control:focus, .form-select:focus { border-color:var(--blue-500); box-shadow:0 0 0 3px rgba(59,130,246,0.12); }
+    textarea.form-control { resize:vertical; min-height:64px; }
+    .req { color:var(--red-500); }
+
+    .cat-row { display:flex; gap:0.5rem; }
+    .cat-row .form-select { flex:1; }
+    .cat-row a { flex-shrink:0; }
+
+    .radio-group { display:flex; gap:0.75rem; flex-wrap:wrap; }
+    .radio-option { display:flex; align-items:center; gap:0.375rem; cursor:pointer; }
+    .radio-option input { margin:0; cursor:pointer; }
+    .radio-option label { font-size:0.875rem; color:var(--gray-700); cursor:pointer; margin:0; }
+
+    .form-footer { display:flex; align-items:center; justify-content:space-between; padding-top:1.125rem; border-top:var(--border); margin-top:0.5rem; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0"><i class="fas fa-receipt me-2"></i>{{ title }}</h4>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+<div class="form-page">
+    <div class="page-header">
+        <a href="{{ url_for('expenses.index') }}" style="color:var(--gray-400);text-decoration:none;font-size:0.8125rem;display:flex;align-items:center;gap:0.25rem;">
+            <i class="fas fa-chevron-left" style="font-size:0.625rem;"></i> Expenses
+        </a>
+        <h1>{{ title }}</h1>
+    </div>
 
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Expense Title *</label>
-                            <input type="text" name="title" class="form-control" required
-                                value="{{ expense.title if expense else '' }}" placeholder="e.g. Office Rent">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Category *</label>
-                            <div class="input-group">
-                                <select name="category_id" class="form-select" required>
-                                    <option value="">Select Category</option>
-                                    {% for c in categories %}
-                                    <option value="{{ c.id }}" {% if expense and expense.category_id==c.id %}selected{%
-                                        endif %}>{{ c.name }}</option>
-                                    {% endfor %}
-                                </select>
-                                <a href="{{ url_for('expenses.categories') }}" class="btn btn-outline-secondary"
-                                    title="Manage Categories"><i class="fas fa-plus"></i></a>
-                            </div>
-                        </div>
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="fas fa-file-invoice-dollar"></i> Expense Details</h5>
+        </div>
+        <div class="panel-body">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="field-row">
+                    <div class="form-group">
+                        <label class="form-label">Expense Title <span class="req">*</span></label>
+                        <input type="text" name="title" class="form-control" required
+                            value="{{ expense.title if expense else '' }}" placeholder="e.g. Office Rent">
                     </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Amount *</label>
-                            <div class="input-group">
-                                <span class="input-group-text">{{ currency_symbol }}</span>
-                                <input type="number" name="amount" class="form-control" step="0.01" required
-                                    value="{{ expense.amount if expense else '' }}">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Date *</label>
-                            <input type="date" name="date" class="form-control" required
-                                value="{{ expense.date if expense else '' }}">
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Expense Type</label>
-                            <div class="d-flex gap-3">
-                                {% for t in ExpenseType %}
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="type" id="type_{{ t.name }}"
-                                        value="{{ t.name }}" {% if expense and expense.expense_type==t %}checked{% elif
-                                        not expense and t.name=='INDIVIDUAL' %}checked{% endif %}>
-                                    <label class="form-check-label" for="type_{{ t.name }}">
-                                        {{ t.value }}
-                                    </label>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Status</label>
-                            <select name="status" class="form-select">
-                                {% for s in ExpenseStatus %}
-                                <option value="{{ s.name }}" {% if expense and expense.status==s %}selected{% endif %}>
-                                    {{ s.value }}</option>
+                    <div class="form-group">
+                        <label class="form-label">Category <span class="req">*</span></label>
+                        <div class="cat-row">
+                            <select name="category_id" class="form-select" required>
+                                <option value="">Select category</option>
+                                {% for c in categories %}
+                                <option value="{{ c.id }}" {% if expense and expense.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
                                 {% endfor %}
                             </select>
+                            <a href="{{ url_for('expenses.categories') }}" class="btn btn-light" style="border:var(--border);padding:0.4375rem 0.625rem;" title="Manage categories">
+                                <i class="fas fa-tags" style="font-size:0.75rem;"></i>
+                            </a>
                         </div>
                     </div>
+                </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Notes</label>
-                        <textarea name="notes" class="form-control"
-                            rows="3">{{ expense.notes if expense else '' }}</textarea>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label class="form-label">Amount <span class="req">*</span></label>
+                        <input type="number" name="amount" class="form-control" step="0.01" required
+                            value="{{ expense.amount if expense else '' }}" placeholder="0.00">
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">Date <span class="req">*</span></label>
+                        <input type="date" name="date" class="form-control" required
+                            value="{{ expense.date if expense else '' }}">
+                    </div>
+                </div>
 
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{{ url_for('expenses.index') }}" class="btn btn-secondary me-md-2">Cancel</a>
-                        <button type="submit" class="btn btn-primary">{{ btn_text }}</button>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label class="form-label">Expense Type</label>
+                        <div class="radio-group">
+                            {% for t in ExpenseType %}
+                            <label class="radio-option">
+                                <input type="radio" name="type" value="{{ t.name }}"
+                                    {% if expense and expense.expense_type == t %}checked
+                                    {% elif not expense and t.name == 'INDIVIDUAL' %}checked{% endif %}>
+                                <span>{{ t.value }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
                     </div>
-                </form>
-            </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            {% for s in ExpenseStatus %}
+                            <option value="{{ s.name }}" {% if expense and expense.status == s %}selected{% endif %}>{{ s.value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Notes <span style="color:var(--gray-400);font-weight:400;">(optional)</span></label>
+                    <textarea name="notes" class="form-control" rows="3">{{ expense.notes if expense else '' }}</textarea>
+                </div>
+
+                <div class="form-footer">
+                    <a href="{{ url_for('expenses.index') }}" class="btn btn-light" style="border:var(--border);">Cancel</a>
+                    <button type="submit" class="btn btn-primary">{{ btn_text }}</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

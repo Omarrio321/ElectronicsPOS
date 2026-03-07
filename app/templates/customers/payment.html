@@ -2,131 +2,155 @@
 
 {% block title %}Receive Payment - {{ customer.full_name }}{% endblock %}
 
+{% block head %}
+<style>
+    .page-header { display:flex; align-items:center; gap:0.75rem; margin-bottom:1.5rem; }
+    .breadcrumb-nav { font-size:0.8125rem; color:var(--gray-400); display:flex; align-items:center; gap:0.375rem; }
+    .breadcrumb-nav a { color:var(--blue-600); text-decoration:none; }
+
+    .payment-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start; }
+    @media(max-width:860px){ .payment-grid { grid-template-columns:1fr; } }
+
+    .panel { background:#fff; border:var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; }
+    .panel-header { padding:0.875rem 1.25rem; border-bottom:var(--border); }
+    .panel-title { font-size:0.875rem; font-weight:600; color:var(--gray-900); margin:0; display:flex; align-items:center; gap:0.5rem; }
+    .panel-title i { color:var(--blue-600); }
+    .panel-body { padding:1.25rem; }
+
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:0.875rem; margin-bottom:0.875rem; }
+    .form-group { margin-bottom:0.875rem; }
+    .form-label { font-size:0.8125rem; font-weight:600; color:var(--gray-700); display:block; margin-bottom:0.3rem; }
+    .form-control, .form-select {
+        width:100%; border:var(--border); border-radius:6px; padding:0.4375rem 0.75rem;
+        font-size:0.875rem; color:var(--gray-900); background:#fff; outline:none;
+        transition:border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-control:focus, .form-select:focus { border-color:var(--blue-500); box-shadow:0 0 0 3px rgba(59,130,246,0.12); }
+    textarea.form-control { resize:vertical; min-height:64px; }
+    .req { color:var(--red-500); }
+    .form-hint { font-size:0.75rem; color:var(--gray-400); margin-top:0.25rem; }
+    .form-footer { display:flex; align-items:center; justify-content:space-between; padding-top:1.125rem; border-top:var(--border); margin-top:0.5rem; }
+
+    .balance-banner { background:var(--amber-50); border:1px solid #FDE68A; border-radius:8px; padding:0.875rem 1rem; margin-bottom:1rem; display:flex; align-items:center; justify-content:space-between; }
+    .balance-banner .bal-label { font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--amber-700); }
+    .balance-banner .bal-value { font-size:1.125rem; font-weight:700; color:var(--red-600); }
+
+    .invoice-footer { padding:0.75rem 1.25rem; border-top:var(--border); background:var(--gray-50); display:flex; justify-content:space-between; align-items:center; font-size:0.8125rem; }
+    .invoice-footer .total-label { font-weight:600; color:var(--gray-700); }
+    .invoice-footer .total-val { font-weight:700; font-size:1rem; color:var(--red-600); }
+    .note-strip { padding:0.625rem 1.25rem; border-top:var(--border); font-size:0.75rem; color:var(--gray-400); font-style:italic; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url_for('customers.index') }}">Customers</a></li>
-                <li class="breadcrumb-item"><a href="{{ url_for('customers.profile', customer_id=customer.id) }}">{{
-                        customer.full_name }}</a></li>
-                <li class="breadcrumb-item active">Receive Payment</li>
-            </ol>
-        </nav>
-    </div>
+<div class="breadcrumb-nav" style="margin-bottom:1rem;">
+    <a href="{{ url_for('customers.index') }}">Customers</a>
+    <i class="fas fa-chevron-right" style="font-size:0.5rem;"></i>
+    <a href="{{ url_for('customers.profile', customer_id=customer.id) }}">{{ customer.full_name }}</a>
+    <i class="fas fa-chevron-right" style="font-size:0.5rem;"></i>
+    <span>Receive Payment</span>
 </div>
+<h1 style="font-size:1.375rem;font-weight:700;color:var(--gray-900);margin:0 0 1.25rem;letter-spacing:-0.01em;">
+    <i class="fas fa-money-bill-wave me-2" style="color:var(--green-600);font-size:1.1rem;"></i>Receive Payment
+</h1>
 
-<div class="row">
-    <div class="col-md-6">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i> Payment Details</h5>
+<div class="payment-grid">
+    <!-- Payment form -->
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="fas fa-cash-register"></i> Payment Details</h5>
+        </div>
+        <div class="panel-body">
+            <div class="balance-banner">
+                <div class="bal-label">Outstanding Balance</div>
+                <div class="bal-value">{{ format_currency(outstanding_balance) }}</div>
             </div>
-            <div class="card-body">
-                <form method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                    <div class="mb-3">
-                        <label class="form-label">Customer</label>
-                        <input type="text" class="form-control" value="{{ customer.full_name }}" readonly>
-                    </div>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="amount" class="form-label">Amount Received <span
-                                    class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" class="form-control" id="amount" name="amount" step="0.01"
-                                    min="0.01" required autofocus>
-                            </div>
-                            <div class="form-text">Outstanding Balance: <span class="text-danger fw-bold">{{
-                                    format_currency(outstanding_balance) }}</span></div>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" id="date" name="date" value="{{ today }}" required>
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">Customer</label>
+                    <input type="text" class="form-control" value="{{ customer.full_name }}" readonly style="background:var(--gray-50);color:var(--gray-500);">
+                </div>
 
-                    <div class="mb-3">
-                        <label for="method" class="form-label">Payment Method <span class="text-danger">*</span></label>
-                        <select class="form-select" id="method" name="method" required>
-                            <option value="Cash">Cash</option>
-                            <option value="Card">Card</option>
-                            <option value="E-Dahab">E-Dahab</option>
-                            <option value="Zaad">Zaad</option>
-                        </select>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label class="form-label">Amount Received <span class="req">*</span></label>
+                        <input type="number" class="form-control" name="amount" step="0.01" min="0.01" required autofocus placeholder="0.00">
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">Date <span class="req">*</span></label>
+                        <input type="date" class="form-control" name="date" value="{{ today }}" required>
+                    </div>
+                </div>
 
-                    <div class="mb-3">
-                        <label for="reference" class="form-label">Reference ID (Optional)</label>
-                        <input type="text" class="form-control" id="reference" name="reference"
-                            placeholder="e.g. Transaction #">
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">Payment Method <span class="req">*</span></label>
+                    <select class="form-select" name="method" required>
+                        <option value="Cash">Cash</option>
+                        <option value="Card">Card</option>
+                        <option value="E-Dahab">E-Dahab</option>
+                        <option value="Zaad">Zaad</option>
+                    </select>
+                </div>
 
-                    <div class="mb-3">
-                        <label for="notes" class="form-label">Notes (Optional)</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">Reference ID <span style="color:var(--gray-400);font-weight:400;">(optional)</span></label>
+                    <input type="text" class="form-control" name="reference" placeholder="e.g. Transaction #12345">
+                </div>
 
-                    <div class="d-flex justify-content-between mt-4">
-                        <a href="{{ url_for('customers.profile', customer_id=customer.id) }}"
-                            class="btn btn-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-success"><i class="fas fa-check me-2"></i> Record
-                            Payment</button>
-                    </div>
-                </form>
-            </div>
+                <div class="form-group">
+                    <label class="form-label">Notes <span style="color:var(--gray-400);font-weight:400;">(optional)</span></label>
+                    <textarea class="form-control" name="notes" rows="2"></textarea>
+                </div>
+
+                <div class="form-footer">
+                    <a href="{{ url_for('customers.profile', customer_id=customer.id) }}" class="btn btn-light" style="border:var(--border);">Cancel</a>
+                    <button type="submit" class="btn btn-primary" style="background:var(--green-600);border-color:var(--green-600);">
+                        <i class="fas fa-check" style="font-size:0.75rem;"></i> Record Payment
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Unpaid Invoices Context -->
-    <div class="col-md-6">
-        <div class="card border-warning">
-            <div class="card-header bg-warning-subtle text-warning-emphasis">
-                <h5 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i> Unpaid Invoices</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-striped mb-0">
-                        <thead>
-                            <tr>
-                                <th>Invoice</th>
-                                <th>Date</th>
-                                <th class="text-end">Due</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for invoice in unpaid_invoices %}
-                            <tr>
-                                <td>
-                                    <a href="{{ url_for('sales.receipt', sale_id=invoice.id) }}" target="_blank">
-                                        {{ invoice.invoice_no or invoice.id }}
-                                    </a>
-                                </td>
-                                <td>{{ invoice.created_at.strftime('%Y-%m-%d') }}</td>
-                                <td class="text-end text-danger fw-bold">{{ format_currency(invoice.amount_due) }}</td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="3" class="text-center text-muted py-3">No unpaid invoices</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                        <tfoot>
-                            <tr class="table-light fw-bold">
-                                <td colspan="2" class="text-end">Total Due:</td>
-                                <td class="text-end text-danger">{{ format_currency(outstanding_balance) }}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-            <div class="card-footer small text-muted">
-                Payment will be applied to the oldest invoices first.
-            </div>
+    <!-- Unpaid invoices -->
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="panel-title" style="color:var(--amber-700);"><i class="fas fa-file-invoice-dollar" style="color:var(--amber-600);"></i> Unpaid Invoices</h5>
         </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Invoice</th>
+                    <th>Date</th>
+                    <th style="text-align:right;">Due</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in unpaid_invoices %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('sales.receipt', sale_id=invoice.id) }}" target="_blank" style="color:var(--blue-600);text-decoration:none;font-weight:600;">
+                            #{{ invoice.invoice_no or invoice.id }}
+                        </a>
+                    </td>
+                    <td style="color:var(--gray-500);">{{ invoice.created_at.strftime('%d %b %Y') }}</td>
+                    <td style="text-align:right;font-weight:700;color:var(--red-600);">{{ format_currency(invoice.amount_due) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" style="text-align:center;padding:2rem;color:var(--gray-400);">No unpaid invoices</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="invoice-footer">
+            <span class="total-label">Total Due</span>
+            <span class="total-val">{{ format_currency(outstanding_balance) }}</span>
+        </div>
+        <div class="note-strip">Payment will be applied to the oldest invoices first.</div>
     </div>
 </div>
 {% endblock %}

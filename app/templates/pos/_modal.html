@@ -3,108 +3,102 @@
     data-bs-backdrop="true" data-bs-keyboard="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="checkoutModalLabel">
-                    <i class="fas fa-cash-register me-2"></i>Complete Your Sale
+            <div class="modal-header">
+                <h5 class="modal-title text-white" id="checkoutModalLabel">
+                    <i class="fas fa-cash-register me-2"></i>Complete Sale
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-0">
-                <div class="row g-0" style="min-height: 500px;">
+                <div class="row g-0" style="min-height:500px;">
+
                     {# Left: Order Summary #}
-                    <div class="col-md-4 summary-panel border-end">
-                        <div class="p-4 border-bottom">
-                            <h6 class="fw-bold text-muted mb-3 text-uppercase small ls-1">
-                                <i class="fas fa-shopping-cart me-2"></i>Order Summary
-                            </h6>
+                    <div class="col-md-4 summary-panel">
+                        <div class="p-3" style="border-bottom:var(--border);">
+                            <div style="font-size:0.6875rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--gray-400);margin-bottom:0.75rem;">
+                                <i class="fas fa-shopping-cart me-1"></i>Order Summary
+                            </div>
 
                             {# Customer Selection #}
-                            <div class="mb-3">
-                                <label class="form-label small text-muted mb-1">Customer</label>
+                            <div style="margin-bottom:0.875rem;">
+                                <label class="form-label" style="font-size:0.75rem;color:var(--gray-500);font-weight:600;margin-bottom:0.25rem;">Customer</label>
                                 <div class="input-group input-group-sm">
-                                    <span class="input-group-text bg-white border-end-0"><i
-                                            class="fas fa-user text-muted"></i></span>
-                                    <input type="text" class="form-control border-start-0 ps-0" id="customerSearch"
+                                    <span class="input-group-text" style="border-right:none;"><i class="fas fa-user" style="font-size:0.75rem;color:var(--gray-400);"></i></span>
+                                    <input type="text" class="form-control" style="border-left:none;padding-left:0;" id="customerSearch"
                                         placeholder="Walk-in Customer" autocomplete="off">
-                                    <button class="btn btn-outline-secondary" type="button" id="clearCustomerBtn"
-                                        onclick="clearSelectedCustomer()" style="display:none;">
-                                        <i class="fas fa-times"></i>
+                                    <button class="btn btn-light" type="button" id="clearCustomerBtn"
+                                        onclick="clearSelectedCustomer()" style="display:none;border:var(--border);">
+                                        <i class="fas fa-times" style="font-size:0.75rem;"></i>
                                     </button>
                                 </div>
                                 <input type="hidden" id="selectedCustomerId" value="">
                                 <div id="customerSearchResults"
                                     class="position-absolute bg-white border rounded shadow-sm"
-                                    style="display:none; z-index: 1100; max-height: 200px; overflow-y: auto; width: 90%;">
+                                    style="display:none;z-index:1100;max-height:200px;overflow-y:auto;width:90%;">
                                 </div>
-                                <div id="customerInfo" class="mt-2 p-2 bg-white rounded border" style="display:none;">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="small text-muted">Balance:</span>
-                                        <span id="customerBalance" class="fw-bold small"></span>
+                                <div id="customerInfo" class="mt-2 p-2 rounded border" style="display:none;background:var(--blue-50);border-color:var(--blue-100)!important;">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                                        <span style="font-size:0.75rem;color:var(--gray-500);">Balance:</span>
+                                        <span id="customerBalance" class="fw-bold" style="font-size:0.8125rem;color:var(--blue-600);"></span>
                                     </div>
                                 </div>
                             </div>
 
                             {# Sale Type #}
                             <div class="btn-group w-100 btn-group-sm" role="group">
-                                <input type="radio" class="btn-check" name="saleType" id="saleTypeRetail" value="RETAIL"
-                                    checked onchange="updateSaleType()">
-                                <label class="btn btn-outline-secondary" for="saleTypeRetail">Retail</label>
-                                <input type="radio" class="btn-check" name="saleType" id="saleTypeWholesale"
-                                    value="WHOLESALE" onchange="updateSaleType()">
-                                <label class="btn btn-outline-secondary" for="saleTypeWholesale">Wholesale</label>
+                                <input type="radio" class="btn-check" name="saleType" id="saleTypeRetail" value="RETAIL" checked onchange="updateSaleType()">
+                                <label class="btn btn-outline-primary" for="saleTypeRetail">Retail</label>
+                                <input type="radio" class="btn-check" name="saleType" id="saleTypeWholesale" value="WHOLESALE" onchange="updateSaleType()">
+                                <label class="btn btn-outline-primary" for="saleTypeWholesale">Wholesale</label>
                             </div>
                         </div>
 
                         {# Cart Items #}
-                        <div class="summary-scrollable p-4">
+                        <div class="summary-scrollable p-3">
                             <div id="modalCartItems"></div>
                         </div>
 
                         {# Totals Bottom #}
-                        <div class="p-4 bg-white border-top mt-auto">
-                            <div class="d-flex justify-content-between mb-1 small">
-                                <span class="text-muted">Subtotal</span>
-                                <span id="modalSubtotal" class="fw-bold">$0.00</span>
+                        <div class="p-3 mt-auto" style="border-top:var(--border);">
+                            <div style="display:flex;justify-content:space-between;margin-bottom:0.25rem;font-size:0.8125rem;">
+                                <span style="color:var(--gray-500);">Subtotal</span>
+                                <span id="modalSubtotal" style="font-weight:600;">$0.00</span>
                             </div>
-                            <div class="d-flex justify-content-between mb-1 small">
-                                <span class="text-muted">Tax</span>
+                            <div style="display:flex;justify-content:space-between;margin-bottom:0.25rem;font-size:0.8125rem;">
+                                <span style="color:var(--gray-500);">Tax</span>
                                 <span id="modalTax">$0.00</span>
                             </div>
-                            <div class="d-flex justify-content-between mb-3 small">
-                                <span class="text-muted">Discount</span>
-                                <span id="modalDiscountDisplay" class="text-danger">-$0.00</span>
+                            <div style="display:flex;justify-content:space-between;margin-bottom:0.625rem;font-size:0.8125rem;">
+                                <span style="color:var(--gray-500);">Discount</span>
+                                <span id="modalDiscountDisplay" style="color:var(--green-600);">-$0.00</span>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fw-bold text-uppercase small text-muted">Total to Pay</span>
-                                <span id="modalGrandTotal" class="fw-bold fs-4 text-primary">$0.00</span>
+                            <div style="display:flex;justify-content:space-between;align-items:center;border-top:var(--border);padding-top:0.5rem;">
+                                <span style="font-weight:700;font-size:0.8125rem;text-transform:uppercase;color:var(--gray-500);">Total</span>
+                                <span id="modalGrandTotal" style="font-weight:800;font-size:1.375rem;color:var(--blue-600);">$0.00</span>
                             </div>
                         </div>
                     </div>
 
                     {# Right: Payment #}
-                    <div class="col-md-8 payment-panel p-4 overflow-auto" style="max-height: 80vh;">
-                        <h6 class="fw-bold text-muted mb-4 text-uppercase small ls-1">
-                            <i class="fas fa-credit-card me-2"></i>Select Payment
-                        </h6>
+                    <div class="col-md-8 payment-panel p-4" style="overflow-y:auto;max-height:80vh;">
+                        <div style="font-size:0.6875rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--gray-400);margin-bottom:1rem;">
+                            <i class="fas fa-credit-card me-1"></i>Select Payment Method
+                        </div>
 
                         {# Store Credit Feature Card #}
-                        <div id="storeCreditCard" class="store-credit-card mb-4" style="display:none;"
+                        <div id="storeCreditCard" class="store-credit-card" style="display:none;"
                             onclick="focusPaymentInput('payStoreCredit')">
                             <div class="credit-info">
                                 <div class="label">Available Credit</div>
                                 <div class="amount" id="storeCreditAvailable">$0.00</div>
                             </div>
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="input-group input-group-lg" style="width: 160px;">
-                                    <span class="input-group-text border-0 bg-white text-success"><i
-                                            class="fas fa-dollar-sign"></i></span>
-                                    <input type="number" class="form-control border-0 fw-bold text-success"
+                            <div style="display:flex;align-items:center;gap:0.75rem;">
+                                <div class="input-group" style="width:150px;">
+                                    <span class="input-group-text" style="border:none;background:rgba(255,255,255,0.6);color:var(--green-600);"><i class="fas fa-dollar-sign"></i></span>
+                                    <input type="number" class="form-control" style="border:none;background:rgba(255,255,255,0.6);font-weight:700;color:var(--green-600);"
                                         id="payStoreCredit" placeholder="0.00" oninput="updatePaymentTotals()">
                                 </div>
-                                <button type="button" class="btn-use-max" onclick="useMaxCredit(event)">
-                                    Use Max
-                                </button>
+                                <button type="button" class="btn-use-max" onclick="useMaxCredit(event)">Use Max</button>
                             </div>
                         </div>
 
@@ -112,20 +106,20 @@
                         <div class="payment-methods-grid">
                             {# Cash #}
                             <div class="payment-method-card" onclick="focusPaymentInput('payCash')">
-                                <div class="icon-wrapper text-secondary">
+                                <div class="icon-wrapper" style="color:var(--gray-500);">
                                     <i class="fas fa-money-bill-wave"></i>
                                 </div>
-                                <div class="method-name mb-2">Cash</div>
+                                <div class="method-name" style="margin-bottom:0.5rem;">Cash</div>
                                 <input type="number" class="form-control form-control-sm text-center" id="payCash"
                                     placeholder="0.00" oninput="updatePaymentTotals()">
                             </div>
 
                             {# Card #}
                             <div class="payment-method-card" onclick="focusPaymentInput('payCard')">
-                                <div class="icon-wrapper text-primary">
+                                <div class="icon-wrapper" style="color:var(--blue-600);">
                                     <i class="fas fa-credit-card"></i>
                                 </div>
-                                <div class="method-name mb-2">Card</div>
+                                <div class="method-name" style="margin-bottom:0.5rem;">Card</div>
                                 <input type="number" class="form-control form-control-sm text-center" id="payCard"
                                     placeholder="0.00" oninput="updatePaymentTotals()">
                                 <input type="hidden" id="refCard">
@@ -134,7 +128,7 @@
                             {# E-Dahab #}
                             <div class="payment-method-card" onclick="focusPaymentInput('payEDahab')">
                                 <img src="{{ url_for('static', filename='images/E-Dahab.svg') }}" alt="E-Dahab">
-                                <div class="method-name mb-2">E-Dahab</div>
+                                <div class="method-name" style="margin-bottom:0.5rem;">E-Dahab</div>
                                 <input type="number" class="form-control form-control-sm text-center" id="payEDahab"
                                     placeholder="0.00" oninput="updatePaymentTotals()">
                                 <input type="hidden" id="refEDahab">
@@ -143,29 +137,29 @@
                             {# Zaad #}
                             <div class="payment-method-card" onclick="focusPaymentInput('payZaad')">
                                 <img src="{{ url_for('static', filename='images/Zaad.svg') }}" alt="Zaad">
-                                <div class="method-name mb-2">Zaad</div>
+                                <div class="method-name" style="margin-bottom:0.5rem;">Zaad</div>
                                 <input type="number" class="form-control form-control-sm text-center" id="payZaad"
                                     placeholder="0.00" oninput="updatePaymentTotals()">
                                 <input type="hidden" id="refZaad">
                             </div>
                         </div>
 
-                        {# Discount & Partial #}
-                        <div class="row g-3 mb-4">
+                        {# Discount & Partial Payment #}
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label class="form-label small text-muted">Discount</label>
+                                <label class="form-label" style="font-size:0.75rem;color:var(--gray-500);font-weight:600;">Discount</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="fas fa-tag"></i></span>
+                                    <span class="input-group-text"><i class="fas fa-tag" style="font-size:0.75rem;"></i></span>
                                     <input id="discountInput" type="number" class="form-control" placeholder="0.00"
                                         min="0" step="0.01" oninput="updateTotals(); updatePaymentTotals();">
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div id="partialPaymentSection" class="form-check mt-4" style="display:none;">
+                                <div id="partialPaymentSection" class="form-check" style="display:none;margin-top:1.875rem;">
                                     <input class="form-check-input" type="checkbox" id="allowPartialPayment"
                                         onchange="updatePaymentTotals()">
-                                    <label class="form-check-label small user-select-none" for="allowPartialPayment">
-                                        <i class="fas fa-clock me-1 text-warning"></i> Add remaining to account
+                                    <label class="form-check-label" style="font-size:0.8125rem;user-select:none;" for="allowPartialPayment">
+                                        <i class="fas fa-clock me-1" style="color:var(--amber-600);"></i>Add remaining to account
                                     </label>
                                 </div>
                             </div>
@@ -175,40 +169,38 @@
                         <div class="modal-totals-box">
                             <div class="total-row">
                                 <span>Total Paid</span>
-                                <span id="totalPaidDisplay" class="fw-bold">$0.00</span>
+                                <span id="totalPaidDisplay" style="font-weight:700;">$0.00</span>
                             </div>
-                            <div class="total-row text-danger" id="remainingRow">
+                            <div class="total-row" style="color:#fca5a5;" id="remainingRow">
                                 <span>Remaining</span>
                                 <span id="remainingDisplay">$0.00</span>
                             </div>
-                            <div class="total-row text-success" id="changeRow" style="display:none;">
+                            <div class="total-row" style="color:#86efac;display:none;" id="changeRow">
                                 <span>Change Due</span>
                                 <span id="changeDisplay">$0.00</span>
                             </div>
-                            <div class="total-row text-warning" id="amountDueRow" style="display:none;">
+                            <div class="total-row" style="color:#fcd34d;display:none;" id="amountDueRow">
                                 <span>Balance Due</span>
                                 <span id="amountDueDisplay">$0.00</span>
                             </div>
                         </div>
 
                         {# Errors #}
-                        <div id="paymentError" class="alert alert-danger py-2 mt-3 mb-0 small" style="display:none">
-                            <i class="fas fa-exclamation-circle me-2"></i>Please enter payment amount
+                        <div id="paymentError" class="alert alert-danger py-2 mt-3 mb-0" style="display:none;font-size:0.8125rem;">
+                            <i class="fas fa-exclamation-circle me-2"></i>Please enter a payment amount
                         </div>
-                        <div id="digitalOverpayError" class="alert alert-warning py-2 mt-3 mb-0 small"
-                            style="display:none">
+                        <div id="digitalOverpayError" class="alert alert-warning py-2 mt-3 mb-0" style="display:none;font-size:0.8125rem;">
                             <i class="fas fa-exclamation-triangle me-2"></i>Digital payments cannot exceed total
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-arrow-left me-2"></i>Back to Cart
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" style="border:var(--border);" data-bs-dismiss="modal">
+                    <i class="fas fa-arrow-left me-2" style="font-size:0.75rem;"></i>Back to Cart
                 </button>
-                <button type="button" class="btn btn-success btn-lg px-4" id="completeBtn" onclick="processCheckout()"
-                    disabled>
-                    <i class="fas fa-check-circle me-2"></i>Complete Sale
+                <button type="button" class="btn btn-success btn-lg px-4" id="completeBtn" onclick="processCheckout()" disabled>
+                    <i class="fas fa-check-circle me-2" style="font-size:0.875rem;"></i>Complete Sale
                 </button>
             </div>
         </div>

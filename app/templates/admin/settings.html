@@ -2,128 +2,175 @@
 
 {% block title %}Settings - {{ company_name }}{% endblock %}
 
+{% block head %}
+<style>
+    .page-header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.5rem; }
+    .page-header h1 { font-size:1.375rem; font-weight:700; color:var(--gray-900); margin:0; letter-spacing:-0.01em; }
+    .page-header .sub { font-size:0.8125rem; color:var(--gray-500); margin-top:2px; }
+
+    .settings-grid { display:grid; grid-template-columns:1fr 280px; gap:1rem; align-items:start; }
+    @media(max-width:900px){ .settings-grid { grid-template-columns:1fr; } }
+
+    .panel { background:#fff; border:var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; }
+    .panel-header { padding:0.875rem 1.25rem; border-bottom:var(--border); }
+    .panel-title { font-size:0.875rem; font-weight:600; color:var(--gray-900); margin:0; display:flex; align-items:center; gap:0.5rem; }
+    .panel-title i { color:var(--blue-600); }
+    .panel-body { padding:1.5rem 1.25rem; }
+
+    .section-divider { font-size:0.6875rem; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--gray-400); padding:0.75rem 0 0.5rem; margin-top:0.5rem; border-top:var(--border); }
+    .section-divider:first-child { border-top:none; margin-top:0; padding-top:0; }
+
+    .form-group { margin-bottom:1.125rem; }
+    .form-label { font-size:0.8125rem; font-weight:600; color:var(--gray-700); display:block; margin-bottom:0.375rem; }
+    .form-control, .form-select {
+        width:100%; border:var(--border); border-radius:6px; padding:0.4375rem 0.75rem;
+        font-size:0.875rem; color:var(--gray-900); background:#fff; outline:none;
+        transition:border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color:var(--blue-500); box-shadow:0 0 0 3px rgba(59,130,246,0.12);
+    }
+    textarea.form-control { resize:vertical; min-height:64px; }
+    .form-hint { font-size:0.75rem; color:var(--gray-400); margin-top:0.25rem; }
+
+    .logo-box { background:var(--gray-50); border:var(--border); border-radius:8px; padding:1rem; text-align:center; margin-bottom:1rem; }
+    .logo-box img { max-height:64px; max-width:180px; object-fit:contain; }
+    .logo-empty { color:var(--gray-400); font-size:0.8125rem; }
+
+    .input-suffix { display:flex; gap:0; }
+    .input-suffix .form-control { border-right:none; border-radius:6px 0 0 6px; }
+    .input-suffix .suffix-label { border:var(--border); border-left:none; border-radius:0 6px 6px 0; background:var(--gray-50); padding:0.4375rem 0.75rem; font-size:0.8125rem; color:var(--gray-500); display:flex; align-items:center; white-space:nowrap; }
+
+    .tip-item { display:flex; gap:0.5rem; margin-bottom:0.875rem; font-size:0.8125rem; color:var(--gray-600); }
+    .tip-item:last-child { margin-bottom:0; }
+    .tip-icon { color:var(--blue-600); font-size:0.75rem; margin-top:2px; flex-shrink:0; }
+
+    .form-footer { display:flex; align-items:center; justify-content:space-between; padding-top:1.25rem; border-top:var(--border); margin-top:0.5rem; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="fw-bold text-dark"><i class="bi bi-gear-fill me-2"></i> System Settings</h1>
-            <p class="text-muted">Configure your business details and application behavior.</p>
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-cog me-2" style="color:var(--blue-600);font-size:1.1rem;"></i>Settings</h1>
+        <div class="sub">Configure business details and application behavior</div>
+    </div>
+</div>
+
+<div class="settings-grid">
+    <!-- Main settings form -->
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="fas fa-sliders-h"></i> General Configuration</h5>
+        </div>
+        <div class="panel-body">
+            <form method="POST" enctype="multipart/form-data">
+                {{ form.hidden_tag() }}
+
+                <!-- Logo -->
+                <div class="section-divider">Company Logo</div>
+                <div class="form-group">
+                    {% if current_logo %}
+                    <div class="logo-box">
+                        <img src="{{ url_for('static', filename=current_logo) }}" alt="Company Logo">
+                        <div style="font-size:0.75rem;color:var(--gray-400);margin-top:0.5rem;">Current logo</div>
+                    </div>
+                    {% else %}
+                    <div class="logo-box">
+                        <div class="logo-empty"><i class="fas fa-image" style="font-size:1.5rem;opacity:0.4;display:block;margin-bottom:0.375rem;"></i>No logo uploaded</div>
+                    </div>
+                    {% endif %}
+                    <input type="file" name="company_logo" class="form-control" accept=".png,.jpg,.jpeg,.gif,.webp">
+                    <div class="form-hint">PNG, JPG, GIF or WEBP. Recommended 500×500px.</div>
+                </div>
+
+                <!-- Settings fields -->
+                {% set sections = {
+                    'company': ['Company Info', ['company_name', 'company_address', 'company_phone', 'company_email']],
+                    'finance': ['Financial', ['currency_symbol', 'tax_rate']],
+                    'receipt': ['Receipt', ['receipt_header', 'receipt_footer']]
+                } %}
+
+                {% set shown = [] %}
+                {% for setting in settings %}
+                    {% if setting.key not in shown %}
+                        {% if loop.first or setting.key in ['company_name', 'currency_symbol', 'receipt_header'] %}
+                        {% if setting.key == 'company_name' %}
+                        <div class="section-divider">Company Info</div>
+                        {% elif setting.key == 'currency_symbol' %}
+                        <div class="section-divider">Financial</div>
+                        {% elif setting.key == 'receipt_header' %}
+                        <div class="section-divider">Receipt</div>
+                        {% endif %}
+                        {% endif %}
+                    <div class="form-group">
+                        <label class="form-label">{{ setting.key | replace('_', ' ') | title }}</label>
+                        {% if setting.key == 'tax_rate' %}
+                        <div class="input-suffix">
+                            <input type="number" name="{{ setting.key }}" class="form-control" value="{{ setting.value }}" step="0.01" min="0" max="1">
+                            <span class="suffix-label">decimal</span>
+                        </div>
+                        <div class="form-hint">e.g. <strong>0.15</strong> = 15% tax</div>
+                        {% elif setting.key in ['receipt_header', 'receipt_footer'] %}
+                        <textarea name="{{ setting.key }}" class="form-control" rows="2">{{ setting.value }}</textarea>
+                        {% else %}
+                        <input type="text" name="{{ setting.key }}" class="form-control" value="{{ setting.value }}">
+                        {% endif %}
+                        {% if setting.description %}
+                        <div class="form-hint">{{ setting.description }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+
+                <div class="form-footer">
+                    <a href="{{ url_for('main.dashboard') }}" class="btn btn-light" style="border:var(--border);">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save" style="font-size:0.75rem;"></i> Save Changes
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white py-3 border-bottom">
-                    <h5 class="card-title mb-0 fw-bold">General Configuration</h5>
+    <!-- Sidebar tips -->
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="panel">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fas fa-lightbulb"></i> Quick Tips</h5>
+            </div>
+            <div class="panel-body" style="padding:1rem 1.25rem;">
+                <div class="tip-item">
+                    <i class="fas fa-percent tip-icon"></i>
+                    <span><strong>Tax Rate</strong> is a decimal: use <code>0.15</code> for 15% tax.</span>
                 </div>
-                <div class="card-body p-4">
-                    <form method="POST" enctype="multipart/form-data">
-                        {{ form.hidden_tag() }}
-
-                        <!-- Company Logo Upload Section -->
-                        <div class="mb-4 p-3 bg-light rounded border">
-                            <label class="form-label fw-bold text-uppercase small text-muted">
-                                <i class="bi bi-image me-1"></i> Company Logo
-                            </label>
-
-                            {% if current_logo %}
-                            <div class="mb-3 text-center">
-                                <p class="text-muted small mb-2">Current Logo:</p>
-                                <img src="{{ url_for('static', filename=current_logo) }}" alt="Company Logo"
-                                    class="img-thumbnail" style="max-height: 100px; max-width: 200px;">
-                            </div>
-                            {% else %}
-                            <div class="mb-3 text-center">
-                                <p class="text-muted small mb-0"><i class="bi bi-image text-secondary"></i> No logo
-                                    uploaded</p>
-                            </div>
-                            {% endif %}
-
-                            <input type="file" name="company_logo" class="form-control"
-                                accept=".png,.jpg,.jpeg,.gif,.webp">
-                            <div class="form-text small">
-                                <i class="bi bi-info-circle me-1"></i> Upload PNG, JPG, JPEG, GIF, or WEBP. Recommended:
-                                500x500px for best print quality.
-                            </div>
-                        </div>
-
-                        <hr class="my-4">
-
-                        {% for setting in settings %}
-                        <div class="mb-4">
-                            <label class="form-label fw-bold text-uppercase small text-muted">
-                                {{ setting.key|replace('_', ' ')|title }}
-                            </label>
-
-                            {% if setting.key in ['tax_rate'] %}
-                            <div class="input-group">
-                                <input type="number" name="{{ setting.key }}" class="form-control"
-                                    value="{{ setting.value }}" step="any" min="0">
-                                <span class="input-group-text"><i class="bi bi-percent"></i></span>
-                            </div>
-                            {% elif setting.key in ['receipt_header', 'receipt_footer'] %}
-                            <textarea name="{{ setting.key }}" class="form-control"
-                                rows="2">{{ setting.value }}</textarea>
-                            {% else %}
-                            <input type="text" name="{{ setting.key }}" class="form-control"
-                                value="{{ setting.value }}">
-                            {% endif %}
-
-                            {% if setting.description %}
-                            <div class="form-text small"><i class="bi bi-info-circle me-1"></i> {{ setting.description
-                                }}</div>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-
-                        <hr class="my-4">
-
-                        <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary px-4">
-                                <i class="bi bi-arrow-left me-2"></i> Back to Dashboard
-                            </a>
-                            <button type="submit" class="btn btn-primary px-5 fw-bold">
-                                <i class="bi bi-save me-2"></i> Save Changes
-                            </button>
-                        </div>
-                    </form>
+                <div class="tip-item">
+                    <i class="fas fa-receipt tip-icon"></i>
+                    <span><strong>Receipt Header/Footer</strong> appears on thermal and PDF receipts.</span>
+                </div>
+                <div class="tip-item">
+                    <i class="fas fa-dollar-sign tip-icon"></i>
+                    <span><strong>Currency Symbol</strong> updates all price displays across the system.</span>
+                </div>
+                <div class="tip-item">
+                    <i class="fas fa-image tip-icon"></i>
+                    <span><strong>Company Logo</strong> appears on receipts, reports, and the sidebar.</span>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-4 mt-4 mt-lg-0">
-            <div class="card shadow-sm border-0 bg-light">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3"><i class="bi bi-lightbulb text-warning me-2"></i> Quick Tips</h5>
-                    <ul class="list-unstyled mb-0">
-                        <li class="mb-3">
-                            <strong>Tax Rate:</strong> Entered as a decimal. Example: <code>0.15</code> for 15% tax.
-                        </li>
-                        <li class="mb-3">
-                            <strong>Receipt Customization:</strong> Headers and footers will appear on both thermal and
-                            PDF receipts.
-                        </li>
-                        <li class="mb-0">
-                            <strong>Currency:</strong> Changing the currency symbol updates all price displays across
-                            the system.
-                        </li>
-                        <li class="mt-3">
-                            <strong>Company Logo:</strong> Your logo will appear on receipts, reports, and the sidebar.
-                        </li>
-                    </ul>
+        <div class="panel">
+            <div class="panel-body" style="padding:1.25rem;text-align:center;">
+                <div style="width:40px;height:40px;border-radius:10px;background:var(--green-50);color:var(--green-600);display:flex;align-items:center;justify-content:center;margin:0 auto 0.75rem;">
+                    <i class="fas fa-shield-alt"></i>
                 </div>
-            </div>
-
-            <div class="card shadow-sm border-0 mt-4">
-                <div class="card-body p-4 text-center">
-                    <i class="bi bi-shield-check display-4 text-success mb-3"></i>
-                    <h6 class="fw-bold">Security Audit</h6>
-                    <p class="text-muted small">All changes to these settings are logged for security auditing purposes.
-                    </p>
-                    <a href="{{ url_for('admin.logs') }}" class="btn btn-sm btn-link text-decoration-none">View History
-                        <i class="bi bi-arrow-right"></i></a>
-                </div>
+                <div style="font-size:0.875rem;font-weight:600;color:var(--gray-900);margin-bottom:0.375rem;">Security Audit</div>
+                <div style="font-size:0.75rem;color:var(--gray-500);margin-bottom:0.875rem;">All changes to settings are logged for auditing.</div>
+                <a href="{{ url_for('admin.logs') }}" style="font-size:0.8125rem;color:var(--blue-600);text-decoration:none;font-weight:500;">
+                    View Audit Logs <i class="fas fa-arrow-right" style="font-size:0.625rem;"></i>
+                </a>
             </div>
         </div>
     </div>
