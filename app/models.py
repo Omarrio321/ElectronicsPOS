@@ -113,6 +113,11 @@ class PaymentMethod(enum.Enum):
     STORE_CREDIT = "Store Credit"
     MOBILE_MONEY = "Mobile Money"  # Kept for backwards compatibility with existing sales
 
+
+class PaymentCurrency(enum.Enum):
+    USD = "USD"
+    SLSH = "SLSH"
+
 class SaleStatus(enum.Enum):
     COMPLETED = "Completed"
     PARTIALLY_RETURNED = "Partially Returned"
@@ -282,10 +287,13 @@ class Sale(db.Model):
     sale_status = db.Column(db.Enum(SaleStatus), default=SaleStatus.COMPLETED)  # Legacy
     invoice_status = db.Column(db.Enum(InvoiceStatus), default=InvoiceStatus.PAID)  # New
     
+    # Exchange rate snapshot at time of sale (1 USD = X SLSH); None for legacy USD-only sales
+    exchange_rate_at_sale = db.Column(db.Numeric(12, 6), nullable=True)
+
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     sale_items = db.relationship('SaleItem', backref='sale', lazy=True, cascade="all, delete-orphan")
     payments = db.relationship('Payment', backref='sale', lazy=True, cascade="all, delete-orphan")
@@ -303,8 +311,8 @@ class Sale(db.Model):
         return self
     
     def update_payment_status(self):
-        """Update invoice status based on payments"""
-        total_paid = sum(p.amount for p in self.payments)
+        """Update invoice status based on payments (uses USD-equivalent amounts)"""
+        total_paid = sum(p.usd_amount for p in self.payments)
         self.amount_paid = total_paid
         self.amount_due = self.grand_total - total_paid
         
@@ -426,11 +434,19 @@ class Payment(db.Model):
     # Customer (for payments received outside of checkout)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=True, index=True)
     
-    amount = db.Column(db.Numeric(12, 2), nullable=False)
+    amount = db.Column(db.Numeric(12, 2), nullable=False)  # Original amount in payment_currency
     payment_method = db.Column(db.Enum(PaymentMethod), nullable=False)
+
+    # Dual-currency fields (added for multi-currency support)
+    payment_currency = db.Column(db.Enum(PaymentCurrency), nullable=False,
+                                 default=PaymentCurrency.USD, server_default='USD')
+    exchange_rate_used = db.Column(db.Numeric(12, 6), nullable=False,
+                                   default=Decimal('1.000000'), server_default='1.000000')
+    amount_in_usd = db.Column(db.Numeric(12, 2), nullable=True)  # USD-equivalent; NULL = same as amount
+
     reference = db.Column(db.String(100), nullable=True)  # For digital payment transaction IDs
     note = db.Column(db.String(255), nullable=True)
-    
+
     # Who recorded this payment
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -438,8 +454,16 @@ class Payment(db.Model):
     # Relationship to user who created payment
     created_by_user = db.relationship('User', foreign_keys=[created_by])
     
+    @property
+    def usd_amount(self):
+        """Return USD-equivalent amount; falls back to amount for legacy USD records."""
+        if self.amount_in_usd is not None:
+            return self.amount_in_usd
+        return self.amount
+
     def __repr__(self):
-        return f'<Payment {self.id}: {self.payment_method.value} ${self.amount}>'
+        currency = self.payment_currency.value if self.payment_currency else 'USD'
+        return f'<Payment {self.id}: {self.payment_method.value} {self.amount} {currency}>'
 
 class SystemSetting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -561,8 +585,9 @@ class ReturnTransaction(db.Model):
     discount_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     refund_total = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     
-    # Refund method (only if Return + Refund)
+    # Refund method and currency (only if Return + Refund)
     refund_method = db.Column(db.Enum(PaymentMethod), nullable=True)
+    refund_currency = db.Column(db.Enum(PaymentCurrency), nullable=True, default=PaymentCurrency.USD)
     
     # Audit info
     reason = db.Column(db.String(255), nullable=False)

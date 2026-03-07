@@ -1,599 +1,367 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <title>Invoice #{{ sale.invoice_no or sale.id }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            background-color: #f3f4f6;
-            font-family: 'Inter', sans-serif;
-            /* Modern font */
-            color: #1f2937;
-            margin: 0;
-            padding: 40px 20px;
-            display: flex;
-            justify-content: center;
+            background: #f0f5ff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #1a2332;
+            padding: 36px 16px 80px;
             min-height: 100vh;
         }
 
-        .invoice-container {
-            background: white;
+        /* ── CARD ── */
+        .invoice-card {
+            background: #fff;
             width: 100%;
-            max-width: 800px;
-            /* A4 width approx */
-            padding: 50px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-            margin-bottom: 30px;
+            max-width: 820px;
+            margin: 0 auto 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 30px rgba(37, 99, 235, 0.10);
+            overflow: hidden;
         }
 
-        /* === HEADER === */
-        .header {
+        /* ── HEADER STRIPE ── */
+        .inv-header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%);
+            color: white;
+            padding: 34px 48px;
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 50px;
+            align-items: center;
         }
 
-        .company-branding {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .logo-box {
-            background-color: #333;
-            /* Dark background for logo like template */
-            color: white;
-            padding: 15px 20px;
-            display: inline-block;
-            margin-bottom: 20px;
-            text-align: center;
-            min-width: 120px;
-        }
-
-        .logo-img {
-            max-height: 50px;
-            max-width: 120px;
+        .company-block .co-logo img {
+            max-height: 48px;
+            max-width: 130px;
             filter: brightness(0) invert(1);
-            /* Make logo white if it's dark */
-        }
-
-        .company-name {
-            font-size: 14px;
-            font-weight: 500;
-            color: white;
-            margin-top: 5px;
-        }
-
-        .invoice-title {
-            text-align: right;
-        }
-
-        .invoice-title h1 {
-            font-size: 42px;
-            font-weight: 800;
-            letter-spacing: 2px;
-            margin: 0;
-            color: #333;
-            text-transform: uppercase;
-        }
-
-        /* === INVOICE INFO === */
-        .info-section {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 40px;
-        }
-
-        .bill-to p {
-            margin: 0 0 5px 0;
-        }
-
-        .bill-to .label {
-            font-size: 12px;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 1px;
             margin-bottom: 10px;
             display: block;
-            font-weight: 600;
         }
+        .company-block .co-logo-icon { font-size: 30px; margin-bottom: 10px; opacity: 0.9; }
+        .company-block .co-name { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+        .company-block .co-sub { font-size: 12px; opacity: 0.75; margin-top: 4px; line-height: 1.55; }
 
-        .bill-to .customer-name {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 5px;
-            color: #111;
-        }
+        .inv-title-block { text-align: right; }
+        .inv-title-block .word { font-size: 48px; font-weight: 800; letter-spacing: 5px; text-transform: uppercase; line-height: 1; opacity: 0.97; }
+        .inv-title-block .inv-num { font-size: 14px; font-weight: 500; opacity: 0.7; margin-top: 8px; }
 
-        .bill-to .customer-detail {
-            font-size: 14px;
-            color: #4b5563;
-        }
-
-        .invoice-details {
-            text-align: right;
-        }
-
-        .detail-row {
+        /* ── STATUS BANNER ── */
+        .status-banner {
             display: flex;
-            justify-content: flex-end;
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
-
-        .detail-label {
-            color: #6b7280;
-            margin-right: 20px;
-            min-width: 100px;
-        }
-
-        .detail-value {
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 48px;
+            font-size: 13px;
             font-weight: 600;
-            color: #111;
         }
+        .status-banner.unpaid  { background: #fef2f2; border-bottom: 1px solid #fecaca; color: #991b1b; }
+        .status-banner.partial { background: #fffbeb; border-bottom: 1px solid #fde68a; color: #92400e; }
 
-        /* === TABLE === */
-        .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 30px;
-        }
+        /* ── BODY ── */
+        .inv-body { padding: 38px 48px; }
 
-        .items-table th {
-            background-color: #333;
-            color: white;
-            padding: 12px 15px;
+        /* ── META ROW ── */
+        .meta-flex { display: flex; justify-content: space-between; gap: 32px; margin-bottom: 36px; }
+
+        .bill-to { flex: 1; }
+        .section-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
             text-transform: uppercase;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            text-align: left;
-        }
-
-        .items-table td {
-            padding: 15px;
-            border-bottom: 1px solid #e5e7eb;
-            font-size: 14px;
-            color: #374151;
-        }
-
-        .items-table tr:nth-child(even) {
-            background-color: #f9fafb;
-        }
-
-        .items-table .col-desc {
-            width: 45%;
-        }
-
-        .items-table .col-price {
-            width: 15%;
-        }
-
-        .items-table .col-qty {
-            width: 10%;
-            text-align: center;
-        }
-
-        .items-table .col-total {
-            width: 20%;
-            text-align: right;
-        }
-
-        .items-table .col-idx {
-            width: 10%;
-            text-align: center;
-            font-weight: 600;
-            color: #6b7280;
-        }
-
-        .items-table th.right,
-        .items-table td.right {
-            text-align: right;
-        }
-
-        .items-table th.center,
-        .items-table td.center {
-            text-align: center;
-        }
-
-        /* === SUMMARY === */
-        .invoice-footer {
-            display: flex;
-            justify-content: space-between;
-            /* To separate total section from messages if needed */
-        }
-
-        .summary-spacer {
-            flex-grow: 1;
-        }
-
-        .summary-box {
-            width: 350px;
-            margin-left: auto;
-            /* Push to right */
-        }
-
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #f3f4f6;
-            font-size: 14px;
-        }
-
-        .summary-row:last-child {
-            border-bottom: none;
-        }
-
-        .summary-row.total {
-            background-color: #333;
-            color: white;
-            padding: 12px 15px;
-            margin-top: 10px;
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        .label {
-            color: #6b7280;
-        }
-
-        .label.total-label {
-            color: white;
-        }
-
-        .value {
-            font-weight: 600;
-        }
-
-        /* === TERMS & EXTAS === */
-        .bottom-section {
-            margin-top: 50px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-        }
-
-        .terms {
-            max-width: 50%;
-            font-size: 12px;
-            color: #6b7280;
-        }
-
-        .terms h4 {
-            font-size: 14px;
-            color: #111;
-            margin-bottom: 8px;
-        }
-
-        .signature-section {
-            text-align: center;
-        }
-
-        .signature-line {
-            width: 200px;
-            border-bottom: 1px solid #333;
+            color: #2563eb;
             margin-bottom: 10px;
         }
+        .cust-name { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+        .cust-detail { font-size: 13px; color: #6b7280; line-height: 1.6; }
 
-        .barcode-section {
-            margin-top: 30px;
-            text-align: center;
+        .inv-meta-box {
+            flex: 0 0 255px;
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            border-radius: 8px;
+            padding: 16px 18px;
         }
+        .meta-line { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px solid #dbeafe; }
+        .meta-line:last-child { border-bottom: none; }
+        .meta-line .k { color: #6b7280; font-weight: 500; }
+        .meta-line .v { font-weight: 600; color: #111827; }
 
-        .barcode-img {
-            max-height: 80px;
-        }
-
-        /* === BUTTONS === */
-        .actions {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            display: flex;
-            gap: 15px;
-        }
-
-        .btn {
-            padding: 12px 25px;
-            border-radius: 50px;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transition: transform 0.2s;
-            text-decoration: none;
-            font-family: inherit;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .btn-print {
-            background: #111;
+        /* ── TABLE ── */
+        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 32px; }
+        .items-table thead tr { background: #2563eb; }
+        .items-table th {
             color: white;
+            padding: 11px 13px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
         }
+        .items-table td { padding: 12px 13px; font-size: 13px; color: #374151; border-bottom: 1px solid #f3f4f6; }
+        .items-table tbody tr:nth-child(even) td { background: #f8faff; }
+        .items-table .sku-tag { font-size: 11px; color: #9ca3af; margin-top: 2px; }
 
-        .btn-back {
-            background: white;
-            color: #111;
+        /* ── FOOTER SECTION ── */
+        .inv-footer-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; }
+
+        .terms-col { flex: 1; max-width: 380px; }
+        .terms-title { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 6px; }
+        .terms-text { font-size: 12px; color: #9ca3af; line-height: 1.6; }
+
+        .totals-col { flex: 0 0 290px; }
+        .total-row { display: flex; justify-content: space-between; font-size: 13px; padding: 8px 12px; border-bottom: 1px solid #f3f4f6; }
+        .total-row:last-child { border-bottom: none; }
+        .total-row .lbl { color: #6b7280; }
+        .total-row .val { font-weight: 600; color: #111827; }
+        .total-row.grand {
+            background: #2563eb;
+            border-radius: 6px;
+            margin-top: 6px;
+            padding: 12px 14px;
+            border-bottom: none;
         }
+        .total-row.grand .lbl { color: rgba(255,255,255,0.8); font-weight: 600; font-size: 14px; }
+        .total-row.grand .val { color: #fff; font-weight: 700; font-size: 16px; }
+        .total-row.paid-row { background: #f0fdf4; padding: 8px 12px; border-bottom: none; }
+        .total-row.paid-row .lbl { color: #065f46; font-weight: 600; }
+        .total-row.paid-row .val { color: #059669; }
+        .total-row.due-row { background: #fef2f2; border-radius: 0 0 6px 6px; padding: 10px 14px; border-bottom: none; }
+        .total-row.due-row .lbl { color: #991b1b; font-weight: 700; }
+        .total-row.due-row .val { color: #dc2626; font-weight: 700; font-size: 15px; }
 
-        /* === PRINT STYLES === */
+        /* ── SIGNATURE ── */
+        .sig-block { text-align: center; margin-top: 36px; padding-top: 18px; border-top: 1px solid #e5e7eb; }
+        .sig-line { width: 180px; border-top: 2px solid #374151; margin: 0 auto 8px; }
+        .sig-label { font-size: 12px; font-weight: 600; color: #374151; }
+        .sig-sub { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+
+        /* ── ACTIONS (screen only) ── */
+        .actions-bar { position: fixed; bottom: 26px; right: 26px; display: flex; gap: 10px; }
+        .btn {
+            padding: 10px 22px; border: none; border-radius: 8px; font-family: inherit;
+            font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.12); transition: transform 0.12s;
+        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn-print { background: #2563eb; color: white; }
+        .btn-back  { background: white; color: #374151; border: 1px solid #d1d5db; }
+
+        /* ── PRINT ── */
         @media print {
-            @page {
-                size: A4;
-                margin: 0;
-                /* Use body padding for margins */
-            }
-
-            body {
-                background: white;
-                padding: 0;
-                margin: 0;
-                display: block;
-                width: 210mm;
-                /* A4 width */
-                min-height: 297mm;
-                /* A4 height */
-            }
-
-            .invoice-container {
-                box-shadow: none;
-                width: 100%;
-                max-width: 100%;
-                margin: 0;
-                padding: 10mm 15mm;
-                /* Safe print margins */
-                border: none;
-            }
-
-            .actions {
-                display: none !important;
-            }
-
-            .logo-box {
+            @page { size: A4; margin: 0; }
+            body { background: white; padding: 0; margin: 0; }
+            .invoice-card { box-shadow: none; border-radius: 0; max-width: 100%; margin: 0; }
+            .actions-bar { display: none !important; }
+            .inv-header, .items-table thead tr, .total-row.grand, .status-banner, .inv-meta-box {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                background-color: #333 !important;
-                color: white !important;
-            }
-
-            .items-table th {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                background-color: #333 !important;
-                color: white !important;
-            }
-
-            .summary-row.total {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                background-color: #333 !important;
-                color: white !important;
-            }
-
-            /* Prevent cutoff */
-            .items-table,
-            .items-table th,
-            .items-table td {
-                overflow: visible !important;
-                white-space: normal !important;
-                word-wrap: break-word;
-            }
-
-            /* Ensure footer stays at bottom if needed, or flows naturally */
-            .bottom-section {
-                break-inside: avoid;
             }
         }
     </style>
 </head>
-
 <body>
 
-    <div class="invoice-container">
-        <!-- Header -->
-        <div class="header">
-            <div class="company-branding">
-                <div class="logo-box">
-                    {% if company_logo %}
-                    <img src="{{ url_for('static', filename=company_logo) }}" alt="Logo" class="logo-img">
-                    {% else %}
-                    <i class="fas fa-cube fa-2x" style="color: white; margin-bottom: 5px;"></i>
-                    {% endif %}
-                    <div class="company-name">{{ company_name or 'Electronics POS' }}</div>
-                </div>
+<div class="invoice-card">
 
-                <div style="font-size: 13px; color: #4b5563; line-height: 1.6;">
-                    {{ company_address }}<br>
-                    Contact: {{ company_phone }}
-                </div>
+    <!-- ── Header ── -->
+    <div class="inv-header">
+        <div class="company-block">
+            {% if company_logo %}
+            <div class="co-logo">
+                <img src="{{ url_for('static', filename=company_logo) }}" alt="{{ company_name }}">
             </div>
-
-            <div class="invoice-title">
-                <h1>INVOICE</h1>
-            </div>
+            {% else %}
+            <div class="co-logo-icon"><i class="fas fa-microchip"></i></div>
+            {% endif %}
+            <div class="co-name">{{ company_name or 'Electronics POS' }}</div>
+            <div class="co-sub">{{ company_address }}<br>{{ company_phone }}</div>
         </div>
+        <div class="inv-title-block">
+            <div class="word">INVOICE</div>
+            <div class="inv-num">{{ sale.invoice_no or ('#' ~ sale.id) }}</div>
+        </div>
+    </div>
 
-        <!-- Info Section -->
-        <div class="info-section">
+    <!-- ── Status Banner (unpaid / partial only) ── -->
+    {% set inv_status = sale.invoice_status.value if sale.invoice_status else 'Paid' %}
+    {% if inv_status == 'Unpaid' %}
+    <div class="status-banner unpaid">
+        <span><i class="fas fa-exclamation-circle"></i>&nbsp; PAYMENT REQUIRED — This invoice has not been paid.</span>
+        <span>Amount Due: {{ sale.amount_due | format_currency }}</span>
+    </div>
+    {% elif inv_status == 'Partial' %}
+    <div class="status-banner partial">
+        <span><i class="fas fa-clock"></i>&nbsp; PARTIAL PAYMENT — A balance remains on this invoice.</span>
+        <span>Amount Due: {{ sale.amount_due | format_currency }}</span>
+    </div>
+    {% endif %}
+
+    <!-- ── Body ── -->
+    <div class="inv-body">
+
+        <!-- Bill To + Invoice Info -->
+        <div class="meta-flex">
             <div class="bill-to">
-                <span class="label">INVOICE TO</span>
+                <div class="section-label">Bill To</div>
                 {% if sale.customer %}
-                <div class="customer-name">{{ sale.customer.full_name }}</div>
-                <div class="customer-detail">
-                    {{ sale.customer.address or '' }}<br>
-                    {{ sale.customer.phone or '' }}<br>
-                    {{ sale.customer.email or '' }}
+                <div class="cust-name">{{ sale.customer.full_name }}</div>
+                <div class="cust-detail">
+                    {% if sale.customer.address %}{{ sale.customer.address }}<br>{% endif %}
+                    {% if sale.customer.phone %}{{ sale.customer.phone }}<br>{% endif %}
+                    {% if sale.customer.email %}{{ sale.customer.email }}{% endif %}
                 </div>
                 {% else %}
-                <div class="customer-name">Walk-in Customer</div>
-                <div class="customer-detail">Guest Account</div>
+                <div class="cust-name">Walk-in Customer</div>
+                <div class="cust-detail">Guest Account</div>
                 {% endif %}
             </div>
 
-            <div class="invoice-details">
-                <div class="detail-row">
-                    <span class="detail-label">Invoice No</span>
-                    <span class="detail-value">{{ sale.invoice_no or sale.id }}</span>
+            <div class="inv-meta-box">
+                <div class="meta-line">
+                    <span class="k">Invoice No</span>
+                    <span class="v">{{ sale.invoice_no or sale.id }}</span>
                 </div>
-                <div class="detail-row">
-                    <span class="detail-label">Invoice Date</span>
-                    <span class="detail-value">{{ sale.created_at.strftime('%B %dth, %Y') }}</span>
+                <div class="meta-line">
+                    <span class="k">Date</span>
+                    <span class="v">{{ sale.created_at.strftime('%d %b %Y') }}</span>
                 </div>
-                <!-- Optional: Due Date or Payment Method -->
-                <div class="detail-row">
-                    <span class="detail-label">Payment Method</span>
-                    <span class="detail-value">
-                        {% if sale.payments|length > 1 %}
-                        Split Payment
-                        <div class="payment-methods-list">
-                            {% for payment in sale.payments %}
-                            <div class="row">
-                                <span>
-                                    {% set method = payment.payment_method %}
-                                    {% set method_str = method.value if method.value is defined else method|string %}
-                                    {% if method_str in ['Zaad', 'ZAAD'] %}Zaad
-                                    {% elif method_str in ['E-Dahab', 'E_DAHAB'] %}E-Dahab
-                                    {% elif method_str in ['Store Credit', 'STORE_CREDIT'] or not method_str %}Credit
-                                    {% else %}{{ method_str }}{% endif %}
-                                    {% if payment.reference %} ({{ payment.reference }}){% endif %}:
-                                </span>
-                                <span>{{ format_currency(payment.amount) }}</span>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% else %}
-                        {% set method = sale.payment_method %}
-                        {% set method_str = method.value if method.value is defined else method|string %}
-
-                        {# Fallback logic #}
-                        {% if not method_str and sale.payments %}
-                        {% set p_method = sale.payments[0].payment_method %}
-                        {% set method_str = p_method.value if p_method.value is defined else p_method|string %}
-                        {% endif %}
-
-                        {% if method_str in ['Zaad', 'ZAAD'] %}Zaad
-                        {% elif method_str in ['E-Dahab', 'E_DAHAB'] %}E-Dahab
-                        {% elif method_str == 'Store Credit' or not method_str %}Credit
-                        {% else %}{{ method_str }}
-                        {% endif %}
-                        {% endif %}
-                    </span>
+                <div class="meta-line">
+                    <span class="k">Cashier</span>
+                    <span class="v">{{ sale.user.username }}</span>
                 </div>
-                <div class="detail-row">
-                    <span class="detail-label">Cashier</span>
-                    <span class="detail-value">{{ sale.user.username }}</span>
+                <div class="meta-line">
+                    <span class="k">Status</span>
+                    {% if inv_status == 'Unpaid' %}
+                    <span class="v" style="color:#dc2626;">Unpaid</span>
+                    {% elif inv_status == 'Partial' %}
+                    <span class="v" style="color:#d97706;">Partial</span>
+                    {% else %}
+                    <span class="v" style="color:#059669;">Paid</span>
+                    {% endif %}
                 </div>
             </div>
         </div>
 
-        <!-- Table -->
+        <!-- Items Table -->
         <table class="items-table">
             <thead>
                 <tr>
-                    <th class="col-idx">#</th>
-                    <th class="col-desc">DESCRIPTION</th>
-                    <th class="col-price right">PRICE</th>
-                    <th class="col-qty">QUANTITY</th>
-                    <th class="col-total">AMOUNT</th>
+                    <th style="width:6%;text-align:center;">#</th>
+                    <th style="width:46%;">Description</th>
+                    <th style="width:14%;text-align:right;">Unit Price</th>
+                    <th style="width:10%;text-align:center;">Qty</th>
+                    <th style="width:14%;text-align:right;">Amount</th>
+                    <th style="width:10%;text-align:right;">SKU</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in items %}
                 <tr>
-                    <td class="center">{{ '%02d'|format(loop.index) }}</td>
+                    <td style="text-align:center;font-weight:600;color:#9ca3af;">{{ '%02d'|format(loop.index) }}</td>
                     <td>
-                        {{ item.product.name }}
-                        {% if item.product_sku %}
-                        <div style="color: #9ca3af; font-size: 11px;">{{ item.product_sku }}</div>
-                        {% endif %}
+                        <div style="font-weight:500;color:#111827;">{{ item.product.name }}</div>
+                        {% if item.product.sku %}<div class="sku-tag">{{ item.product.sku }}</div>{% endif %}
                     </td>
-                    <td class="right">{{ item.unit_price_at_time | format_currency}}</td>
-                    <td class="center">{{ item.quantity_sold }}</td>
-                    <td class="right">{{ item.total_price | format_currency }}</td>
+                    <td style="text-align:right;">{{ item.unit_price_at_time | format_currency }}</td>
+                    <td style="text-align:center;font-weight:600;">{{ item.quantity_sold }}</td>
+                    <td style="text-align:right;font-weight:600;color:#111827;">{{ item.total_price | format_currency }}</td>
+                    <td style="text-align:right;font-size:11px;color:#9ca3af;">{{ item.product.sku or '—' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
 
-        <!-- Footer / Totals -->
-        <div class="invoice-footer">
-            <div class="summary-spacer"></div>
-            <div class="summary-box">
-                <div class="summary-row">
-                    <span class="label">Sub Total</span>
-                    <span class="value">{{ sale.subtotal | format_currency }}</span>
+        <!-- Footer: Terms + Totals -->
+        <div class="inv-footer-row">
+            <div class="terms-col">
+                <div class="terms-title">Terms &amp; Conditions</div>
+                <div class="terms-text">Thank you for your business. Goods once sold are not returnable after 3 days. Warranty covers manufacturer defects only. Payment is due upon receipt of this invoice.</div>
+
+                {% if sale.invoice_no %}
+                <div id="barcode-wrap" data-invoice="{{ sale.invoice_no }}" style="margin-top:16px;">
+                    <svg id="receipt-barcode"></svg>
+                    <div style="font-size:10px;color:#9ca3af;margin-top:3px;">{{ sale.invoice_no }}</div>
                 </div>
-                <div class="summary-row">
-                    <span class="label">Tax ({{ (sale.tax_rate * 100)|int }}%)</span>
-                    <span class="value">{{ sale.tax_amount | format_currency }}</span>
+                {% endif %}
+            </div>
+
+            <div class="totals-col">
+                <div class="total-row">
+                    <span class="lbl">Subtotal</span>
+                    <span class="val">{{ sale.subtotal | format_currency }}</span>
                 </div>
                 {% if sale.discount > 0 %}
-                <div class="summary-row">
-                    <span class="label">Discount</span>
-                    <span class="value" style="color: #ef4444;">-{{ sale.discount | format_currency }}</span>
+                <div class="total-row">
+                    <span class="lbl">Discount</span>
+                    <span class="val" style="color:#dc2626;">-{{ sale.discount | format_currency }}</span>
                 </div>
                 {% endif %}
-
-                <div class="summary-row total">
-                    <span class="label total-label">TOTAL</span>
-                    <span class="value">{{ sale.grand_total | format_currency }}</span>
+                <div class="total-row">
+                    <span class="lbl">Tax ({{ (sale.tax_rate * 100)|int }}%)</span>
+                    <span class="val">{{ sale.tax_amount | format_currency }}</span>
                 </div>
-
-                <!-- Paid / Due -->
-                {% if sale.amount_due > 0 %}
-                <div class="summary-row">
-                    <span class="label">Paid</span>
-                    <span class="value">{{ sale.amount_paid | format_currency }}</span>
+                <div class="total-row grand">
+                    <span class="lbl">Total</span>
+                    <span class="val">{{ sale.grand_total | format_currency }}</span>
                 </div>
-                <div class="summary-row">
-                    <span class="label">Balance Due</span>
-                    <span class="value" style="color: #ef4444;">{{ sale.amount_due | format_currency }}</span>
+                {% if sale.amount_paid and sale.amount_paid > 0 and inv_status == 'Partial' %}
+                <div class="total-row paid-row">
+                    <span class="lbl">Paid</span>
+                    <span class="val">{{ sale.amount_paid | format_currency }}</span>
+                </div>
+                {% endif %}
+                {% if sale.amount_due and sale.amount_due > 0 %}
+                <div class="total-row due-row">
+                    <span class="lbl">Balance Due</span>
+                    <span class="val">{{ sale.amount_due | format_currency }}</span>
                 </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Bottom Section -->
-        <div class="bottom-section">
-            <div class="terms">
-                <h4>Terms & Conditions</h4>
-                <p>
-                    Thank you for your business. Please note that goods once sold are not returnable after 3 days.
-                    Warranty covers manufacturer defects only.
-                </p>
-                {% if barcode_b64 %}
-                <div class="barcode-section" style="text-align: left; margin-top: 15px;">
-                    <img src="data:image/png;base64,{{ barcode_b64 }}" alt="Barcode"
-                        style="height: 50px; max-width: 100%;">
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="signature-section">
-                <div class="signature-line"></div>
-                <div style="font-weight: 600; font-size: 14px;">Authorized Signature</div>
-                <div style="font-size: 12px; color: #6b7280; margin-top: 3px;">{{ company_name }}</div>
-            </div>
+        <!-- Signature -->
+        <div class="sig-block">
+            <div class="sig-line"></div>
+            <div class="sig-label">Authorized Signature</div>
+            <div class="sig-sub">{{ company_name }}</div>
         </div>
 
     </div>
+</div>
 
-    <div class="actions">
-        <a href="{{ url_for('sales.index') }}" class="btn btn-back">
-            <i class="fas fa-arrow-left"></i> Back
-        </a>
-        <button onclick="window.print()" class="btn btn-print">
-            <i class="fas fa-print"></i> Print
-        </button>
-    </div>
+<div class="actions-bar">
+    <a href="{{ url_for('sales.index') }}" class="btn btn-back">
+        <i class="fas fa-arrow-left"></i> Back
+    </a>
+    <button onclick="window.print()" class="btn btn-print">
+        <i class="fas fa-print"></i> Print Invoice
+    </button>
+</div>
 
+<script>
+    window.onload = function () {
+        var wrap = document.getElementById('barcode-wrap');
+        if (wrap && window.JsBarcode) {
+            JsBarcode('#receipt-barcode', wrap.dataset.invoice, {
+                format: 'CODE128',
+                width: 1.5,
+                height: 48,
+                displayValue: false,
+                margin: 2
+            });
+        }
+        setTimeout(function () { window.print(); }, 600);
+    };
+</script>
 </body>
-
 </html>

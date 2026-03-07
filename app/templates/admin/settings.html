@@ -33,9 +33,14 @@
     textarea.form-control { resize:vertical; min-height:64px; }
     .form-hint { font-size:0.75rem; color:var(--gray-400); margin-top:0.25rem; }
 
-    .logo-box { background:var(--gray-50); border:var(--border); border-radius:8px; padding:1rem; text-align:center; margin-bottom:1rem; }
-    .logo-box img { max-height:64px; max-width:180px; object-fit:contain; }
-    .logo-empty { color:var(--gray-400); font-size:0.8125rem; }
+    .logo-upload-area { background:var(--gray-50); border:2px dashed var(--gray-300); border-radius:8px; padding:1.25rem 1rem; text-align:center; margin-bottom:0.5rem; cursor:pointer; transition:border-color 0.15s, background 0.15s; }
+    .logo-upload-area:hover { border-color:var(--blue-400); background:var(--blue-50,#eff6ff); }
+    .logo-upload-area.has-logo { border-style:solid; border-color:var(--gray-200); background:#fff; }
+    .logo-preview-img { max-height:80px; max-width:200px; object-fit:contain; display:block; margin:0 auto 0.5rem; }
+    .logo-upload-label { font-size:0.8125rem; color:var(--gray-500); margin:0; }
+    .logo-upload-label strong { color:var(--blue-600); }
+    .logo-upload-btn { display:inline-flex; align-items:center; gap:0.375rem; margin-top:0.5rem; font-size:0.8125rem; font-weight:500; color:var(--blue-600); background:none; border:none; padding:0; cursor:pointer; }
+    .logo-upload-btn:hover { color:var(--blue-700); text-decoration:underline; }
 
     .input-suffix { display:flex; gap:0; }
     .input-suffix .form-control { border-right:none; border-radius:6px 0 0 6px; }
@@ -67,61 +72,107 @@
             <form method="POST" enctype="multipart/form-data">
                 {{ form.hidden_tag() }}
 
+                <!-- ── Company Info ─────────────────────────────── -->
+                <div class="section-divider">Company Info</div>
+
                 <!-- Logo -->
-                <div class="section-divider">Company Logo</div>
                 <div class="form-group">
-                    {% if current_logo %}
-                    <div class="logo-box">
-                        <img src="{{ url_for('static', filename=current_logo) }}" alt="Company Logo">
-                        <div style="font-size:0.75rem;color:var(--gray-400);margin-top:0.5rem;">Current logo</div>
+                    <label class="form-label">Company Logo</label>
+                    <input type="file" id="logoFileInput" name="company_logo" accept=".png,.jpg,.jpeg,.gif,.webp" style="display:none;" onchange="handleLogoSelect(this)">
+                    <div class="logo-upload-area {% if current_logo %}has-logo{% endif %}" id="logoUploadArea" onclick="document.getElementById('logoFileInput').click()">
+                        {% if current_logo %}
+                        <img id="logoPreview" class="logo-preview-img" src="{{ url_for('static', filename=current_logo) }}" alt="Company Logo">
+                        <p class="logo-upload-label" id="logoUploadLabel">Current logo &mdash; <strong>click to replace</strong></p>
+                        {% else %}
+                        <img id="logoPreview" class="logo-preview-img" src="" alt="" style="display:none;">
+                        <i class="fas fa-cloud-upload-alt" style="font-size:1.75rem;color:var(--gray-300);display:block;margin-bottom:0.5rem;" id="logoUploadIcon"></i>
+                        <p class="logo-upload-label" id="logoUploadLabel"><strong>Click to upload</strong> your company logo</p>
+                        {% endif %}
+                        <span id="logoFileName" style="display:none;font-size:0.75rem;color:var(--blue-600);font-weight:500;margin-top:0.25rem;"></span>
                     </div>
-                    {% else %}
-                    <div class="logo-box">
-                        <div class="logo-empty"><i class="fas fa-image" style="font-size:1.5rem;opacity:0.4;display:block;margin-bottom:0.375rem;"></i>No logo uploaded</div>
-                    </div>
-                    {% endif %}
-                    <input type="file" name="company_logo" class="form-control" accept=".png,.jpg,.jpeg,.gif,.webp">
-                    <div class="form-hint">PNG, JPG, GIF or WEBP. Recommended 500×500px.</div>
+                    <div class="form-hint">PNG, JPG, GIF or WEBP &mdash; Recommended 500&times;500 px or wider.</div>
                 </div>
 
-                <!-- Settings fields -->
-                {% set sections = {
-                    'company': ['Company Info', ['company_name', 'company_address', 'company_phone', 'company_email']],
-                    'finance': ['Financial', ['currency_symbol', 'tax_rate']],
-                    'receipt': ['Receipt', ['receipt_header', 'receipt_footer']]
-                } %}
+                {% if settings_dict.company_name %}
+                <div class="form-group">
+                    <label class="form-label">Company Name</label>
+                    <input type="text" name="company_name" class="form-control" value="{{ settings_dict.company_name.value }}">
+                </div>
+                {% endif %}
 
-                {% set shown = [] %}
-                {% for setting in settings %}
-                    {% if setting.key not in shown %}
-                        {% if loop.first or setting.key in ['company_name', 'currency_symbol', 'receipt_header'] %}
-                        {% if setting.key == 'company_name' %}
-                        <div class="section-divider">Company Info</div>
-                        {% elif setting.key == 'currency_symbol' %}
-                        <div class="section-divider">Financial</div>
-                        {% elif setting.key == 'receipt_header' %}
-                        <div class="section-divider">Receipt</div>
-                        {% endif %}
-                        {% endif %}
-                    <div class="form-group">
-                        <label class="form-label">{{ setting.key | replace('_', ' ') | title }}</label>
-                        {% if setting.key == 'tax_rate' %}
-                        <div class="input-suffix">
-                            <input type="number" name="{{ setting.key }}" class="form-control" value="{{ setting.value }}" step="0.01" min="0" max="1">
-                            <span class="suffix-label">decimal</span>
-                        </div>
-                        <div class="form-hint">e.g. <strong>0.15</strong> = 15% tax</div>
-                        {% elif setting.key in ['receipt_header', 'receipt_footer'] %}
-                        <textarea name="{{ setting.key }}" class="form-control" rows="2">{{ setting.value }}</textarea>
-                        {% else %}
-                        <input type="text" name="{{ setting.key }}" class="form-control" value="{{ setting.value }}">
-                        {% endif %}
-                        {% if setting.description %}
-                        <div class="form-hint">{{ setting.description }}</div>
-                        {% endif %}
+                {% if settings_dict.company_address %}
+                <div class="form-group">
+                    <label class="form-label">Address</label>
+                    <input type="text" name="company_address" class="form-control" value="{{ settings_dict.company_address.value }}">
+                </div>
+                {% endif %}
+
+                {% if settings_dict.company_phone %}
+                <div class="form-group">
+                    <label class="form-label">Phone</label>
+                    <input type="text" name="company_phone" class="form-control" value="{{ settings_dict.company_phone.value }}">
+                </div>
+                {% endif %}
+
+                {% if settings_dict.company_email %}
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="company_email" class="form-control" value="{{ settings_dict.company_email.value }}">
+                </div>
+                {% endif %}
+
+                <!-- ── Financial ───────────────────────────────── -->
+                <div class="section-divider">Financial</div>
+
+                {% if settings_dict.currency_symbol %}
+                <div class="form-group">
+                    <label class="form-label">Currency Symbol</label>
+                    <input type="text" name="currency_symbol" class="form-control" value="{{ settings_dict.currency_symbol.value }}">
+                    <div class="form-hint">Displayed on all price fields across the system.</div>
+                </div>
+                {% endif %}
+
+                {% if settings_dict.tax_rate %}
+                <div class="form-group">
+                    <label class="form-label">Tax Rate</label>
+                    <div class="input-suffix">
+                        <input type="number" name="tax_rate" class="form-control" value="{{ settings_dict.tax_rate.value }}" step="0.01" min="0" max="1">
+                        <span class="suffix-label">decimal</span>
                     </div>
-                    {% endif %}
-                {% endfor %}
+                    <div class="form-hint">e.g. <strong>0.15</strong> = 15% tax</div>
+                </div>
+                {% endif %}
+
+                {% if settings_dict.exchange_rate_usd_slsh %}
+                <div class="form-group">
+                    <label class="form-label">Exchange Rate</label>
+                    <div class="input-suffix">
+                        <span class="suffix-label" style="border-right:none;border-radius:6px 0 0 6px;border-left:var(--border);">1 USD =</span>
+                        <input type="number" name="exchange_rate_usd_slsh" class="form-control" value="{{ settings_dict.exchange_rate_usd_slsh.value }}" step="1" min="1" style="border-radius:0;border-left:none;border-right:none;">
+                        <span class="suffix-label">SLSH</span>
+                    </div>
+                    <div class="form-hint">Snapshotted per sale — changes do <strong>not</strong> affect historical records.</div>
+                </div>
+                {% endif %}
+
+                <!-- ── Receipt ─────────────────────────────────── -->
+                <div class="section-divider">Receipt</div>
+
+                {% if settings_dict.receipt_header %}
+                <div class="form-group">
+                    <label class="form-label">Receipt Header</label>
+                    <textarea name="receipt_header" class="form-control" rows="2">{{ settings_dict.receipt_header.value }}</textarea>
+                    <div class="form-hint">Appears at the top of printed and PDF receipts.</div>
+                </div>
+                {% endif %}
+
+                {% if settings_dict.receipt_footer %}
+                <div class="form-group">
+                    <label class="form-label">Receipt Footer</label>
+                    <textarea name="receipt_footer" class="form-control" rows="2">{{ settings_dict.receipt_footer.value }}</textarea>
+                    <div class="form-hint">Appears at the bottom of printed and PDF receipts.</div>
+                </div>
+                {% endif %}
 
                 <div class="form-footer">
                     <a href="{{ url_for('main.dashboard') }}" class="btn btn-light" style="border:var(--border);">
@@ -155,6 +206,10 @@
                     <span><strong>Currency Symbol</strong> updates all price displays across the system.</span>
                 </div>
                 <div class="tip-item">
+                    <i class="fas fa-exchange-alt tip-icon"></i>
+                    <span><strong>Exchange Rate</strong> (1 USD = X SLSH) is snapshotted per sale — changing it does not affect historical records.</span>
+                </div>
+                <div class="tip-item">
                     <i class="fas fa-image tip-icon"></i>
                     <span><strong>Company Logo</strong> appears on receipts, reports, and the sidebar.</span>
                 </div>
@@ -175,4 +230,30 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function handleLogoSelect(input) {
+    if (!input.files || !input.files[0]) return;
+    var file = input.files[0];
+    var area = document.getElementById('logoUploadArea');
+    var preview = document.getElementById('logoPreview');
+    var label = document.getElementById('logoUploadLabel');
+    var icon = document.getElementById('logoUploadIcon');
+    var nameTag = document.getElementById('logoFileName');
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        if (icon) icon.style.display = 'none';
+        label.innerHTML = 'New logo selected &mdash; <strong>click to change</strong>';
+        nameTag.textContent = file.name;
+        nameTag.style.display = 'block';
+        area.classList.add('has-logo');
+    };
+    reader.readAsDataURL(file);
+}
+</script>
 {% endblock %}

@@ -74,13 +74,23 @@
                             </div>
                             <div style="display:flex;justify-content:space-between;align-items:center;border-top:var(--border);padding-top:0.5rem;">
                                 <span style="font-weight:700;font-size:0.8125rem;text-transform:uppercase;color:var(--gray-500);">Total</span>
-                                <span id="modalGrandTotal" style="font-weight:800;font-size:1.375rem;color:var(--blue-600);">$0.00</span>
+                                <div style="text-align:right;">
+                                    <span id="modalGrandTotal" style="font-weight:800;font-size:1.375rem;color:var(--blue-600);">$0.00</span>
+                                    <div id="modalGrandTotalSLSH" style="font-size:0.7rem;color:var(--gray-400);"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     {# Right: Payment #}
                     <div class="col-md-8 payment-panel p-4" style="overflow-y:auto;max-height:80vh;">
+
+                        {# Exchange Rate Banner #}
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding:0.5rem 0.75rem;background:var(--blue-50);border:1px solid var(--blue-100);border-radius:6px;font-size:0.8rem;">
+                            <span style="color:var(--gray-500);font-weight:600;"><i class="fas fa-exchange-alt me-1"></i>Exchange Rate</span>
+                            <span id="exchangeRateDisplay" style="color:var(--blue-700);font-weight:700;">1 USD = 1,000 SLSH</span>
+                        </div>
+
                         <div style="font-size:0.6875rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--gray-400);margin-bottom:1rem;">
                             <i class="fas fa-credit-card me-1"></i>Select Payment Method
                         </div>
@@ -96,50 +106,87 @@
                                 <div class="input-group" style="width:150px;">
                                     <span class="input-group-text" style="border:none;background:rgba(255,255,255,0.6);color:var(--green-600);"><i class="fas fa-dollar-sign"></i></span>
                                     <input type="number" class="form-control" style="border:none;background:rgba(255,255,255,0.6);font-weight:700;color:var(--green-600);"
-                                        id="payStoreCredit" placeholder="0.00" oninput="updatePaymentTotals()">
+                                        id="payStoreCredit" placeholder="0.00" min="0" step="0.01" oninput="updatePaymentTotals()">
                                 </div>
                                 <button type="button" class="btn-use-max" onclick="useMaxCredit(event)">Use Max</button>
                             </div>
                         </div>
 
-                        {# Payment Methods Grid #}
+                        {# Payment Methods Grid — each non-Card method has USD + SLSH inputs #}
                         <div class="payment-methods-grid">
+
                             {# Cash #}
-                            <div class="payment-method-card" onclick="focusPaymentInput('payCash')">
+                            <div class="payment-method-card">
                                 <div class="icon-wrapper" style="color:var(--gray-500);">
                                     <i class="fas fa-money-bill-wave"></i>
                                 </div>
                                 <div class="method-name" style="margin-bottom:0.5rem;">Cash</div>
-                                <input type="number" class="form-control form-control-sm text-center" id="payCash"
-                                    placeholder="0.00" oninput="updatePaymentTotals()">
+                                <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+                                    <span style="font-size:0.7rem;color:var(--gray-400);width:30px;">USD</span>
+                                    <input type="number" class="form-control form-control-sm text-center" id="payCash_usd"
+                                        placeholder="0.00" min="0" step="0.01" oninput="updatePaymentTotals()">
+                                </div>
+                                <div style="display:flex;align-items:center;gap:4px;">
+                                    <span style="font-size:0.7rem;color:var(--gray-400);width:30px;">SLSH</span>
+                                    <input type="number" class="form-control form-control-sm text-center" id="payCash_slsh"
+                                        placeholder="0" min="0" step="1"
+                                        oninput="updateSlshHint('payCash_slsh','cashSlshHint');updatePaymentTotals()">
+                                </div>
+                                <div id="cashSlshHint" style="font-size:0.7rem;color:var(--blue-500);text-align:right;min-height:1rem;"></div>
                             </div>
 
-                            {# Card #}
-                            <div class="payment-method-card" onclick="focusPaymentInput('payCard')">
+                            {# Card — USD only (SLSH not accepted via Card) #}
+                            <div class="payment-method-card">
                                 <div class="icon-wrapper" style="color:var(--blue-600);">
                                     <i class="fas fa-credit-card"></i>
                                 </div>
                                 <div class="method-name" style="margin-bottom:0.5rem;">Card</div>
-                                <input type="number" class="form-control form-control-sm text-center" id="payCard"
-                                    placeholder="0.00" oninput="updatePaymentTotals()">
+                                <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+                                    <span style="font-size:0.7rem;color:var(--gray-400);width:30px;">USD</span>
+                                    <input type="number" class="form-control form-control-sm text-center" id="payCard"
+                                        placeholder="0.00" min="0" step="0.01" oninput="updatePaymentTotals()">
+                                </div>
+                                <div style="font-size:0.65rem;color:var(--amber-600);text-align:center;margin-top:2px;">
+                                    <i class="fas fa-lock" style="font-size:0.6rem;"></i> USD only
+                                </div>
                                 <input type="hidden" id="refCard">
                             </div>
 
                             {# E-Dahab #}
-                            <div class="payment-method-card" onclick="focusPaymentInput('payEDahab')">
+                            <div class="payment-method-card">
                                 <img src="{{ url_for('static', filename='images/E-Dahab.svg') }}" alt="E-Dahab">
                                 <div class="method-name" style="margin-bottom:0.5rem;">E-Dahab</div>
-                                <input type="number" class="form-control form-control-sm text-center" id="payEDahab"
-                                    placeholder="0.00" oninput="updatePaymentTotals()">
+                                <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+                                    <span style="font-size:0.7rem;color:var(--gray-400);width:30px;">USD</span>
+                                    <input type="number" class="form-control form-control-sm text-center" id="payEDahab_usd"
+                                        placeholder="0.00" min="0" step="0.01" oninput="updatePaymentTotals()">
+                                </div>
+                                <div style="display:flex;align-items:center;gap:4px;">
+                                    <span style="font-size:0.7rem;color:var(--gray-400);width:30px;">SLSH</span>
+                                    <input type="number" class="form-control form-control-sm text-center" id="payEDahab_slsh"
+                                        placeholder="0" min="0" step="1"
+                                        oninput="updateSlshHint('payEDahab_slsh','edahabSlshHint');updatePaymentTotals()">
+                                </div>
+                                <div id="edahabSlshHint" style="font-size:0.7rem;color:var(--blue-500);text-align:right;min-height:1rem;"></div>
                                 <input type="hidden" id="refEDahab">
                             </div>
 
                             {# Zaad #}
-                            <div class="payment-method-card" onclick="focusPaymentInput('payZaad')">
+                            <div class="payment-method-card">
                                 <img src="{{ url_for('static', filename='images/Zaad.svg') }}" alt="Zaad">
                                 <div class="method-name" style="margin-bottom:0.5rem;">Zaad</div>
-                                <input type="number" class="form-control form-control-sm text-center" id="payZaad"
-                                    placeholder="0.00" oninput="updatePaymentTotals()">
+                                <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+                                    <span style="font-size:0.7rem;color:var(--gray-400);width:30px;">USD</span>
+                                    <input type="number" class="form-control form-control-sm text-center" id="payZaad_usd"
+                                        placeholder="0.00" min="0" step="0.01" oninput="updatePaymentTotals()">
+                                </div>
+                                <div style="display:flex;align-items:center;gap:4px;">
+                                    <span style="font-size:0.7rem;color:var(--gray-400);width:30px;">SLSH</span>
+                                    <input type="number" class="form-control form-control-sm text-center" id="payZaad_slsh"
+                                        placeholder="0" min="0" step="1"
+                                        oninput="updateSlshHint('payZaad_slsh','zaadSlshHint');updatePaymentTotals()">
+                                </div>
+                                <div id="zaadSlshHint" style="font-size:0.7rem;color:var(--blue-500);text-align:right;min-height:1rem;"></div>
                                 <input type="hidden" id="refZaad">
                             </div>
                         </div>
@@ -177,7 +224,10 @@
                             </div>
                             <div class="total-row" style="color:#86efac;display:none;" id="changeRow">
                                 <span>Change Due</span>
-                                <span id="changeDisplay">$0.00</span>
+                                <span>
+                                    <span id="changeDisplay">$0.00</span>
+                                    <span id="changeSlshHint" style="font-size:0.75rem;opacity:0.8;"></span>
+                                </span>
                             </div>
                             <div class="total-row" style="color:#fcd34d;display:none;" id="amountDueRow">
                                 <span>Balance Due</span>

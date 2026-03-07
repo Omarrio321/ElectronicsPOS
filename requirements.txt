@@ -1,23 +1,48 @@
+# ============================================================
+# Electronics POS - Python Dependencies
+# ============================================================
+
+# --- Core Flask ---
 Flask==2.3.3
+Werkzeug==3.1.4
+Jinja2==3.1.6
+itsdangerous==2.2.0
+click==8.3.1
+
+# --- Flask Extensions ---
 Flask-SQLAlchemy==3.0.5
 Flask-Migrate==4.0.5
 Flask-Login==0.6.3
 Flask-WTF==1.1.1
+Flask-Talisman==1.1.0
+Bootstrap-Flask==2.2.0
+email-validator==2.3.0
+
+# --- Database ---
+SQLAlchemy==2.0.45
 PyMySQL==1.1.0
-python-dotenv==1.0.0
+alembic==1.17.2
+
+# --- PDF Generation (requires wkhtmltopdf binary installed separately) ---
 pdfkit==1.0.0
+
+# --- Excel Export ---
+openpyxl==3.1.5
+
+# --- Barcode Generation ---
+python-barcode==0.16.1
+Pillow==10.4.0
+
+# --- Environment & Config ---
+python-dotenv==1.0.0
+
+# --- Production Server ---
 gunicorn==21.2.0
 
-Flask-Talisman==1.1.0
-openpyxl==3.1.5
-Bootstrap-Flask==2.2.0
-Werkzeug==3.1.4
-Jinja2==3.1.6
-
-
-# Testing Dependencies
+# --- Testing ---
 pytest==7.4.3
 pytest-cov==4.1.0
 pytest-flask==1.2.0
 factory-boy==3.3.0
-python-barcode==0.16.1
+Faker==40.1.2
+coverage==7.13.2

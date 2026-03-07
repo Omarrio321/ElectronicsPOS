@@ -5,10 +5,11 @@ from flask_login import login_required, current_user
 from app.models import (
     db, Sale, SaleItem, Product, Payment, Customer, CustomerLedger,
     ReturnTransaction, ReturnItem, VoidTransaction, AuditLog, SystemSetting,
-    PaymentMethod, SaleStatus, InvoiceStatus, ReturnType, ReturnStatus,
+    PaymentMethod, PaymentCurrency, SaleStatus, InvoiceStatus, ReturnType, ReturnStatus,
     LedgerEntryType
 )
 from app.utils import format_currency
+from app.services.currency_service import is_valid_payment_combination
 from decimal import Decimal
 from datetime import datetime
 
@@ -21,6 +22,11 @@ PAYMENT_METHOD_MAP = {
     'E-Dahab': PaymentMethod.E_DAHAB,
     'Zaad': PaymentMethod.ZAAD,
     'Store Credit': PaymentMethod.STORE_CREDIT,
+}
+
+PAYMENT_CURRENCY_MAP = {
+    'USD': PaymentCurrency.USD,
+    'SLSH': PaymentCurrency.SLSH,
 }
 
 
@@ -100,6 +106,7 @@ def process_return(sale_id):
         notes = data.get('notes', '').strip()
         return_type_str = data.get('return_type', 'RETURN_AND_REFUND')
         refund_method_str = data.get('refund_method')
+        refund_currency_str = data.get('refund_currency', 'USD')  # default USD for backward compat
 
         if not items:
             return jsonify({'success': False, 'message': 'No items selected for return.'}), 400
@@ -111,11 +118,24 @@ def process_return(sale_id):
         if return_type_str == 'RETURN_ONLY':
             return_type = ReturnType.RETURN_ONLY
             refund_method = None
+            refund_currency = None
         else:
             return_type = ReturnType.RETURN_AND_REFUND
             if not refund_method_str or refund_method_str not in PAYMENT_METHOD_MAP:
                 return jsonify({'success': False, 'message': 'Valid refund method is required for Return & Refund.'}), 400
             refund_method = PAYMENT_METHOD_MAP[refund_method_str]
+
+            # Validate and set refund currency
+            if refund_currency_str not in PAYMENT_CURRENCY_MAP:
+                return jsonify({'success': False, 'message': f'Invalid refund currency: {refund_currency_str}'}), 400
+            refund_currency = PAYMENT_CURRENCY_MAP[refund_currency_str]
+
+            # Enforce Card = USD only
+            if not is_valid_payment_combination(refund_method, refund_currency):
+                return jsonify({
+                    'success': False,
+                    'message': 'Card refunds must be in USD. SLSH is not accepted via Card.'
+                }), 400
 
         # Walk-in customers cannot receive store credit — no account to hold it
         if return_type == ReturnType.RETURN_ONLY and not sale.customer_id:
@@ -187,6 +207,7 @@ def process_return(sale_id):
             discount_amount=discount_amount,
             refund_total=refund_total,
             refund_method=refund_method,
+            refund_currency=refund_currency,
             reason=reason,
             notes=notes or None,
             processed_by=current_user.id,

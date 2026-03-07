@@ -123,6 +123,7 @@ const state = {
     categories: [],
     cart: [],
     taxRate: 0,
+    exchangeRate: 1000,   // 1 USD = X SLSH; loaded from server
 
     // Filters & Pagination
     activeCategory: 'all',
@@ -221,6 +222,7 @@ async function loadInitialData() {
         if (data.success) {
             state.categories = data.categories || [];
             state.taxRate = parseFloat(data.tax_rate || 0);
+            state.exchangeRate = parseFloat(data.exchange_rate || 1000);
         } else {
             showToast(data.message || "Failed to load POS configuration");
         }

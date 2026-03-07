@@ -6,6 +6,7 @@
     <title>Receipt #{{ sale.id }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 
     <style>
         /* === GENERAL VARIABLES === */
@@ -282,6 +283,12 @@
 
     <div class="receipt-wrapper">
         <div class="receipt-paper">
+            {% if reprint %}
+            <div style="text-align:center; border: 2px dashed #aaa; padding: 3px 8px; margin-bottom: 12px; letter-spacing: 2px; font-size: 11px; color: #666; font-weight: bold;">
+                &#9733; REPRINT &#9733;
+            </div>
+            {% endif %}
+
             <!-- Header -->
             <div class="text-center">
                 {% if company_logo %}
@@ -369,9 +376,15 @@
                 <div class="double-divider"></div>
 
                 <div class="row" style="font-size: 1.2rem; font-weight: bold; margin-top: 5px;">
-                    <span>TOTAL PAID:</span>
+                    <span>Total $:</span>
                     <span>{{ sale.grand_total | format_currency }}</span>
                 </div>
+                {% if sale.exchange_rate_at_sale %}
+                <div class="row" style="font-size: 0.85rem; color: #555; margin-top: 2px;">
+                    <span>Total SLSH:</span>
+                    <span>{{ "%.0f"|format(sale.grand_total * sale.exchange_rate_at_sale) }} SLSH</span>
+                </div>
+                {% endif %}
             </div>
 
             <div class="divider"></div>
@@ -381,41 +394,77 @@
                 <div class="row fw-bold" style="margin-bottom: 8px;">
                     <span>PAYMENT BREAKDOWN</span>
                 </div>
+
+                {% if sale.exchange_rate_at_sale %}
+                <div class="row text-muted" style="margin-bottom: 6px;">
+                    <span>Rate:</span>
+                    <span>1 USD = {{ "%.0f"|format(sale.exchange_rate_at_sale) }} SLSH</span>
+                </div>
+                {% endif %}
+
                 {% if sale.payments %}
                 {% for payment in sale.payments %}
+                {% set method_val = payment.payment_method.value if payment.payment_method else '' %}
+                {% set display_method = 'Credit' if method_val in ['Store Credit', 'STORE_CREDIT'] else method_val %}
+                {% set currency_val = payment.payment_currency.value if payment.payment_currency else 'USD' %}
                 <div class="row">
                     <span>
-                        {% set method_val = payment.payment_method.value %}
-                        {% if method_val in ['Store Credit', 'STORE_CREDIT'] or not method_val %}Credit{% else %}{{
-                        method_val }}{% endif %}
-                        {% if payment.reference %} <span class="text-muted">({{ payment.reference }})</span>{% endif %}:
+                        {{ display_method }} ({{ currency_val }}){% if payment.reference %} <span class="text-muted">({{ payment.reference }})</span>{% endif %}:
                     </span>
-                    <span>${{ "%.2f"|format(payment.amount) }}</span>
+                    <span>
+                        {% if currency_val == 'SLSH' %}
+                            {{ "%s"|format(payment.amount | int | string) }} SLSH
+                            {% if payment.amount_in_usd %}
+                            <span class="text-muted" style="font-size:10px;">≈${{ "%.2f"|format(payment.amount_in_usd) }}</span>
+                            {% endif %}
+                        {% else %}
+                            ${{ "%.2f"|format(payment.amount) }}
+                        {% endif %}
+                    </span>
                 </div>
                 {% endfor %}
                 {% else %}
-                <!-- Fallback for old sales without payment records -->
+                {# Fallback for legacy sales without payment records #}
                 <div class="row">
                     <span>
-                        {% set method_val = sale.payment_method.value %}
-                        {% if method_val in ['Store Credit', 'STORE_CREDIT'] or not method_val %}Credit{% else %}{{
-                        method_val }}{% endif %}:
+                        {% set method_val = sale.payment_method.value if sale.payment_method else '' %}
+                        {{ 'Credit' if method_val in ['Store Credit', 'STORE_CREDIT'] else method_val }}:
                     </span>
                     <span>${{ "%.2f"|format(sale.amount_paid) }}</span>
                 </div>
                 {% endif %}
+
                 <div class="divider"></div>
                 <div class="row">
-                    <span class="text-muted">Total Paid:</span>
+                    <span class="text-muted">Total Paid (USD):</span>
                     <span class="fw-bold">${{ "%.2f"|format(sale.amount_paid) }}</span>
                 </div>
                 {% if sale.change_given > 0 %}
                 <div class="row" style="color: #198754;">
                     <span>Change Given:</span>
-                    <span class="fw-bold">${{ "%.2f"|format(sale.change_given) }}</span>
+                    <span class="fw-bold">
+                        ${{ "%.2f"|format(sale.change_given) }}
+                        {% if sale.exchange_rate_at_sale %}
+                        <span style="font-size:10px;">(≈ {{ "%.0f"|format(sale.change_given * sale.exchange_rate_at_sale) }} SLSH)</span>
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
+                {% if sale.amount_due and sale.amount_due > 0 %}
+                <div class="row" style="color: #dc3545;">
+                    <span>Balance Due:</span>
+                    <span class="fw-bold">${{ "%.2f"|format(sale.amount_due) }}</span>
                 </div>
                 {% endif %}
             </div>
+
+            <!-- Barcode -->
+            {% if sale.invoice_no %}
+            <div id="barcode-wrap" data-invoice="{{ sale.invoice_no }}" style="text-align:center; margin: 10px 0 6px;">
+                <svg id="receipt-barcode"></svg>
+                <div style="font-size:9px; color:#666; margin-top:2px; letter-spacing:0.5px;">{{ sale.invoice_no }}</div>
+            </div>
+            {% endif %}
 
             <!-- Footer -->
             <div class="text-center">
@@ -438,10 +487,17 @@
     <!-- Auto Print Script -->
     <script>
         window.onload = function () {
-            // Small delay to ensure fonts render
-            setTimeout(function () {
-                window.print();
-            }, 500);
+            var wrap = document.getElementById('barcode-wrap');
+            if (wrap && window.JsBarcode) {
+                JsBarcode('#receipt-barcode', wrap.dataset.invoice, {
+                    format: 'CODE128',
+                    width: 1.5,
+                    height: 40,
+                    displayValue: false,
+                    margin: 2
+                });
+            }
+            setTimeout(function () { window.print(); }, 500);
         };
     </script>
 </body>

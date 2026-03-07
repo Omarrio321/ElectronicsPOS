@@ -138,7 +138,17 @@
                 <div class="summary-row"><span style="color:var(--gray-500);">Tax</span><span>{{ format_currency(return_txn.tax_amount) }}</span></div>
                 <div class="summary-row total"><span>Refund Total</span><span style="color:var(--red-600);">{{ format_currency(return_txn.refund_total) }}</span></div>
                 {% if return_txn.refund_method %}
-                <div class="summary-row" style="padding-top:0.5rem;"><span style="color:var(--gray-500);">Refund Method</span><span class="pill pill-gray">{{ return_txn.refund_method.value }}</span></div>
+                <div class="summary-row" style="padding-top:0.5rem;">
+                    <span style="color:var(--gray-500);">Refund Method</span>
+                    <span>
+                        <span class="pill pill-gray">{{ return_txn.refund_method.value }}</span>
+                        {% if return_txn.refund_currency %}
+                        <span class="pill {{ 'pill-blue' if return_txn.refund_currency.value == 'USD' else 'pill-amber' }}" style="margin-left:0.25rem;">
+                            {{ return_txn.refund_currency.value }}
+                        </span>
+                        {% endif %}
+                    </span>
+                </div>
                 {% endif %}
             </div>
         </div>

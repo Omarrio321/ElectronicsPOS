@@ -156,6 +156,7 @@ def settings():
         'company_address': ('123 Main St', 'Address'),
         'company_phone': ('555-0123', 'Phone'),
         'currency_symbol': ('$', 'Currency Symbol'),
+        'exchange_rate_usd_slsh': ('1000', '1 USD = X Somaliland Shillings (SLSH)'),
         'receipt_header': ('Thank you for shopping with us!', 'Receipt Header'),
         'receipt_footer': ('No returns without receipt.', 'Receipt Footer')
     }
@@ -208,22 +209,38 @@ def settings():
                 else:
                     flash('Invalid file type. Please upload PNG, JPG, JPEG, GIF, or WEBP.', 'danger')
         
-        # Handle other settings
+        # Handle other settings — track old values for sensitive fields
+        rate_change = None
         for setting in settings_list:
             new_value = request.form.get(setting.key)
             if new_value is not None:
                 if setting.value != new_value:
+                    if setting.key == 'exchange_rate_usd_slsh':
+                        # Validate: must be a positive number
+                        try:
+                            new_rate = float(new_value)
+                            if new_rate <= 0:
+                                flash('Exchange rate must be a positive number.', 'danger')
+                                return redirect(url_for('admin.settings'))
+                        except ValueError:
+                            flash('Exchange rate must be a valid number.', 'danger')
+                            return redirect(url_for('admin.settings'))
+                        rate_change = {'old': setting.value, 'new': new_value}
                     setting.value = new_value
                     updated_keys.append(setting.key)
-        
+
         if updated_keys:
             db.session.commit()
-            
-            # Log settings update
+
+            # Build audit details — include old/new exchange rate if it changed
+            audit_details = {'updated_keys': updated_keys}
+            if rate_change:
+                audit_details['exchange_rate_change'] = rate_change
+
             AuditService.log_action(
                 action='UPDATE_SETTINGS',
                 target_type='SystemSetting',
-                details={'updated_keys': updated_keys}
+                details=audit_details
             )
             flash('Settings updated successfully', 'success')
         else:
@@ -235,7 +252,8 @@ def settings():
         print(f"DEBUG: Form validation failed. Errors: {form.errors}", flush=True)
         flash(f'Error updating settings: {form.errors}', 'danger')
     
-    return render_template('admin/settings.html', settings=settings_list, form=form, current_logo=current_logo)
+    settings_dict = {s.key: s for s in settings_list}
+    return render_template('admin/settings.html', settings=settings_list, settings_dict=settings_dict, form=form, current_logo=current_logo)
 
 @admin_bp.route('/logs')
 @login_required

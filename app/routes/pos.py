@@ -1,11 +1,13 @@
 from flask import Blueprint, render_template, request, jsonify, current_app, url_for
 from app.models import db, Product, Category, Sale, SaleItem, SystemSetting, Payment, Customer, CustomerLedger
-from app.models import PaymentMethod, SaleStatus, SaleType, InvoiceStatus, PriceType, LedgerEntryType
+from app.models import PaymentMethod, PaymentCurrency, SaleStatus, SaleType, InvoiceStatus, PriceType, LedgerEntryType
+from app.services.currency_service import (
+    get_current_exchange_rate, to_usd, is_valid_payment_combination
+)
 from flask_login import login_required, current_user
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 from decimal import Decimal
-
 pos_bp = Blueprint('pos', __name__, url_prefix='/pos')
 
 @pos_bp.route('/')
@@ -21,11 +23,13 @@ def get_pos_data():
     try:
         categories = Category.query.all()
         tax_rate = float(SystemSetting.get('tax_rate', 0.08))
+        exchange_rate = float(get_current_exchange_rate())
         category_data = [{'id': c.id, 'name': c.name} for c in categories]
 
         return jsonify({
             'success': True,
             'tax_rate': tax_rate,
+            'exchange_rate': exchange_rate,
             'categories': category_data
         })
     except Exception as e:
@@ -135,14 +139,24 @@ def checkout():
             'Store Credit': PaymentMethod.STORE_CREDIT
         }
 
+        PAYMENT_CURRENCY_MAP = {
+            'USD': PaymentCurrency.USD,
+            'SLSH': PaymentCurrency.SLSH,
+        }
+
+        # Snapshot the exchange rate once for this entire transaction
+        exchange_rate = get_current_exchange_rate()
+
         # --- VALIDATE PAYMENTS ---
-        total_paid = Decimal('0')
-        digital_paid = Decimal('0')
+        # All monetary comparisons are done in USD-equivalent
+        total_paid_usd = Decimal('0')    # USD-equivalent total collected
+        digital_paid_usd = Decimal('0')  # USD-equivalent of non-cash payments (cannot give change)
         store_credit_used = Decimal('0')
         valid_payments = []
 
         for p in payments_data:
             method_str = p.get('method')
+            currency_str = p.get('currency', 'USD')  # Default to USD for backward compat
             amount = Decimal(str(p.get('amount', 0)))
             reference = p.get('reference', '')
 
@@ -152,20 +166,38 @@ def checkout():
             if method_str not in PAYMENT_METHOD_MAP:
                 return jsonify({'success': False, 'message': f'Invalid payment method: {method_str}'}), 400
 
-            db_method = PAYMENT_METHOD_MAP[method_str]
-            total_paid += amount
+            if currency_str not in PAYMENT_CURRENCY_MAP:
+                return jsonify({'success': False, 'message': f'Invalid currency: {currency_str}'}), 400
 
-            # Track digital payments (non-cash)
+            db_method = PAYMENT_METHOD_MAP[method_str]
+            db_currency = PAYMENT_CURRENCY_MAP[currency_str]
+
+            # Enforce: Card is USD-only
+            if not is_valid_payment_combination(db_method, db_currency):
+                return jsonify({
+                    'success': False,
+                    'message': f'Card payments must be in USD. SLSH is not accepted via Card.'
+                }), 400
+
+            # Convert to USD equivalent for settlement arithmetic
+            amount_usd = to_usd(amount, db_currency, exchange_rate)
+
+            total_paid_usd += amount_usd
+
+            # Track digital payments (non-cash, non-store-credit): cannot give change for these
             if db_method != PaymentMethod.CASH and db_method != PaymentMethod.STORE_CREDIT:
-                digital_paid += amount
-            
+                digital_paid_usd += amount_usd
+
             # Track store credit usage
             if db_method == PaymentMethod.STORE_CREDIT:
-                store_credit_used += amount
+                store_credit_used += amount_usd  # Store credit is always USD
 
             valid_payments.append({
                 'method': db_method,
-                'amount': amount,
+                'currency': db_currency,
+                'amount': amount,           # Original amount in payment_currency
+                'amount_usd': amount_usd,   # USD-equivalent
+                'exchange_rate': exchange_rate,
                 'reference': reference
             })
             
@@ -173,10 +205,11 @@ def checkout():
         if store_credit_used > 0:
             if not customer:
                 return jsonify({'success': False, 'message': 'Customer required for Store Credit.'}), 400
-            
+
             available_credit = customer.get_available_credit()
             if store_credit_used > available_credit:
-                 return jsonify({'success': False, 'message': f'Insufficient store credit. Available: ${available_credit:.2f}'}), 400
+                return jsonify({'success': False,
+                                'message': f'Insufficient store credit. Available: ${available_credit:.2f}'}), 400
 
         # For non-partial sales, require payment
         if not allow_partial and not valid_payments:
@@ -213,27 +246,29 @@ def checkout():
         tax_amount = taxable_amount * tax_rate
         grand_total = taxable_amount + tax_amount
 
-        # --- VALIDATION ---
+        # --- VALIDATION (all comparisons in USD equivalent) ---
         if not allow_partial:
-            if total_paid < grand_total:
-                shortage = grand_total - total_paid
-                return jsonify({'success': False, 'message': f'Insufficient payment. Short by ${shortage:.2f}.'}), 400
+            if total_paid_usd < grand_total:
+                shortage = grand_total - total_paid_usd
+                return jsonify({'success': False,
+                                'message': f'Insufficient payment. Short by ${shortage:.2f}.'}), 400
 
         # --- VALIDATION: Prevent digital overpayment ---
-        # Store Credit is effectively "digital" in this context (cannot return cash from it)
-        if (digital_paid + store_credit_used) > grand_total:
-             # Calculate allowable
-             over = (digital_paid + store_credit_used) - grand_total
-             return jsonify({'success': False, 'message': f'Digital/Credit payment cannot exceed total. Overpaid by ${over:.2f}.'}), 400
+        # Digital payments (non-cash) cannot give change; store credit also cannot.
+        # All amounts already converted to USD.
+        if (digital_paid_usd + store_credit_used) > grand_total:
+            over = (digital_paid_usd + store_credit_used) - grand_total
+            return jsonify({'success': False,
+                            'message': f'Digital/Credit payment cannot exceed total. Overpaid by ${over:.2f}.'}), 400
 
-        # --- CALCULATE AMOUNTS ---
-        amount_due = max(Decimal('0'), grand_total - total_paid)
-        change_given = max(Decimal('0'), total_paid - grand_total)
-        
+        # --- CALCULATE AMOUNTS (in USD) ---
+        amount_due = max(Decimal('0'), grand_total - total_paid_usd)
+        change_given = max(Decimal('0'), total_paid_usd - grand_total)
+
         # Determine invoice status
-        if total_paid >= grand_total:
+        if total_paid_usd >= grand_total:
             invoice_status = InvoiceStatus.PAID
-        elif total_paid > 0:
+        elif total_paid_usd > 0:
             invoice_status = InvoiceStatus.PARTIAL
         else:
             invoice_status = InvoiceStatus.UNPAID
@@ -256,9 +291,10 @@ def checkout():
             discount=discount,
             grand_total=grand_total,
             payment_method=primary_method,
-            amount_paid=total_paid,
+            amount_paid=total_paid_usd,   # Always stored in USD
             amount_due=amount_due,
             change_given=change_given,
+            exchange_rate_at_sale=exchange_rate,
             sale_status=SaleStatus.COMPLETED,
             invoice_status=invoice_status,
             created_at=datetime.utcnow()
@@ -294,8 +330,11 @@ def checkout():
             payment = Payment(
                 sale_id=new_sale.id,
                 customer_id=customer_id,
-                amount=p['amount'],
+                amount=p['amount'],           # Original amount in payment_currency
                 payment_method=p['method'],
+                payment_currency=p['currency'],
+                exchange_rate_used=p['exchange_rate'],
+                amount_in_usd=p['amount_usd'],
                 reference=p['reference'] if p['reference'] else None,
                 created_by=current_user.id,
                 created_at=datetime.utcnow()
@@ -338,7 +377,8 @@ def checkout():
             # Payment entry (credit - reduces what customer owes)
             # CRITICAL: Do NOT create a Ledger Payment entry for Store Credit
             # Store Credit payment simply means "We don't need to add a credit entry because the invoice entry already consumed the existing credit"
-            real_payment_amount = total_paid - store_credit_used
+            # All amounts here are in USD.
+            real_payment_amount = total_paid_usd - store_credit_used
             
             if real_payment_amount > 0:
                 new_balance = running_balance - real_payment_amount
@@ -368,10 +408,19 @@ def checkout():
                 'customer_id': customer_id,
                 'sale_type': sale_type.value,
                 'grand_total': float(grand_total),
-                'amount_paid': float(total_paid),
+                'amount_paid_usd': float(total_paid_usd),
                 'amount_due': float(amount_due),
+                'exchange_rate': float(exchange_rate),
                 'items_count': len(items),
-                'payments': [{'method': p['method'].value, 'amount': float(p['amount'])} for p in valid_payments],
+                'payments': [
+                    {
+                        'method': p['method'].value,
+                        'currency': p['currency'].value,
+                        'amount': float(p['amount']),
+                        'amount_usd': float(p['amount_usd'])
+                    }
+                    for p in valid_payments
+                ],
                 'change_given': float(change_given)
             }
         )
@@ -381,9 +430,10 @@ def checkout():
             'sale_id': new_sale.id,
             'invoice_no': invoice_no,
             'total': float(grand_total),
-            'amount_paid': float(total_paid),
+            'amount_paid': float(total_paid_usd),
             'amount_due': float(amount_due),
             'change': float(change_given),
+            'exchange_rate': float(exchange_rate),
             'invoice_status': invoice_status.value
         })
 
@@ -395,13 +445,9 @@ def checkout():
 @pos_bp.route('/receipt/<int:sale_id>')
 @login_required
 def receipt(sale_id):
-    """Renders a professional receipt page for a specific sale."""
-    # sale_id is automatically converted to int by Flask
+    """Renders the thermal receipt page for a specific sale."""
     sale = Sale.query.get_or_404(sale_id)
-    
-    # FIXED: Used sale_id (int) directly, not sale_id.id
     items = SaleItem.query.filter_by(sale_id=sale_id).order_by(SaleItem.id).all()
-    
     return render_template('pos/receipt.html', sale=sale, items=items)
 
 

@@ -1,8 +1,8 @@
 # app/sales.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, send_file
 from flask_login import login_required, current_user
-from app.models import db, Sale, SaleItem, Product, User, SystemSetting, PaymentMethod, SaleStatus, Expense, ExpenseCategory, ExpenseStatus, Payment, Customer, InvoiceStatus, ReturnTransaction, ReturnStatus
-from sqlalchemy import func, and_
+from app.models import db, Sale, SaleItem, Product, User, SystemSetting, PaymentMethod, PaymentCurrency, SaleStatus, Expense, ExpenseCategory, ExpenseStatus, Payment, Customer, InvoiceStatus, ReturnTransaction, ReturnStatus
+from sqlalchemy import func, and_, or_
 from datetime import datetime, timedelta
 from io import BytesIO
 import pdfkit
@@ -36,6 +36,7 @@ def index():
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
     user_id = request.args.get('user_id', type=int)
+    search = request.args.get('search', '').strip()
 
     query = Sale.query
 
@@ -60,6 +61,19 @@ def index():
     if user_id:
         query = query.filter(Sale.user_id == user_id)
 
+    if search:
+        # Exact invoice match (barcode scan) → go straight to detail
+        exact = Sale.query.filter(Sale.invoice_no.ilike(search)).first()
+        if exact:
+            return redirect(url_for('sales.detail', sale_id=exact.id))
+
+        query = query.filter(
+            or_(
+                Sale.invoice_no.ilike(f'%{search}%'),
+                Sale.customer.has(Customer.full_name.ilike(f'%{search}%'))
+            )
+        )
+
     sales = query.order_by(Sale.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
     users = User.query.order_by(User.username).all()
 
@@ -70,6 +84,7 @@ def index():
         start_date=(start_date.date() if start_date else None),
         end_date=((end_date - timedelta(days=1)).date() if end_date else None),
         user_id=user_id,
+        search=search,
         format_currency=format_currency,
         PaymentMethod=PaymentMethod,
         SaleStatus=SaleStatus
@@ -116,31 +131,29 @@ def receipt(sale_id):
     sale = Sale.query.get_or_404(sale_id)
     items = SaleItem.query.filter_by(sale_id=sale.id).order_by(SaleItem.id).all()
 
-    receipt_header = SystemSetting.get('receipt_header', 'Electronics Store POS System')
-    receipt_footer = SystemSetting.get('receipt_footer', 'Thank you for your business!')
+    # Route: unpaid/partial → invoice (payment request); paid → receipt reprint
+    invoice_status_val = sale.invoice_status.value if sale.invoice_status else 'Paid'
 
-    # Generate Barcode
-    barcode_b64 = None
-    if sale.invoice_no:
-        try:
-            Code128 = barcode.get_barcode_class('code128')
-            my_barcode = Code128(sale.invoice_no, writer=ImageWriter())
-            buffer = BytesIO()
-            my_barcode.write(buffer)
-            barcode_b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        except Exception as e:
-            current_app.logger.error(f"Barcode generation failed: {e}")
-
-    return render_template(
-        'sales/receipt.html',
-        sale=sale,
-        items=items,
-        receipt_header=receipt_header,
-        receipt_footer=receipt_footer,
-        format_currency=format_currency,
-        PaymentMethod=PaymentMethod,
-        barcode_b64=barcode_b64
-    )
+    if invoice_status_val in ('Unpaid', 'Partial'):
+        receipt_header = SystemSetting.get('receipt_header', 'Electronics Store POS System')
+        receipt_footer = SystemSetting.get('receipt_footer', 'Thank you for your business!')
+        return render_template(
+            'sales/receipt.html',
+            sale=sale,
+            items=items,
+            receipt_header=receipt_header,
+            receipt_footer=receipt_footer,
+            format_currency=format_currency,
+            PaymentMethod=PaymentMethod
+        )
+    else:
+        # Thermal receipt reprint
+        return render_template(
+            'pos/receipt.html',
+            sale=sale,
+            items=items,
+            reprint=True
+        )
 
 # --------------------
 # Receipt PDF (download)
@@ -491,29 +504,49 @@ def reports():
         daily_sales.append({'date': key, 'sales': float(row_map.get(key, 0.0))})
         cursor += timedelta(days=1)
 
-    # Payment methods (labels + values)
-    # SUM ALL PAYMENTS in period (Cash Basis)
+    # Payment method + currency breakdown (Cash Basis, USD equivalent)
+    # Group by method + currency so the report distinguishes e.g. Cash-USD vs Cash-SLSH
     pm_stats = db.session.query(
         Payment.payment_method,
-        func.coalesce(func.sum(Payment.amount), 0).label('total')
+        Payment.payment_currency,
+        func.coalesce(func.sum(Payment.amount), 0).label('total_original'),
+        func.coalesce(func.sum(
+            func.coalesce(Payment.amount_in_usd, Payment.amount)
+        ), 0).label('total_usd')
     ).filter(
         func.date(Payment.created_at) >= start_date,
         func.date(Payment.created_at) <= end_date
-    ).group_by(Payment.payment_method).all()
+    ).group_by(Payment.payment_method, Payment.payment_currency).all()
 
     pm_labels = []
     pm_values = []
+    pm_breakdown = []  # Detailed breakdown for report table
+
     for r in pm_stats:
         try:
-            label = r.payment_method.value
-        except:
-            label = str(r.payment_method)
-        
-        if label in ['Store Credit', 'STORE_CREDIT'] or not label:
-            label = "Credit"
-            
-        pm_labels.append(label)
-        pm_values.append(float(r.total or 0))
+            method_label = r.payment_method.value
+        except Exception:
+            method_label = str(r.payment_method)
+
+        if method_label in ['Store Credit', 'STORE_CREDIT'] or not method_label:
+            method_label = 'Credit'
+
+        try:
+            currency_label = r.payment_currency.value if r.payment_currency else 'USD'
+        except Exception:
+            currency_label = 'USD'
+
+        chart_label = f"{method_label} ({currency_label})"
+        usd_total = float(r.total_usd or 0)
+
+        pm_labels.append(chart_label)
+        pm_values.append(usd_total)
+        pm_breakdown.append({
+            'method': method_label,
+            'currency': currency_label,
+            'original_total': float(r.total_original or 0),
+            'usd_total': usd_total,
+        })
 
     # Totals and aggregates (EXCLUDE VOIDED)
     # Invoiced Total (Accrual Basis - what we sold)
@@ -721,6 +754,7 @@ def reports():
         daily_sales=daily_sales,
         payment_method_labels=pm_labels,
         payment_method_values=pm_values,
+        payment_breakdown=pm_breakdown,
         expense_labels=exp_labels,
         expense_values=exp_values,
         expense_colors=exp_colors,

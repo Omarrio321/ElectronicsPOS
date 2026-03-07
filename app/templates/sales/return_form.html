@@ -202,19 +202,32 @@
                 </div>
             </div>
 
-            <!-- Refund Method -->
+            <!-- Refund Method & Currency -->
             <div class="panel" id="refundMethodCard">
                 <div class="panel-header">
                     <h5 class="panel-title"><i class="fas fa-credit-card"></i> Refund Method</h5>
                 </div>
                 <div class="panel-body">
-                    <select class="form-select" id="refundMethod">
-                        <option value="">Select refund method...</option>
-                        <option value="Cash">Cash</option>
-                        <option value="Card">Card</option>
-                        <option value="Zaad">Zaad</option>
-                        <option value="E-Dahab">E-Dahab</option>
-                    </select>
+                    <div class="form-group" style="margin-bottom:0.75rem;">
+                        <label class="form-label">Method</label>
+                        <select class="form-select" id="refundMethod" onchange="updateRefundCurrencyOptions()">
+                            <option value="">Select refund method...</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Card">Card (USD only)</option>
+                            <option value="Zaad">Zaad</option>
+                            <option value="E-Dahab">E-Dahab</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Currency</label>
+                        <select class="form-select" id="refundCurrency">
+                            <option value="USD">USD</option>
+                            <option value="SLSH">SLSH</option>
+                        </select>
+                        <div id="refundCardNote" style="display:none;font-size:0.75rem;color:var(--amber-600);margin-top:4px;">
+                            <i class="fas fa-lock" style="font-size:0.65rem;"></i> Card refunds are USD only
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -318,6 +331,21 @@
         var processBtn = document.getElementById('processReturnBtn');
         var reasonSelect = document.getElementById('returnReason');
         var customReasonGroup = document.getElementById('customReasonGroup');
+
+        // --- Refund currency restriction: Card = USD only ---
+        function updateRefundCurrencyOptions() {
+            var method = document.getElementById('refundMethod').value;
+            var currencySelect = document.getElementById('refundCurrency');
+            var cardNote = document.getElementById('refundCardNote');
+            if (method === 'Card') {
+                currencySelect.value = 'USD';
+                currencySelect.disabled = true;
+                if (cardNote) cardNote.style.display = '';
+            } else {
+                currencySelect.disabled = false;
+                if (cardNote) cardNote.style.display = 'none';
+            }
+        }
 
         // --- Radio option visual selection ---
         function updateRadioStyles() {
@@ -432,8 +460,16 @@
                 return;
             }
 
+            var refundCurrency = document.getElementById('refundCurrency').value;
+
             if (returnType === 'RETURN_AND_REFUND' && !refundMethod) {
                 alert('Please select a refund method.');
+                return;
+            }
+
+            // Enforce Card = USD only
+            if (returnType === 'RETURN_AND_REFUND' && refundMethod === 'Card' && refundCurrency !== 'USD') {
+                alert('Card refunds must be in USD. Please select USD currency.');
                 return;
             }
 
@@ -463,7 +499,8 @@
                 reason: reason,
                 notes: document.getElementById('returnNotes').value.trim(),
                 return_type: returnType,
-                refund_method: returnType === 'RETURN_AND_REFUND' ? refundMethod : null
+                refund_method: returnType === 'RETURN_AND_REFUND' ? refundMethod : null,
+                refund_currency: returnType === 'RETURN_AND_REFUND' ? refundCurrency : null
             };
 
             fetch('/sales/' + saleId + '/return', {

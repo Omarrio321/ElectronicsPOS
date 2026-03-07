@@ -242,7 +242,10 @@
         {% if return_txn.refund_method %}
         <div class="total-row" style="margin-top:5px;">
             <span>Refund Via:</span>
-            <span>{{ return_txn.refund_method.value }}</span>
+            <span>
+                {{ return_txn.refund_method.value }}
+                {% if return_txn.refund_currency %}({{ return_txn.refund_currency.value }}){% endif %}
+            </span>
         </div>
         {% endif %}
     </div>

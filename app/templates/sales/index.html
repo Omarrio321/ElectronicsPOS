@@ -264,6 +264,12 @@
     <div style="padding:1rem 1.25rem;">
         <form method="GET" class="filter-bar">
             <div>
+                <div class="filter-label">Search</div>
+                <input type="text" name="search" id="searchInput" class="filter-input"
+                    placeholder="Invoice # or scan barcode..." value="{{ search or '' }}"
+                    style="min-width:190px;" autocomplete="off">
+            </div>
+            <div>
                 <div class="filter-label">Start Date</div>
                 <input type="date" name="start_date" class="filter-input"
                     value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
@@ -363,8 +369,14 @@
                     <div style="display:flex;gap:0.25rem;justify-content:flex-end;">
                         <a href="{{ url_for('sales.detail', sale_id=sale.id) }}" class="act-btn" title="View"><i
                                 class="fas fa-eye"></i></a>
+                        {% set inv_s = sale.invoice_status.value if sale.invoice_status else 'Paid' %}
+                        {% if inv_s in ['Unpaid', 'Partial'] %}
                         <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}" class="act-btn" target="_blank"
-                            title="Print"><i class="fas fa-print"></i></a>
+                            title="Print Invoice" style="color:var(--amber-600);"><i class="fas fa-file-invoice"></i></a>
+                        {% else %}
+                        <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}" class="act-btn" target="_blank"
+                            title="Print Receipt"><i class="fas fa-print"></i></a>
+                        {% endif %}
                     </div>
                 </td>
             </tr>
@@ -382,13 +394,13 @@
     <div class="pagination-bar">
         {% if sales.has_prev %}
         <a class="pg-btn"
-            href="{{ url_for('sales.index', page=sales.prev_num, start_date=start_date, end_date=end_date, user_id=user_id) }}"><i
+            href="{{ url_for('sales.index', page=sales.prev_num, start_date=start_date, end_date=end_date, user_id=user_id, search=search) }}"><i
                 class="fas fa-chevron-left"></i></a>
         {% endif %}
         {% for page_num in sales.iter_pages() %}
         {% if page_num %}
         <a class="pg-btn {% if page_num == sales.page %}active{% endif %}"
-            href="{{ url_for('sales.index', page=page_num, start_date=start_date, end_date=end_date, user_id=user_id) }}">{{
+            href="{{ url_for('sales.index', page=page_num, start_date=start_date, end_date=end_date, user_id=user_id, search=search) }}">{{
             page_num }}</a>
         {% else %}
         <span class="pg-info">…</span>
@@ -396,7 +408,7 @@
         {% endfor %}
         {% if sales.has_next %}
         <a class="pg-btn"
-            href="{{ url_for('sales.index', page=sales.next_num, start_date=start_date, end_date=end_date, user_id=user_id) }}"><i
+            href="{{ url_for('sales.index', page=sales.next_num, start_date=start_date, end_date=end_date, user_id=user_id, search=search) }}"><i
                 class="fas fa-chevron-right"></i></a>
         {% endif %}
     </div>
@@ -411,5 +423,32 @@
         const baseUrl = type === 'pdf' ? "{{ url_for('sales.recent_pdf') }}" : "{{ url_for('sales.export_excel') }}";
         window.location.href = baseUrl + '?' + searchParams.toString();
     }
+
+    // Barcode scanner + manual search: submit on Enter, auto-submit on complete invoice scan
+    (function () {
+        var input = document.getElementById('searchInput');
+        if (!input) return;
+        var bufferTimer = null;
+        // Matches the project's invoice format: INV-YYYYMMDD-NNNN (e.g. INV-20260307-0001)
+        var INVOICE_RE = /^INV-\d{8}-\d{4,}$/;
+
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // prevent browser double-submit
+                input.form.submit();
+            }
+        });
+
+        // For scanners that don't send Enter: auto-submit only when the value is a
+        // complete invoice number (prevents early submit on partial manual typing)
+        input.addEventListener('input', function () {
+            clearTimeout(bufferTimer);
+            bufferTimer = setTimeout(function () {
+                if (INVOICE_RE.test(input.value.trim())) {
+                    input.form.submit();
+                }
+            }, 300);
+        });
+    })();
 </script>
 {% endblock %}

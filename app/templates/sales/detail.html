@@ -282,13 +282,20 @@
         <!-- Payment Breakdown -->
         {% if sale.payments %}
         <div class="panel">
-            <div class="panel-header">
+            <div class="panel-header" style="justify-content:space-between;">
                 <h5 class="panel-title"><i class="fas fa-credit-card"></i> Payments</h5>
+                {% if sale.exchange_rate_at_sale %}
+                <span style="font-size:0.75rem;color:var(--gray-400);">
+                    <i class="fas fa-exchange-alt" style="font-size:0.65rem;"></i>
+                    1 USD = {{ "%.0f"|format(sale.exchange_rate_at_sale) }} SLSH
+                </span>
+                {% endif %}
             </div>
             {% for payment in sale.payments %}
+            {% set ms = payment.payment_method.value if payment.payment_method else '' %}
+            {% set currency_val = payment.payment_currency.value if payment.payment_currency else 'USD' %}
             <div class="payment-item">
                 <div>
-                    {% set ms = payment.payment_method.value if payment.payment_method else '' %}
                     {% if ms in ['Cash','CASH'] %}<span class="pill pill-gray">Cash</span>
                     {% elif ms in ['Card','CARD'] %}<span class="pill pill-blue">Card</span>
                     {% elif ms in ['E-Dahab','E_DAHAB'] %}<span class="pill pill-amber">E-Dahab</span>
@@ -297,22 +304,37 @@
                     {% elif ms in ['Mobile Money','MOBILE_MONEY'] %}<span class="pill pill-green">Mobile</span>
                     {% else %}<span class="pill pill-gray">{{ ms or '—' }}</span>
                     {% endif %}
+                    <span style="font-size:0.7rem;color:var(--gray-400);margin-left:0.25rem;">({{ currency_val }})</span>
                     {% if payment.reference %}<span style="font-size:0.75rem;color:var(--gray-400);margin-left:0.375rem;">{{ payment.reference }}</span>{% endif %}
                 </div>
-                <span class="pay-amt" data-negative="{{ 'true' if payment.amount < 0 else 'false' }}" style="font-weight:700;">
-                    {{ format_currency(payment.amount) }}
-                    {% if payment.amount < 0 %}<span style="font-size:0.625rem;color:var(--gray-400);"> refund</span>{% endif %}
-                </span>
+                <div style="text-align:right;">
+                    <span class="pay-amt" data-negative="{{ 'true' if payment.amount < 0 else 'false' }}" style="font-weight:700;">
+                        {% if currency_val == 'SLSH' %}
+                            {{ "%s"|format(payment.amount | int | string) }} SLSH
+                        {% else %}
+                            {{ format_currency(payment.amount) }}
+                        {% endif %}
+                        {% if payment.amount < 0 %}<span style="font-size:0.625rem;color:var(--gray-400);"> refund</span>{% endif %}
+                    </span>
+                    {% if currency_val == 'SLSH' and payment.amount_in_usd %}
+                    <div style="font-size:0.7rem;color:var(--gray-400);">≈ {{ format_currency(payment.amount_in_usd) }}</div>
+                    {% endif %}
+                </div>
             </div>
             {% endfor %}
             <div class="payment-foot">
-                <span>Total Paid</span>
+                <span>Total Paid (USD)</span>
                 <span style="color:var(--green-600);">{{ format_currency(sale.amount_paid) }}</span>
             </div>
             {% if sale.change_given > 0 %}
             <div class="payment-foot" style="background:var(--amber-50);">
                 <span>Change Given</span>
-                <span style="color:var(--amber-600);">{{ format_currency(sale.change_given) }}</span>
+                <span style="color:var(--amber-600);">
+                    {{ format_currency(sale.change_given) }}
+                    {% if sale.exchange_rate_at_sale %}
+                    <span style="font-size:0.7rem;">(≈ {{ "%.0f"|format(sale.change_given * sale.exchange_rate_at_sale) }} SLSH)</span>
+                    {% endif %}
+                </span>
             </div>
             {% endif %}
         </div>
@@ -321,9 +343,15 @@
         <!-- Actions -->
         <div style="display:flex;flex-direction:column;gap:0.5rem;">
             {% if not is_voided %}
+            {% if invoice_val in ['Unpaid', 'Partial'] %}
+            <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}" class="btn btn-primary" target="_blank" style="background:var(--amber-600);border-color:var(--amber-600);">
+                <i class="fas fa-file-invoice" style="font-size:0.75rem;"></i> Print Invoice
+            </a>
+            {% else %}
             <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}" class="btn btn-primary" target="_blank">
                 <i class="fas fa-print" style="font-size:0.75rem;"></i> Print Receipt
             </a>
+            {% endif %}
             {% endif %}
             {% if can_return %}
             <a href="{{ url_for('returns.return_form', sale_id=sale.id) }}" class="btn btn-light" style="border:var(--border);color:var(--amber-600);">
