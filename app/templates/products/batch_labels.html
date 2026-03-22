@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block title %}Print Labels - {{ company_name }}{% endblock %}
+
+{% block head %}
+<style>
+    .page-header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.5rem; }
+    .page-header h1 { font-size:1.375rem; font-weight:700; color:var(--gray-900); margin:0; letter-spacing:-0.01em; }
+    .page-header .sub { font-size:0.8125rem; color:var(--gray-500); margin-top:2px; }
+    .page-actions { display:flex; gap:0.5rem; align-items:center; flex-shrink:0; }
+
+    .panel { background:#fff; border:var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; margin-bottom:1rem; }
+    .panel-header { padding:0.875rem 1.25rem; border-bottom:var(--border); display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap; }
+    .panel-title { font-size:0.875rem; font-weight:600; color:var(--gray-900); margin:0; display:flex; align-items:center; gap:0.5rem; }
+    .panel-title i { color:var(--blue-600); }
+
+    .filter-bar { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
+    .filter-input-wrap { position:relative; }
+    .filter-input-wrap i { position:absolute; left:0.625rem; top:50%; transform:translateY(-50%); color:var(--gray-400); font-size:0.75rem; pointer-events:none; }
+    .filter-input { border:var(--border); border-radius:6px; padding:0.375rem 0.625rem 0.375rem 1.75rem; font-size:0.8125rem; color:var(--gray-900); background:#fff; outline:none; }
+    .filter-input:focus { border-color:var(--blue-500); box-shadow:0 0 0 3px rgba(59,130,246,0.12); }
+    .filter-select { border:var(--border); border-radius:6px; padding:0.375rem 1.75rem 0.375rem 0.625rem; font-size:0.8125rem; color:var(--gray-700); background:#fff; outline:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 0.5rem center; cursor:pointer; }
+    .filter-select:focus { border-color:var(--blue-500); outline:none; }
+
+    .product-img { width:36px; height:36px; object-fit:cover; border-radius:7px; border:var(--border); }
+    .product-img-placeholder { width:36px; height:36px; border-radius:7px; background:var(--gray-100); border:var(--border); display:flex; align-items:center; justify-content:center; color:var(--gray-400); font-size:0.75rem; }
+
+    .copies-input { width:56px; border:var(--border); border-radius:5px; padding:0.25rem 0.375rem; font-size:0.8125rem; text-align:center; }
+    .copies-input:focus { border-color:var(--blue-500); outline:none; box-shadow:0 0 0 2px rgba(59,130,246,0.12); }
+
+    .select-all-bar { display:flex; align-items:center; gap:0.75rem; padding:0.625rem 1.25rem; border-bottom:var(--border); background:var(--gray-50); flex-wrap:wrap; }
+
+    /* Template selector cards */
+    .tpl-grid { display:flex; gap:0.625rem; flex-wrap:wrap; }
+    .tpl-card { position:relative; }
+    .tpl-card input[type="radio"] { position:absolute; opacity:0; width:0; height:0; }
+    .tpl-card label {
+        display:flex; flex-direction:column; align-items:center; gap:0.375rem;
+        padding:0.625rem 0.875rem; border:2px solid var(--gray-200); border-radius:8px;
+        cursor:pointer; font-size:0.75rem; color:var(--gray-600); min-width:80px;
+        transition:border-color 0.15s, background 0.15s;
+    }
+    .tpl-card input:checked + label {
+        border-color:var(--blue-500); background:var(--blue-50); color:var(--blue-700);
+    }
+    .tpl-card label:hover { border-color:var(--gray-300); }
+    .tpl-icon { font-size:1.125rem; }
+
+    .print-footer {
+        position:sticky; bottom:0; background:#fff; border-top:var(--border);
+        padding:0.875rem 1.25rem; display:flex; align-items:center;
+        justify-content:space-between; box-shadow:0 -4px 12px rgba(0,0,0,0.06); z-index:50;
+        flex-wrap:wrap; gap:0.75rem;
+    }
+    .selected-count { font-size:0.8125rem; color:var(--gray-600); }
+    .selected-count strong { color:var(--gray-900); font-size:1rem; }
+
+    tr[data-product-id]:hover { background:var(--gray-50); }
+    tr[data-product-id] { cursor:pointer; }
+
+    .badge-source {
+        display:inline-block; font-size:0.5625rem; font-weight:600; text-transform:uppercase;
+        letter-spacing:0.04em; padding:0.1rem 0.35rem; border-radius:20px;
+    }
+    .badge-generated { background:var(--blue-50); color:var(--blue-600); }
+    .badge-supplier   { background:var(--green-50); color:var(--green-600); }
+    .badge-manual     { background:var(--gray-100); color:var(--gray-500); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bc-nav">
+    <a href="{{ url_for('products.index') }}"><i class="fas fa-box" style="font-size:0.7rem;"></i> Inventory</a>
+    <i class="fas fa-chevron-right bc-sep"></i>
+    <span class="bc-cur">Print Labels</span>
+</div>
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-tags me-2" style="color:var(--blue-600);font-size:1.1rem;"></i>Print Labels</h1>
+        <div class="sub">Select products and configure label options, then generate your PDF or ZPL file.</div>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('products.index') }}" class="btn btn-light" style="border:var(--border);">
+            <i class="fas fa-arrow-left" style="font-size:0.75rem;"></i> Back to Inventory
+        </a>
+    </div>
+</div>
+
+<!-- ================================================================
+     Filter panel — standalone GET form (NOT nested in the POST form)
+     ================================================================ -->
+<div class="panel">
+    <div class="panel-header">
+        <h5 class="panel-title"><i class="fas fa-filter"></i> Filter Products</h5>
+        {% if search or category_id %}
+        <a href="{{ url_for('products.batch_print_labels') }}" class="btn btn-light btn-sm" style="border:var(--border);">
+            <i class="fas fa-times" style="font-size:0.6875rem;"></i> Clear Filter
+        </a>
+        {% endif %}
+    </div>
+    <div style="padding:0.875rem 1.25rem;">
+        <form method="GET" action="{{ url_for('products.batch_print_labels') }}" class="filter-bar">
+            <div class="filter-input-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" name="search" class="filter-input"
+                       placeholder="Search name, SKU, barcode…"
+                       value="{{ search }}" style="width:210px;">
+            </div>
+            <select name="category_id" class="filter-select">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="fas fa-search" style="font-size:0.75rem;"></i> Search
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ================================================================
+     Product selection + print form — POST only, no nesting
+     ================================================================ -->
+<form method="POST" action="{{ url_for('products.batch_print_labels') }}" id="batchLabelForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- Products panel -->
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="fas fa-list"></i> Products</h5>
+            <span style="font-size:0.8125rem;color:var(--gray-500);">
+                {{ products|length }} product{{ 's' if products|length != 1 }}
+                {% if search or category_id %}<span style="color:var(--blue-600);">(filtered)</span>{% endif %}
+            </span>
+        </div>
+
+        <!-- Select-all / bulk copies bar -->
+        <div class="select-all-bar">
+            <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.8125rem;font-weight:600;color:var(--gray-700);cursor:pointer;margin:0;">
+                <input type="checkbox" id="selectAll" style="margin:0;">
+                Select all shown
+            </label>
+            <span style="font-size:0.8125rem;color:var(--gray-300);">|</span>
+            <span style="font-size:0.8125rem;color:var(--gray-500);">Set all copies:</span>
+            <input type="number" id="bulkCopies" min="1" max="100" value="1" class="copies-input" style="width:60px;">
+            <button type="button" class="btn btn-light btn-sm" style="border:var(--border);" onclick="applyBulkCopies()">
+                Apply
+            </button>
+        </div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:36px;"></th>
+                    <th style="width:46px;"></th>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>Barcode</th>
+                    <th style="text-align:center;width:90px;">Copies</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr data-product-id="{{ product.id }}">
+                    <td>
+                        <input type="checkbox" name="product_ids" value="{{ product.id }}"
+                               class="product-check" style="margin:0;"
+                               onchange="updateCount()">
+                    </td>
+                    <td>
+                        {% if product.image_filename %}
+                        <img src="{{ url_for('static', filename='uploads/products/' + product.image_filename) }}"
+                             alt="{{ product.name }}" class="product-img">
+                        {% else %}
+                        <div class="product-img-placeholder"><i class="fas fa-box"></i></div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="font-weight:600;color:var(--gray-900);">{{ product.name }}</div>
+                        <div style="font-size:0.6875rem;color:var(--gray-400);">{{ product.category.name if product.category else '' }}</div>
+                    </td>
+                    <td style="font-family:monospace;font-size:0.75rem;color:var(--gray-500);">{{ product.sku or '—' }}</td>
+                    <td style="font-size:0.75rem;">
+                        {% if product.barcode %}
+                        <span style="font-family:monospace;color:var(--gray-700);">{{ product.barcode }}</span>
+                        <div style="margin-top:2px;">
+                            {% if product.barcode_source == 'generated' %}
+                            <span class="badge-source badge-generated">auto</span>
+                            {% elif product.barcode_source == 'supplier' %}
+                            <span class="badge-source badge-supplier">supplier</span>
+                            {% else %}
+                            <span class="badge-source badge-manual">manual</span>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span style="color:var(--amber-600);font-size:0.6875rem;">
+                            <i class="fas fa-exclamation-triangle"></i> Will auto-generate
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        <input type="number" name="copies_{{ product.id }}" value="1"
+                               min="1" max="100" class="copies-input copies-field">
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align:center;padding:3rem;color:var(--gray-400);">
+                        <i class="fas fa-box-open" style="font-size:2rem;display:block;margin-bottom:0.75rem;"></i>
+                        No products found. Try adjusting the filter above.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ============================================================
+         Sticky footer — template selector + action buttons
+         ============================================================ -->
+    <div class="print-footer">
+        <div class="selected-count">
+            <strong id="selectedCountBadge">0</strong> product(s) selected
+        </div>
+
+        <!-- Label template selector -->
+        <div style="display:flex;align-items:center;gap:0.875rem;flex-wrap:wrap;">
+            <span style="font-size:0.8125rem;font-weight:600;color:var(--gray-600);">Layout:</span>
+            <div class="tpl-grid">
+                <div class="tpl-card">
+                    <input type="radio" name="label_template" id="tpl_standard" value="standard" checked>
+                    <label for="tpl_standard">
+                        <span class="tpl-icon">&#9632;&#9632;&#9632;</span>
+                        <span>Standard</span>
+                        <span style="color:var(--gray-400);font-size:0.625rem;">3/row · 62×36mm</span>
+                    </label>
+                </div>
+                <div class="tpl-card">
+                    <input type="radio" name="label_template" id="tpl_compact" value="compact">
+                    <label for="tpl_compact">
+                        <span class="tpl-icon">&#9632;&#9632;&#9632;&#9632;</span>
+                        <span>Compact</span>
+                        <span style="color:var(--gray-400);font-size:0.625rem;">4/row · 46×28mm</span>
+                    </label>
+                </div>
+                <div class="tpl-card">
+                    <input type="radio" name="label_template" id="tpl_large" value="large">
+                    <label for="tpl_large">
+                        <span class="tpl-icon">&#9632;&#9632;</span>
+                        <span>Large</span>
+                        <span style="color:var(--gray-400);font-size:0.625rem;">2/row · 90×50mm</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div style="display:flex;gap:0.5rem;">
+            <a href="{{ url_for('products.index') }}" class="btn btn-light" style="border:var(--border);">Cancel</a>
+            <button type="submit" name="output_format" value="zpl"
+                    class="btn btn-light" id="zplBtn" disabled
+                    style="border:var(--border);" title="ZPL II for thermal label printers">
+                <i class="fas fa-print" style="font-size:0.75rem;"></i> Download ZPL
+            </button>
+            <button type="submit" name="output_format" value="pdf"
+                    class="btn btn-primary" id="printBtn" disabled>
+                <i class="fas fa-file-pdf" style="font-size:0.75rem;"></i> Generate PDF
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var checkboxes  = document.querySelectorAll('.product-check');
+    var selectAllBox = document.getElementById('selectAll');
+    var printBtn    = document.getElementById('printBtn');
+    var zplBtn      = document.getElementById('zplBtn');
+    var countBadge  = document.getElementById('selectedCountBadge');
+
+    selectAllBox.addEventListener('change', function() {
+        checkboxes.forEach(function(cb) { cb.checked = selectAllBox.checked; });
+        updateCount();
+    });
+
+    function updateCount() {
+        var n = document.querySelectorAll('.product-check:checked').length;
+        countBadge.textContent = n;
+        printBtn.disabled = (n === 0);
+        zplBtn.disabled   = (n === 0);
+        selectAllBox.indeterminate = (n > 0 && n < checkboxes.length);
+        selectAllBox.checked = (checkboxes.length > 0 && n === checkboxes.length);
+    }
+
+    function applyBulkCopies() {
+        var val = Math.max(1, Math.min(100, parseInt(document.getElementById('bulkCopies').value) || 1));
+        document.querySelectorAll('.copies-field').forEach(function(inp) { inp.value = val; });
+    }
+
+    // Row click toggles its checkbox
+    document.querySelectorAll('tr[data-product-id]').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+            if (e.target.type === 'checkbox' || e.target.type === 'number') return;
+            var cb = row.querySelector('.product-check');
+            cb.checked = !cb.checked;
+            updateCount();
+        });
+    });
+
+    // Show loading state while PDF is being generated
+    document.getElementById('batchLabelForm').addEventListener('submit', function(e) {
+        var btn = e.submitter;
+        if (btn && btn.id === 'printBtn') {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:0.75rem;"></i> Generating…';
+            btn.disabled = true;
+            // Re-enable after 10s in case of error
+            setTimeout(function() {
+                btn.innerHTML = '<i class="fas fa-file-pdf" style="font-size:0.75rem;"></i> Generate PDF';
+                btn.disabled = false;
+            }, 10000);
+        }
+    });
+</script>
+{% endblock %}

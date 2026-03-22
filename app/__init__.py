@@ -6,14 +6,18 @@ from flask_wtf.csrf import CSRFProtect
 import os
 from datetime import timedelta
 
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
 csrf = CSRFProtect()
+limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
 
 def create_app(config_class=None):
     app = Flask(__name__)
-    
+
     # Load configuration
     if config_class:
         app.config.from_object(config_class)
@@ -26,13 +30,23 @@ def create_app(config_class=None):
     # Override with environment variables if available
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', app.config.get('SECRET_KEY'))
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', app.config.get('SQLALCHEMY_DATABASE_URI'))
-    
-    
+
+    # Guard against weak SECRET_KEY in production — fail loudly rather than silently
+    if not app.config.get('DEBUG', False):
+        _key = app.config.get('SECRET_KEY', '')
+        if not _key or _key == 'dev-secret-key-change-in-production' or len(_key) < 24:
+            raise RuntimeError(
+                "FATAL: Weak or default SECRET_KEY detected in production mode. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\" "
+                "and set it as SECRET_KEY in your .env file."
+            )
+
     # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
+    limiter.init_app(app)
     
     # Configure product image uploads
     product_images_dir = os.path.join(app.static_folder, 'uploads', 'products')
@@ -78,7 +92,8 @@ def create_app(config_class=None):
         'font-src': ['\'self\'', 'https://cdn.jsdelivr.net', 'https://fonts.gstatic.com']
     }
     
-    Talisman(app, content_security_policy=csp, force_https=False) # force_https=False for local dev
+    force_https = app.config.get('FORCE_HTTPS', False)
+    Talisman(app, content_security_policy=csp, force_https=force_https)
     
     # Configure login manager
     login_manager.login_view = 'auth.login'
@@ -87,10 +102,12 @@ def create_app(config_class=None):
     
     @login_manager.user_loader
     def load_user(user_id):
-        # Import inside function to avoid circular imports if needed,
-        # though models is already imported in create_app
         from app.models import User
-        return User.query.get(int(user_id))
+        user = User.query.get(int(user_id))
+        # Deactivated users are denied — don't wait for session expiry
+        if user and not user.is_active:
+            return None
+        return user
     
 
     

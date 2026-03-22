@@ -55,10 +55,12 @@
 {% endblock %}
 
 {% block content %}
+<div class="bc-nav">
+    <a href="{{ url_for('products.index') }}"><i class="fas fa-box" style="font-size:0.7rem;"></i> Inventory</a>
+    <i class="fas fa-chevron-right bc-sep"></i>
+    <span class="bc-cur">Add Product</span>
+</div>
 <div class="page-header">
-    <a href="{{ url_for('products.index') }}" style="color:var(--gray-400);text-decoration:none;font-size:0.8125rem;display:flex;align-items:center;gap:0.25rem;">
-        <i class="fas fa-chevron-left" style="font-size:0.625rem;"></i> Inventory
-    </a>
     <h1>Add Product</h1>
 </div>
 
@@ -94,7 +96,11 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">{{ form.barcode.label.text }}</label>
-                        {{ form.barcode(class="form-control", placeholder="Optional barcode") }}
+                        {{ form.barcode(class="form-control", placeholder="Leave empty to auto-generate", id="barcodeInput") }}
+                        <div style="font-size:0.6875rem;color:var(--gray-400);margin-top:0.25rem;">
+                            <i class="fas fa-magic" style="color:var(--blue-400);"></i>
+                            Leave empty — a unique barcode is auto-generated on save.
+                        </div>
                         {% if form.barcode.errors %}<div class="field-error">{{ form.barcode.errors[0] }}</div>{% endif %}
                     </div>
                 </div>
@@ -191,9 +197,9 @@
                 </div>
                 <div class="panel-body">
                     <div class="info-row"><i class="fas fa-tag"></i><span><strong>SKU</strong> — Unique inventory identifier</span></div>
-                    <div class="info-row"><i class="fas fa-barcode"></i><span><strong>Barcode</strong> — For scanning at POS</span></div>
+                    <div class="info-row"><i class="fas fa-magic"></i><span><strong>Barcode</strong> — Auto-generated if left empty. Scan or type to override.</span></div>
                     <div class="info-row"><i class="fas fa-dollar-sign"></i><span><strong>Cost Price</strong> — What you paid</span></div>
-                    <div class="info-row"><i class="fas fa-shopping-tag"></i><span><strong>Selling Price</strong> — Customer price</span></div>
+                    <div class="info-row"><i class="fas fa-shopping-bag"></i><span><strong>Selling Price</strong> — Customer price</span></div>
                     <div class="info-row"><i class="fas fa-exclamation-triangle"></i><span><strong>Low Stock Threshold</strong> — Alert level</span></div>
                 </div>
             </div>

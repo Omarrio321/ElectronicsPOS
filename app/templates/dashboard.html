@@ -5,11 +5,44 @@
 
 {% block head %}
 <style>
+    /* ── Page header ─────────────────────────────── */
+    .page-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 1.125rem;
+    }
+    .page-header h1 {
+        font-size: 1.375rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin: 0;
+        letter-spacing: -0.01em;
+    }
+    .page-header .sub { font-size: 0.8125rem; color: var(--gray-500); margin-top: 2px; }
+
+    /* ── Alert strip ─────────────────────────────── */
+    .alert-strip {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        padding: 0.625rem 1rem;
+        border-radius: var(--radius);
+        font-size: 0.8125rem;
+        margin-bottom: 1rem;
+        font-weight: 500;
+    }
+    .alert-strip-amber { background: var(--amber-50); border: 1px solid #FDE68A; color: #92400E; }
+    .alert-strip-amber i { color: var(--amber-600); }
+    .alert-strip-link { margin-left: auto; font-weight: 700; color: var(--amber-700); text-decoration: none; font-size: 0.75rem; white-space: nowrap; }
+    .alert-strip-link:hover { text-decoration: underline; }
+
+    /* ── KPI grid ────────────────────────────────── */
     .kpi-grid {
         display: grid;
         grid-template-columns: repeat(6, 1fr);
-        gap: 1rem;
-        margin-bottom: 1rem;
+        gap: 0.875rem;
+        margin-bottom: 0.875rem;
     }
     @media (max-width: 1200px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 640px)  { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -20,14 +53,34 @@
         border-radius: var(--radius);
         box-shadow: var(--shadow-sm);
         padding: 1rem 1.125rem;
+        position: relative;
+        overflow: hidden;
+        transition: box-shadow 0.15s;
+        cursor: default;
     }
+    .kpi-tile:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+    .kpi-tile::before {
+        content: '';
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 3px;
+        border-radius: var(--radius) 0 0 var(--radius);
+    }
+    .kpi-tile.accent-blue::before   { background: var(--blue-600); }
+    .kpi-tile.accent-green::before  { background: var(--green-600); }
+    .kpi-tile.accent-red::before    { background: var(--red-600); }
+    .kpi-tile.accent-amber::before  { background: var(--amber-600); }
+    .kpi-tile.accent-purple::before { background: #7C3AED; }
+    .kpi-tile.accent-gray::before   { background: var(--gray-400); }
+    .kpi-tile.accent-orange::before { background: #EA580C; }
+
     .kpi-tile .t-label {
-        font-size: 0.6875rem;
-        font-weight: 600;
-        letter-spacing: 0.07em;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--gray-500);
-        margin-bottom: 0.375rem;
+        margin-bottom: 0.25rem;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -40,24 +93,60 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        margin-bottom: 0.25rem;
     }
-    .kpi-tile .t-value.blue  { color: var(--blue-600); }
-    .kpi-tile .t-value.green { color: var(--green-600); }
-    .kpi-tile .t-value.red   { color: var(--red-600); }
-    .kpi-tile .t-sub { font-size: 0.6875rem; color: var(--gray-400); margin-top: 0.25rem; }
+    .kpi-tile .t-value.blue   { color: var(--blue-600); }
+    .kpi-tile .t-value.green  { color: var(--green-600); }
+    .kpi-tile .t-value.red    { color: var(--red-600); }
+    .kpi-tile .t-value.amber  { color: var(--amber-600); }
+    .kpi-tile .t-value.orange { color: #EA580C; }
+    .kpi-tile .t-value.purple { color: #7C3AED; }
+    .kpi-tile .t-sub { font-size: 0.6875rem; color: var(--gray-400); }
     .kpi-tile .t-icon {
-        width: 30px; height: 30px;
+        width: 28px; height: 28px;
         border-radius: 7px;
         display: flex; align-items: center; justify-content: center;
-        font-size: 0.75rem;
-        margin-bottom: 0.625rem;
+        font-size: 0.7rem;
+        margin-bottom: 0.5rem;
     }
-    .t-icon.blue  { background: var(--blue-50);  color: var(--blue-600); }
-    .t-icon.green { background: var(--green-50); color: var(--green-600); }
-    .t-icon.red   { background: var(--red-50);   color: var(--red-600); }
-    .t-icon.gray  { background: var(--gray-100);  color: var(--gray-500); }
-    .t-icon.amber { background: var(--amber-50);  color: var(--amber-600); }
+    .t-icon.blue   { background: var(--blue-50);  color: var(--blue-600); }
+    .t-icon.green  { background: var(--green-50); color: var(--green-600); }
+    .t-icon.red    { background: var(--red-50);   color: var(--red-600); }
+    .t-icon.amber  { background: var(--amber-50); color: var(--amber-600); }
+    .t-icon.orange { background: #FFF7ED;          color: #EA580C; }
+    .t-icon.purple { background: #F5F3FF;          color: #7C3AED; }
+    .t-icon.gray   { background: var(--gray-100); color: var(--gray-500); }
 
+    /* ── Trend badge ─────────────────────────────── */
+    .trend-badge {
+        display: inline-flex; align-items: center; gap: 2px;
+        font-size: 0.6rem; font-weight: 700;
+        padding: 1px 5px; border-radius: 20px;
+    }
+    .trend-up   { background: var(--green-50); color: var(--green-600); }
+    .trend-down { background: var(--red-50);   color: var(--red-600); }
+
+    /* ── Mini stats strip ────────────────────────── */
+    .mini-stats {
+        background: #fff;
+        border: var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        margin-bottom: 0.875rem;
+        overflow-x: auto;
+        gap: 0;
+    }
+    .mini-stat { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 0.25rem 1.125rem; flex-shrink: 0; }
+    .mini-stat-val { font-size: 0.9375rem; font-weight: 700; color: var(--gray-900); white-space: nowrap; }
+    .mini-stat-val.danger { color: var(--red-600); }
+    .mini-stat-val.amber  { color: var(--amber-600); }
+    .mini-stat-label { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--gray-400); white-space: nowrap; }
+    .mini-stat-sep { width: 1px; height: 1.75rem; background: var(--gray-200); flex-shrink: 0; }
+
+    /* ── Panels ──────────────────────────────────── */
     .panel {
         background: #fff;
         border: var(--border);
@@ -68,140 +157,269 @@
     .panel-header {
         padding: 0.875rem 1.25rem;
         border-bottom: var(--border);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.5rem;
+        display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
     }
     .panel-title {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: var(--gray-900);
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+        font-size: 0.875rem; font-weight: 600; color: var(--gray-900);
+        margin: 0; display: flex; align-items: center; gap: 0.5rem;
     }
-    .panel-title i { color: var(--blue-600); font-size: 0.875rem; }
+    .panel-title i { color: var(--blue-600); }
+    .panel-link { font-size: 0.75rem; color: var(--blue-600); text-decoration: none; font-weight: 500; white-space: nowrap; }
+    .panel-link:hover { text-decoration: underline; }
 
+    /* ── Layout grids ────────────────────────────── */
     .content-grid {
         display: grid;
-        grid-template-columns: 1fr 320px;
-        gap: 1rem;
-        margin-bottom: 1rem;
+        grid-template-columns: 1fr 300px;
+        gap: 0.875rem;
+        margin-bottom: 0.875rem;
     }
     @media (max-width: 900px) { .content-grid { grid-template-columns: 1fr; } }
 
-    .page-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        margin-bottom: 1.5rem;
+    .bottom-grid {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 0.875rem;
+        margin-bottom: 1rem;
     }
-    .page-header h1 {
-        font-size: 1.375rem;
+    @media (max-width: 900px) { .bottom-grid { grid-template-columns: 1fr; } }
+
+    /* ── Collection method panel ─────────────────── */
+    .coll-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto auto;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.625rem 1.25rem;
+        border-bottom: var(--border);
+        transition: background 0.1s;
+    }
+    .coll-row:last-child { border-bottom: none; }
+    .coll-row:hover { background: var(--gray-50); }
+    .coll-method-icon {
+        width: 30px; height: 30px;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.7rem;
+        flex-shrink: 0;
+    }
+    .coll-method-name { font-size: 0.8125rem; font-weight: 600; color: var(--gray-900); }
+    .coll-currency-badge {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 10px;
+        font-size: 0.6rem;
         font-weight: 700;
-        color: var(--gray-900);
-        margin: 0;
-        letter-spacing: -0.01em;
+        letter-spacing: 0.04em;
     }
-    .page-header .sub { font-size: 0.8125rem; color: var(--gray-500); margin-top: 2px; }
-
-    .act-btn {
-        width: 28px; height: 28px;
-        border: var(--border);
-        background: #fff;
-        border-radius: 5px;
-        color: var(--gray-500);
-        font-size: 0.6875rem;
-        display: inline-flex; align-items: center; justify-content: center;
-        text-decoration: none;
-        transition: all 0.12s;
-    }
-    .act-btn:hover { background: var(--gray-100); color: var(--gray-900); }
-
-    .top-product-row {
+    .badge-usd  { background: var(--blue-50); color: var(--blue-600); }
+    .badge-slsh { background: var(--amber-50); color: var(--amber-600); }
+    .coll-original { font-size: 0.75rem; color: var(--gray-400); text-align: right; }
+    .coll-usd { font-size: 0.875rem; font-weight: 700; color: var(--green-600); text-align: right; white-space: nowrap; }
+    .coll-total-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 0.625rem 1.25rem;
-        border-bottom: var(--border);
+        background: var(--gray-50);
+        border-top: 2px solid var(--border);
+    }
+    .coll-total-label { font-size: 0.75rem; font-weight: 700; color: var(--gray-600); text-transform: uppercase; letter-spacing: 0.06em; }
+    .coll-total-val { font-size: 1rem; font-weight: 800; color: var(--blue-600); }
+
+    /* ── Top products ────────────────────────────── */
+    .top-product-row {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.625rem 1.25rem; gap: 0.625rem;
+        border-bottom: var(--border); transition: background 0.1s;
     }
     .top-product-row:last-child { border-bottom: none; }
     .top-product-row:hover { background: var(--gray-50); }
-    .rank-dot {
-        width: 20px; height: 20px;
-        border-radius: 50%;
-        background: var(--blue-50);
-        color: var(--blue-600);
-        font-size: 0.625rem;
-        font-weight: 700;
-        display: flex; align-items: center; justify-content: center;
-        flex-shrink: 0;
-    }
+    .rank-dot { width: 20px; height: 20px; border-radius: 50%; font-size: 0.625rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .rank-dot-1 { background: #FEF9C3; color: #92400E; border: 1.5px solid #F59E0B; }
+    .rank-dot-2 { background: var(--gray-100); color: var(--gray-600); border: 1.5px solid var(--gray-300); }
+    .rank-dot-3 { background: #FEF2EF; color: #B45309; border: 1.5px solid #F87171; }
+    .rank-dot-n { background: var(--blue-50); color: var(--blue-600); }
+    .product-name-wrap { min-width: 0; flex: 1; }
+    .product-name { font-size: 0.8125rem; font-weight: 600; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .product-bar-track { height: 3px; background: var(--gray-100); border-radius: 3px; margin-top: 5px; overflow: hidden; }
+    .product-bar-fill { height: 100%; background: var(--blue-600); border-radius: 3px; width: 0; transition: width 0.7s cubic-bezier(0.4,0,0.2,1); }
+
+    /* ── Status pills ─────────────────────────────── */
+    .status-pill { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 20px; font-size: 0.6875rem; font-weight: 600; white-space: nowrap; }
+    .status-green  { background: var(--green-50);  color: var(--green-600); }
+    .status-red    { background: var(--red-50);    color: var(--red-600); }
+    .status-amber  { background: var(--amber-50);  color: var(--amber-600); }
+    .status-blue   { background: var(--blue-50);   color: var(--blue-600); }
+    .status-gray   { background: var(--gray-100);  color: var(--gray-600); }
+    .status-purple { background: #F5F3FF;           color: #7C3AED; }
+
+    /* ── Misc ────────────────────────────────────── */
+    .act-btn { width: 28px; height: 28px; border: var(--border); background: #fff; border-radius: 5px; color: var(--gray-500); font-size: 0.6875rem; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.12s; }
+    .act-btn:hover { background: var(--gray-100); color: var(--gray-900); }
+    .avatar-sm { width: 24px; height: 24px; border-radius: 6px; background: var(--blue-50); color: var(--blue-600); font-size: 0.625rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 </style>
 {% endblock %}
 
 {% block content %}
+
+<!-- ── Page Header ─────────────────────────────────────────── -->
 <div class="page-header">
     <div>
         <h1>Dashboard</h1>
-        <div class="sub">Welcome back, {{ current_user.username }}. Here's what's happening today.</div>
+        <div class="sub">Welcome back, <strong>{{ current_user.username }}</strong> &mdash; {{ now.strftime('%A, %B %d %Y') if now is defined else '' }} </div>
     </div>
-    <a href="{{ url_for('pos.index') }}" class="btn btn-primary">
-        <i class="fas fa-cash-register" style="font-size:0.75rem;"></i> New Sale
-    </a>
+    <div style="display:flex;gap:0.5rem;flex-shrink:0;">
+        {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
+        <a href="{{ url_for('sales.reports') }}" class="btn btn-light" style="border:var(--border);font-size:0.8125rem;">
+            <i class="fas fa-chart-line" style="font-size:0.75rem;color:var(--blue-600);"></i> Reports
+        </a>
+        {% endif %}
+        <a href="{{ url_for('pos.index') }}" class="btn btn-primary" style="font-size:0.8125rem;">
+            <i class="fas fa-cash-register" style="font-size:0.75rem;"></i> New Sale
+        </a>
+    </div>
 </div>
 
-<!-- KPI Tiles -->
+<!-- ── Low Stock Alert ────────────────────────────────────── -->
+{% if low_stock_products > 0 %}
+<div class="alert-strip alert-strip-amber">
+    <i class="fas fa-exclamation-triangle"></i>
+    <span>
+        <strong>{{ low_stock_products }} product{{ 's' if low_stock_products > 1 }}</strong>
+        {{ 'are' if low_stock_products > 1 else 'is' }} running low on stock.
+    </span>
+    <a href="{{ url_for('products.low_stock') }}" class="alert-strip-link">View items &rarr;</a>
+</div>
+{% endif %}
+
+<!-- ── KPI Tiles ──────────────────────────────────────────── -->
 <div class="kpi-grid">
-    <div class="kpi-tile">
+
+    <div class="kpi-tile accent-blue">
         <div class="t-icon blue"><i class="fas fa-shopping-bag"></i></div>
         <div class="t-label">Today's Sales</div>
         <div class="t-value blue">{{ today_sales }}</div>
-        <div class="t-sub">Transactions</div>
+        <div class="t-sub">Transactions today</div>
     </div>
-    <div class="kpi-tile">
+
+    <div class="kpi-tile accent-green">
         <div class="t-icon green"><i class="fas fa-cash-register"></i></div>
         <div class="t-label">Collected Today</div>
         <div class="t-value green">{{ format_currency(today_revenue) }}</div>
-        <div class="t-sub">Cash flow</div>
+        <div class="t-sub">
+            {% if today_trend_pct > 0 %}
+            <span class="trend-badge trend-up"><i class="fas fa-arrow-up"></i> {{ "%.1f"|format(today_trend_pct) }}%</span> vs yesterday
+            {% elif today_trend_pct < 0 %}
+            <span class="trend-badge trend-down"><i class="fas fa-arrow-down"></i> {{ "%.1f"|format(today_trend_pct|abs) }}%</span> vs yesterday
+            {% else %}
+            Same as yesterday
+            {% endif %}
+        </div>
     </div>
-    <div class="kpi-tile">
-        <div class="t-icon blue"><i class="fas fa-wallet"></i></div>
-        <div class="t-label">Real Profit</div>
+
+    <div class="kpi-tile accent-{{ 'green' if net_profit >= 0 else 'red' }}">
+        <div class="t-icon {{ 'green' if net_profit >= 0 else 'red' }}"><i class="fas fa-chart-pie"></i></div>
+        <div class="t-label">Net Profit</div>
         <div class="t-value {{ 'green' if net_profit >= 0 else 'red' }}">{{ format_currency(net_profit) }}</div>
-        <div class="t-sub">Paid – Cost</div>
+        <div class="t-sub">Collected &minus; Cost &minus; Expenses</div>
     </div>
-    <div class="kpi-tile">
-        <div class="t-icon gray"><i class="fas fa-money-bill-wave"></i></div>
-        <div class="t-label">Cash</div>
-        <div class="t-value">{{ format_currency(cash_today) }}</div>
-        <div class="t-sub">In drawer</div>
+
+    {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
+    <div class="kpi-tile accent-amber">
+        <div class="t-icon amber"><i class="fas fa-file-invoice-dollar"></i></div>
+        <div class="t-label">Outstanding</div>
+        <div class="t-value {{ 'amber' if unpaid_count > 0 else '' }}">
+            {% if unpaid_count > 0 %}{{ format_currency(unpaid_value) }}{% else %}&mdash;{% endif %}
+        </div>
+        <div class="t-sub">
+            {% if unpaid_count > 0 %}
+            <a href="{{ url_for('customers.index') }}" style="color:inherit;">{{ unpaid_count }} unpaid invoice{{ 's' if unpaid_count > 1 }}</a>
+            {% else %}
+            No outstanding invoices
+            {% endif %}
+        </div>
     </div>
-    <div class="kpi-tile">
+
+    <div class="kpi-tile accent-orange">
+        <div class="t-icon orange"><i class="fas fa-receipt"></i></div>
+        <div class="t-label">Pending Expenses</div>
+        <div class="t-value {{ 'orange' if pending_exp_count > 0 else '' }}">
+            {% if pending_exp_count > 0 %}{{ format_currency(pending_exp_amount) }}{% else %}&mdash;{% endif %}
+        </div>
+        <div class="t-sub">
+            {% if pending_exp_count > 0 %}
+            <a href="{{ url_for('expenses.index') }}" style="color:inherit;">{{ pending_exp_count }} pending</a>
+            {% else %}
+            All expenses cleared
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="kpi-tile accent-amber">
         <div class="t-icon amber"><i class="fas fa-mobile-alt"></i></div>
         <div class="t-label">Mobile Money</div>
         <div class="t-value">{{ format_currency(mobile_today) }}</div>
         <div class="t-sub">Zaad + E-Dahab</div>
     </div>
-    <div class="kpi-tile">
+    <div class="kpi-tile accent-gray">
+        <div class="t-icon gray"><i class="fas fa-money-bill-wave"></i></div>
+        <div class="t-label">Cash</div>
+        <div class="t-value">{{ format_currency(cash_today) }}</div>
+        <div class="t-sub">In drawer today</div>
+    </div>
+    {% endif %}
+
+    <div class="kpi-tile accent-red">
         <div class="t-icon red"><i class="fas fa-file-invoice-dollar"></i></div>
-        <div class="t-label">Expenses</div>
+        <div class="t-label">Expenses (Paid)</div>
         <div class="t-value red">{{ format_currency(total_expenses) }}</div>
-        <div class="t-sub"><a href="{{ url_for('expenses.index') }}" style="color:inherit;font-size:0.6875rem;">View details</a></div>
+        <div class="t-sub"><a href="{{ url_for('expenses.index') }}" style="color:inherit;">View details</a></div>
+    </div>
+
+</div>
+
+<!-- ── Mini Stats Strip ───────────────────────────────────── -->
+<div class="mini-stats">
+    <div class="mini-stat">
+        <span class="mini-stat-val">{{ total_products }}</span>
+        <span class="mini-stat-label">Products</span>
+    </div>
+    <div class="mini-stat-sep"></div>
+    <div class="mini-stat">
+        <span class="mini-stat-val {% if low_stock_products > 0 %}danger{% endif %}">{{ low_stock_products }}</span>
+        <span class="mini-stat-label">Low Stock</span>
+    </div>
+    <div class="mini-stat-sep"></div>
+    <div class="mini-stat">
+        <span class="mini-stat-val">{{ total_customers }}</span>
+        <span class="mini-stat-label">Customers</span>
+    </div>
+    <div class="mini-stat-sep"></div>
+    <div class="mini-stat">
+        <span class="mini-stat-val {% if unpaid_count > 0 %}amber{% endif %}">{{ unpaid_count }}</span>
+        <span class="mini-stat-label">Unpaid Invoices</span>
+    </div>
+    <div class="mini-stat-sep"></div>
+    <div class="mini-stat">
+        <span class="mini-stat-val">{{ total_sales }}</span>
+        <span class="mini-stat-label">Total Sales</span>
     </div>
 </div>
 
-<!-- Charts + Top Products -->
+<!-- ── Chart + Top Products ──────────────────────────────── -->
 <div class="content-grid">
-    <!-- Sales Chart -->
+
+    <!-- Revenue Chart -->
     <div class="panel">
         <div class="panel-header">
-            <h5 class="panel-title"><i class="fas fa-chart-line"></i> Revenue Trend (30 days)</h5>
+            <h5 class="panel-title"><i class="fas fa-chart-area"></i> Revenue Trend <span style="font-weight:400;color:var(--gray-400);font-size:0.75rem;margin-left:0.25rem;">(last 30 days)</span></h5>
+            {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
+            <a href="{{ url_for('sales.reports') }}" class="panel-link">Full report <i class="fas fa-arrow-right" style="font-size:0.65rem;"></i></a>
+            {% endif %}
         </div>
-        <div style="padding:1.25rem;">
-            <canvas id="salesChart" height="120"></canvas>
+        <div style="padding:1rem 1.25rem 1.25rem;">
+            <canvas id="salesChart" height="130"></canvas>
         </div>
     </div>
 
@@ -209,103 +427,156 @@
     <div class="panel">
         <div class="panel-header">
             <h5 class="panel-title"><i class="fas fa-trophy"></i> Top Products</h5>
+            <a href="{{ url_for('products.index') }}" class="panel-link">View all <i class="fas fa-arrow-right" style="font-size:0.65rem;"></i></a>
         </div>
+        {% if top_products %}
         {% for product in top_products %}
         <div class="top-product-row">
-            <div style="display:flex;align-items:center;gap:0.5rem;min-width:0;">
-                <div class="rank-dot">{{ loop.index }}</div>
-                <div style="min-width:0;">
-                    <div style="font-size:0.8125rem;font-weight:600;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ product.name }}</div>
-                    <div style="font-size:0.6875rem;color:var(--gray-400);">{{ product.total_sold }} sold</div>
+            <div style="display:flex;align-items:center;gap:0.5rem;min-width:0;flex:1;">
+                {% if loop.index == 1 %}
+                <div class="rank-dot rank-dot-1">{{ loop.index }}</div>
+                {% elif loop.index == 2 %}
+                <div class="rank-dot rank-dot-2">{{ loop.index }}</div>
+                {% elif loop.index == 3 %}
+                <div class="rank-dot rank-dot-3">{{ loop.index }}</div>
+                {% else %}
+                <div class="rank-dot rank-dot-n">{{ loop.index }}</div>
+                {% endif %}
+                <div class="product-name-wrap">
+                    <div class="product-name">{{ product.name }}</div>
+                    <div class="product-bar-track">
+                        <div class="product-bar-fill" data-pct="{{ ((product.total_sold or 0) / (top_products[0].total_sold or 1) * 100) | int }}"></div>
+                    </div>
                 </div>
             </div>
-            <span style="font-size:0.8125rem;font-weight:700;color:var(--blue-600);flex-shrink:0;">{{ product.total_sold }}</span>
+            <span style="font-size:0.8125rem;font-weight:700;color:var(--blue-600);flex-shrink:0;margin-left:0.5rem;">{{ product.total_sold }}</span>
         </div>
-        {% else %}
-        <div style="padding:2.5rem;text-align:center;color:var(--gray-400);font-size:0.8125rem;">No data yet.</div>
         {% endfor %}
+        {% else %}
+        <div style="padding:2.5rem;text-align:center;color:var(--gray-400);font-size:0.8125rem;">
+            <i class="fas fa-box-open" style="font-size:1.5rem;opacity:0.3;display:block;margin-bottom:0.5rem;"></i>
+            No sales data yet.
+        </div>
+        {% endif %}
     </div>
+
 </div>
 
-<!-- Recent Transactions -->
-<div class="panel">
-    <div class="panel-header">
-        <h5 class="panel-title"><i class="fas fa-history"></i> Recent Transactions</h5>
-        <a href="{{ url_for('sales.index') }}" style="font-size:0.75rem;color:var(--blue-600);text-decoration:none;font-weight:500;">
-            View all <i class="fas fa-arrow-right" style="font-size:0.65rem;"></i>
-        </a>
+<!-- ── Today's Collection + Recent Transactions ──────────── -->
+<div class="bottom-grid">
+
+    <!-- Today's Collection by Method -->
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="fas fa-exchange-alt"></i> Recent Transactions</h5>
+            <a href="{{ url_for('sales.index') }}" class="panel-link">View all <i class="fas fa-arrow-right" style="font-size:0.65rem;"></i></a>
+        </div>
+        <div style="overflow-x:auto;">
+        <table class="data-table" style="min-width:560px;">
+            <thead>
+                <tr>
+                    <th style="width:60px;">#</th>
+                    <th>Date</th>
+                    <th>Cashier</th>
+                    <th>Customer</th>
+                    <th style="text-align:right;">Total</th>
+                    <th>Payment</th>
+                    <th>Status</th>
+                    <th style="text-align:right;width:36px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in recent_sales %}
+                <tr>
+                    <td style="font-weight:600;color:var(--gray-700);font-size:0.8125rem;">#{{ sale.id }}</td>
+                    <td style="color:var(--gray-500);font-size:0.8125rem;white-space:nowrap;">{{ sale.created_at.strftime('%b %d, %H:%M') }}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:0.375rem;">
+                            <div class="avatar-sm">{{ sale.user.username[0] | upper }}</div>
+                            <span style="font-size:0.8125rem;">{{ sale.user.username }}</span>
+                        </div>
+                    </td>
+                    <td style="color:var(--gray-500);font-size:0.8125rem;">{{ sale.customer.full_name if sale.customer else '—' }}</td>
+                    <td style="text-align:right;font-weight:600;font-size:0.8125rem;">{{ format_currency(sale.grand_total) }}</td>
+                    <td>
+                        {% if sale.payments | length > 1 %}
+                        <span class="status-pill status-blue">Split</span>
+                        {% else %}
+                        <span class="status-pill status-gray">{{ sale.payment_method.value if sale.payment_method else '—' }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% set st = sale.sale_status %}
+                        {% if st and st.name == 'VOIDED' %}
+                        <span class="status-pill status-red">Voided</span>
+                        {% elif st and st.name == 'PARTIALLY_RETURNED' %}
+                        <span class="status-pill status-amber">Partial Return</span>
+                        {% elif st and st.name == 'REFUNDED' %}
+                        <span class="status-pill status-purple">Refunded</span>
+                        {% else %}
+                        <span class="status-pill status-green">Completed</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right;">
+                        <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}" class="act-btn" target="_blank" title="Print">
+                            <i class="fas fa-print"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" style="text-align:center;padding:3rem;color:var(--gray-400);">
+                        <i class="fas fa-receipt" style="font-size:1.5rem;opacity:0.2;display:block;margin-bottom:0.5rem;"></i>
+                        No recent sales.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
     </div>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Date</th>
-                <th>Cashier</th>
-                <th style="text-align:center;">Items</th>
-                <th style="text-align:right;">Total</th>
-                <th>Payment</th>
-                <th>Status</th>
-                <th style="text-align:right;"></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for sale in recent_sales %}
-            <tr>
-                <td style="font-weight:600;color:var(--gray-900);">#{{ sale.id }}</td>
-                <td style="color:var(--gray-500);">{{ sale.created_at.strftime('%b %d, %H:%M') }}</td>
-                <td>
-                    <div style="display:flex;align-items:center;gap:0.375rem;">
-                        <div class="avatar-sm">{{ sale.user.username[0] | upper }}</div>
-                        <span>{{ sale.user.username }}</span>
-                    </div>
-                </td>
-                <td style="text-align:center;">{{ sale.sale_items | length }}</td>
-                <td style="text-align:right;font-weight:600;">{{ format_currency(sale.grand_total) }}</td>
-                <td>
-                    {% if sale.payments | length > 1 %}
-                    <span style="font-size:0.6875rem;background:var(--blue-50);color:var(--blue-600);padding:0.125rem 0.5rem;border-radius:20px;font-weight:600;">Split</span>
-                    {% else %}
-                    <span style="font-size:0.6875rem;background:var(--gray-100);color:var(--gray-600);padding:0.125rem 0.5rem;border-radius:20px;font-weight:600;">{{ sale.payment_method.value }}</span>
-                    {% endif %}
-                </td>
-                <td><span style="font-size:0.6875rem;background:var(--green-50);color:var(--green-600);padding:0.125rem 0.5rem;border-radius:20px;font-weight:600;">Completed</span></td>
-                <td style="text-align:right;">
-                    <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}" class="act-btn" target="_blank" title="Print">
-                        <i class="fas fa-print"></i>
-                    </a>
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="8" style="text-align:center;padding:2.5rem;color:var(--gray-400);">No recent sales.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+
+    <!-- Today's Collection by Method & Currency -->
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="fas fa-wallet"></i> Today's Collections</h5>
+        </div>
+        <div id="collectionBody">
+            <!-- Rendered by JS from JSON data -->
+            <div style="padding:3rem;text-align:center;color:var(--gray-400);font-size:0.8125rem;">
+                <div class="spinner-border spinner-border-sm mb-2"></div><br>Loading…
+            </div>
+        </div>
+    </div>
+
 </div>
+
+<!-- Hidden JSON for today's breakdown -->
+<script type="application/json" id="today-breakdown-data">{{ today_breakdown | safe }}</script>
+
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-    const salesData = JSON.parse('{{ sales_data | safe }}');
-    const ctx = document.getElementById('salesChart').getContext('2d');
-
+    // ── Revenue chart ────────────────────────────────────────
+    var salesData = JSON.parse('{{ sales_data | safe }}');
+    var ctx = document.getElementById('salesChart').getContext('2d');
     if (salesData && salesData.length > 0) {
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: salesData.map(d => d.date),
+                labels: salesData.map(function(d) { return d.date; }),
                 datasets: [{
                     label: 'Revenue',
-                    data: salesData.map(d => d.sales),
+                    data: salesData.map(function(d) { return d.sales; }),
                     borderColor: '#2563EB',
-                    backgroundColor: 'rgba(37,99,235,0.06)',
+                    backgroundColor: 'rgba(37,99,235,0.07)',
                     borderWidth: 2,
                     pointBackgroundColor: '#fff',
                     pointBorderColor: '#2563EB',
                     pointBorderWidth: 2,
-                    pointRadius: 3,
+                    pointRadius: 2.5,
                     pointHoverRadius: 5,
                     fill: true,
                     tension: 0.4
@@ -316,37 +587,77 @@
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: '#fff',
-                        titleColor: '#0F172A',
-                        bodyColor: '#64748B',
-                        borderColor: '#E2E8F0',
-                        borderWidth: 1,
-                        padding: 10,
-                        displayColors: false,
-                        callbacks: {
-                            label: function(c) { return window.CURRENCY_SYMBOL + c.parsed.y.toLocaleString(); }
-                        }
+                        backgroundColor: '#fff', titleColor: '#0F172A', bodyColor: '#64748B',
+                        borderColor: '#E2E8F0', borderWidth: 1, padding: 10, displayColors: false,
+                        callbacks: { label: function(c) { return window.CURRENCY_SYMBOL + c.parsed.y.toLocaleString(undefined, {minimumFractionDigits: 2}); } }
                     }
                 },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: '#F1F5F9', borderDash: [3, 3] },
-                        ticks: {
-                            color: '#94A3B8',
-                            font: { size: 11 },
-                            callback: function(v) { return window.CURRENCY_SYMBOL + v; }
-                        },
-                        border: { display: false }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#94A3B8', font: { size: 11 } },
-                        border: { display: false }
-                    }
+                    y: { beginAtZero: true, grid: { color: '#F1F5F9', borderDash: [3,3] }, ticks: { color: '#94A3B8', font: { size: 10 }, callback: function(v) { return window.CURRENCY_SYMBOL + v; } }, border: { display: false } },
+                    x: { grid: { display: false }, ticks: { color: '#94A3B8', font: { size: 10 }, maxTicksLimit: 8, maxRotation: 0 }, border: { display: false } }
                 }
             }
         });
     }
+
+    // ── Animate product bars ─────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.product-bar-fill[data-pct]').forEach(function(el) {
+            var pct = parseInt(el.dataset.pct, 10) || 0;
+            setTimeout(function() { el.style.width = pct + '%'; }, 200);
+        });
+
+        // ── Render today's collections panel ─────────────────
+        var methodIcons = {
+            'Cash':         { icon: 'fas fa-money-bill-wave', bg: '#F0FDF4', color: '#16A34A' },
+            'E-Dahab':      { icon: 'fas fa-mobile-alt',      bg: '#FFFBEB', color: '#D97706' },
+            'Zaad':         { icon: 'fas fa-mobile-alt',      bg: '#F0FDF4', color: '#059669' },
+            'Card':         { icon: 'fas fa-credit-card',     bg: '#EFF6FF', color: '#2563EB' },
+            'Store Credit': { icon: 'fas fa-star',            bg: '#F5F3FF', color: '#7C3AED' },
+            'Credit':       { icon: 'fas fa-star',            bg: '#F5F3FF', color: '#7C3AED' },
+        };
+        var defaultIcon = { icon: 'fas fa-circle-dot', bg: '#F1F5F9', color: '#64748B' };
+
+        try {
+            var breakdown = JSON.parse(document.getElementById('today-breakdown-data').textContent);
+            var container = document.getElementById('collectionBody');
+
+            if (!breakdown || breakdown.length === 0) {
+                container.innerHTML = '<div style="padding:3rem;text-align:center;color:var(--gray-400);font-size:0.8125rem;"><i class="fas fa-wallet" style="font-size:1.5rem;opacity:0.2;display:block;margin-bottom:0.5rem;"></i>No collections today.</div>';
+                return;
+            }
+
+            var totalUsd = breakdown.reduce(function(s, r) { return s + r.usd; }, 0);
+            var html = '';
+
+            breakdown.forEach(function(row) {
+                var cfg = methodIcons[row.method] || defaultIcon;
+                var currBadge = row.currency === 'SLSH'
+                    ? '<span class="coll-currency-badge badge-slsh">SLSH</span>'
+                    : '<span class="coll-currency-badge badge-usd">USD</span>';
+                var origStr = row.currency === 'SLSH'
+                    ? row.original.toLocaleString(undefined, {maximumFractionDigits: 0}) + ' SLSH'
+                    : window.CURRENCY_SYMBOL + row.original.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                var usdStr = window.CURRENCY_SYMBOL + row.usd.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+                html += '<div class="coll-row">'
+                    + '<div class="coll-method-icon" style="background:' + cfg.bg + ';color:' + cfg.color + ';"><i class="' + cfg.icon + '"></i></div>'
+                    + '<div><div class="coll-method-name">' + row.method + ' ' + currBadge + '</div></div>'
+                    + '<div class="coll-original">' + (row.currency === 'USD' ? '' : origStr) + '</div>'
+                    + '<div class="coll-usd">' + usdStr + '</div>'
+                    + '</div>';
+            });
+
+            var totalStr = window.CURRENCY_SYMBOL + totalUsd.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            html += '<div class="coll-total-row">'
+                + '<span class="coll-total-label">Total Collected</span>'
+                + '<span class="coll-total-val">' + totalStr + '</span>'
+                + '</div>';
+
+            container.innerHTML = html;
+        } catch(e) {
+            console.error('Collection panel error:', e);
+        }
+    });
 </script>
 {% endblock %}

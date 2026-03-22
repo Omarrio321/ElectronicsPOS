@@ -51,10 +51,59 @@
     .tip-icon { color:var(--blue-600); font-size:0.75rem; margin-top:2px; flex-shrink:0; }
 
     .form-footer { display:flex; align-items:center; justify-content:space-between; padding-top:1.25rem; border-top:var(--border); margin-top:0.5rem; }
+
+    /* ── Server Control sidebar card ─────────────────────── */
+    .sc-card { background:#fff; border:var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; }
+    .sc-card-header { padding:0.875rem 1.25rem; border-bottom:1px solid #fecaca; background:linear-gradient(135deg,#fff5f5 0%,#fef2f2 100%); display:flex; align-items:center; gap:0.625rem; }
+    .sc-card-header-icon { width:28px; height:28px; border-radius:7px; background:#fee2e2; color:#dc2626; display:flex; align-items:center; justify-content:center; font-size:0.75rem; flex-shrink:0; }
+    .sc-card-title { font-size:0.8125rem; font-weight:700; color:#991b1b; margin:0; letter-spacing:0.01em; }
+    .sc-card-body { padding:1rem 1.25rem 1.25rem; }
+    .sc-card-desc { font-size:0.75rem; color:var(--gray-500); line-height:1.55; margin-bottom:1rem; }
+    .sc-status-row { display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem; padding:0.5rem 0.625rem; background:var(--gray-50); border-radius:6px; border:var(--border); }
+    .sc-status-dot { width:7px; height:7px; border-radius:50%; background:#22c55e; flex-shrink:0; box-shadow:0 0 0 2px rgba(34,197,94,0.2); }
+    .sc-status-text { font-size:0.75rem; color:var(--gray-600); font-weight:500; }
+    .btn-sc-shutdown { display:flex; align-items:center; justify-content:center; gap:0.5rem; width:100%; background:#dc2626; color:#fff; border:none; border-radius:7px; padding:0.5625rem 1rem; font-size:0.8125rem; font-weight:600; cursor:pointer; transition:background 0.15s, box-shadow 0.15s; letter-spacing:0.01em; }
+    .btn-sc-shutdown:hover { background:#b91c1c; box-shadow:0 2px 8px rgba(220,38,38,0.3); }
+    .btn-sc-shutdown:disabled { opacity:0.5; cursor:not-allowed; }
+    .sc-restart-hint { font-size:0.6875rem; color:var(--gray-400); margin-top:0.625rem; text-align:center; line-height:1.5; }
+    .sc-restart-hint code { font-size:0.6875rem; background:var(--gray-100); padding:1px 4px; border-radius:3px; color:var(--gray-600); }
+
+    /* Shutdown confirmation modal */
+    .sd-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(2px); }
+    .sd-overlay.active { display:flex; }
+    .sd-modal { background:#fff; border-radius:12px; box-shadow:0 24px 64px rgba(0,0,0,0.22); max-width:440px; width:92%; overflow:hidden; animation:sdFadeIn 0.18s ease; }
+    @keyframes sdFadeIn { from { opacity:0; transform:scale(0.96) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
+    .sd-modal-header { padding:1.5rem 1.5rem 1rem; display:flex; align-items:flex-start; gap:0.875rem; }
+    .sd-modal-icon { width:44px; height:44px; border-radius:10px; background:#fee2e2; color:#dc2626; display:flex; align-items:center; justify-content:center; font-size:1.125rem; flex-shrink:0; }
+    .sd-modal-header-text h5 { font-size:1rem; font-weight:700; color:#111827; margin:0 0 0.25rem; }
+    .sd-modal-header-text p { font-size:0.8125rem; color:var(--gray-500); margin:0; line-height:1.5; }
+    .sd-modal-divider { height:1px; background:#f3f4f6; margin:0; }
+    .sd-modal-body { padding:1.25rem 1.5rem; font-size:0.875rem; color:#374151; line-height:1.65; }
+    .sd-warning-list { list-style:none; padding:0; margin:0.875rem 0 0; display:flex; flex-direction:column; gap:0.5rem; }
+    .sd-warning-list li { display:flex; align-items:flex-start; gap:0.5rem; font-size:0.8125rem; color:#6b7280; }
+    .sd-warning-list li i { color:#f59e0b; margin-top:1px; font-size:0.75rem; flex-shrink:0; }
+    .sd-modal-footer { padding:1rem 1.5rem; display:flex; gap:0.625rem; justify-content:flex-end; background:#f9fafb; border-top:1px solid #f3f4f6; }
+    .btn-sd-cancel { background:#fff; color:#374151; border:1px solid #d1d5db; border-radius:7px; padding:0.5rem 1rem; font-size:0.875rem; font-weight:500; cursor:pointer; transition:background 0.12s; }
+    .btn-sd-cancel:hover { background:#f9fafb; }
+    .btn-sd-confirm { display:inline-flex; align-items:center; gap:0.5rem; background:#dc2626; color:#fff; border:none; border-radius:7px; padding:0.5rem 1.125rem; font-size:0.875rem; font-weight:600; cursor:pointer; transition:background 0.15s; }
+    .btn-sd-confirm:hover:not(:disabled) { background:#b91c1c; }
+    .btn-sd-confirm:disabled { opacity:0.5; cursor:not-allowed; }
+    .sd-countdown { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; background:rgba(255,255,255,0.25); font-size:0.75rem; font-weight:700; }
+    .sd-status-area { padding:1.25rem 1.5rem; display:none; }
+    .sd-status-area.visible { display:block; }
+    .sd-progress-block { text-align:center; padding:0.5rem 0; }
+    .sd-spinner { display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; border-radius:50%; border:3px solid #fee2e2; border-top-color:#dc2626; animation:sdSpin 0.8s linear infinite; margin-bottom:0.75rem; }
+    @keyframes sdSpin { to { transform:rotate(360deg); } }
+    .sd-stopped-block { text-align:center; padding:0.5rem 0; }
+    .sd-stopped-icon { display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; border-radius:50%; background:#fee2e2; color:#dc2626; font-size:1.25rem; margin-bottom:0.75rem; }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="bc-nav">
+    <i class="fas fa-shield-alt" style="font-size:0.7rem;color:var(--blue-600);"></i>
+    <span class="bc-cur">Administration / Settings</span>
+</div>
 <div class="page-header">
     <div>
         <h1><i class="fas fa-cog me-2" style="color:var(--blue-600);font-size:1.1rem;"></i>Settings</h1>
@@ -174,6 +223,55 @@
                 </div>
                 {% endif %}
 
+                <!-- ── Barcode & Labels ─────────────────────────── -->
+                <div class="section-divider">Barcode &amp; Labels</div>
+
+                {% if settings_dict.barcode_prefix %}
+                <div class="form-group">
+                    <label class="form-label">Barcode Prefix</label>
+                    <input type="text" name="barcode_prefix" class="form-control"
+                           value="{{ settings_dict.barcode_prefix.value }}"
+                           maxlength="10" style="text-transform:uppercase;">
+                    <div class="form-hint">Prefix for auto-generated internal barcodes (e.g. <strong>EP</strong> → EP-00000001).</div>
+                </div>
+                {% endif %}
+
+                {% if settings_dict.barcode_padding %}
+                <div class="form-group">
+                    <label class="form-label">Numeric Padding</label>
+                    <div class="input-suffix">
+                        <input type="number" name="barcode_padding" class="form-control"
+                               value="{{ settings_dict.barcode_padding.value }}" min="4" max="12">
+                        <span class="suffix-label">digits</span>
+                    </div>
+                    <div class="form-hint">Number of zero-padded digits (4–12). Default 8 → EP-<strong>00000001</strong>.</div>
+                </div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label class="form-label">Label Options</label>
+                    <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                        <label style="display:flex;align-items:center;gap:0.625rem;font-size:0.8125rem;cursor:pointer;">
+                            <input type="checkbox" name="label_show_price" value="true"
+                                   {% if settings_dict.label_show_price and settings_dict.label_show_price.value == 'true' %}checked{% endif %}
+                                   style="margin:0;width:16px;height:16px;">
+                            Show price on printed labels
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.625rem;font-size:0.8125rem;cursor:pointer;">
+                            <input type="checkbox" name="label_show_sku" value="true"
+                                   {% if settings_dict.label_show_sku and settings_dict.label_show_sku.value == 'true' %}checked{% endif %}
+                                   style="margin:0;width:16px;height:16px;">
+                            Show SKU on printed labels
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.625rem;font-size:0.8125rem;cursor:pointer;">
+                            <input type="checkbox" name="label_show_company" value="true"
+                                   {% if settings_dict.label_show_company and settings_dict.label_show_company.value == 'true' %}checked{% endif %}
+                                   style="margin:0;width:16px;height:16px;">
+                            Show company name on printed labels
+                        </label>
+                    </div>
+                </div>
+
                 <div class="form-footer">
                     <a href="{{ url_for('main.dashboard') }}" class="btn btn-light" style="border:var(--border);">
                         Cancel
@@ -213,6 +311,10 @@
                     <i class="fas fa-image tip-icon"></i>
                     <span><strong>Company Logo</strong> appears on receipts, reports, and the sidebar.</span>
                 </div>
+                <div class="tip-item">
+                    <i class="fas fa-barcode tip-icon"></i>
+                    <span><strong>Barcode Prefix</strong> is used for auto-generated codes, e.g. <code>EP</code> → <code>EP-00000001</code>.</span>
+                </div>
             </div>
         </div>
 
@@ -228,12 +330,96 @@
                 </a>
             </div>
         </div>
+
+        <!-- ── Server Control ───────────────────────────────── -->
+        <div class="sc-card">
+            <div class="sc-card-header">
+                <div class="sc-card-header-icon">
+                    <i class="fas fa-server"></i>
+                </div>
+                <h5 class="sc-card-title">Server Control</h5>
+            </div>
+            <div class="sc-card-body">
+                <p class="sc-card-desc">
+                    Manage the application server process. Shutting down will terminate
+                    all active sessions immediately.
+                </p>
+                <div class="sc-status-row">
+                    <span class="sc-status-dot"></span>
+                    <span class="sc-status-text">Server running</span>
+                    <span style="margin-left:auto;font-size:0.6875rem;color:var(--gray-400);">&#8226; Online</span>
+                </div>
+                <button class="btn-sc-shutdown" id="btnOpenShutdown" onclick="openShutdownModal()">
+                    <i class="fas fa-power-off" style="font-size:0.75rem;"></i>
+                    Shutdown Server
+                </button>
+                <p class="sc-restart-hint">
+                    Restart via <em>Original Electronics</em> shortcut or <code>start_server.bat</code>
+                </p>
+            </div>
+        </div>
     </div>
 </div>
+
+<!-- ── Shutdown Confirmation Modal ────────────────────────────────────────── -->
+<div class="sd-overlay" id="sdOverlay" role="dialog" aria-modal="true" aria-labelledby="sdModalTitle">
+    <div class="sd-modal">
+        <!-- Header -->
+        <div class="sd-modal-header">
+            <div class="sd-modal-icon">
+                <i class="fas fa-power-off"></i>
+            </div>
+            <div class="sd-modal-header-text">
+                <h5 id="sdModalTitle">Shutdown Server?</h5>
+                <p>This action requires confirmation.</p>
+            </div>
+        </div>
+        <div class="sd-modal-divider"></div>
+
+        <!-- Confirm body -->
+        <div class="sd-modal-body" id="sdModalBody">
+            You are about to <strong>stop the application server</strong>. Please review
+            what will happen:
+            <ul class="sd-warning-list">
+                <li><i class="fas fa-exclamation-circle"></i> All active user sessions will be disconnected instantly.</li>
+                <li><i class="fas fa-exclamation-circle"></i> Any unsaved work in open browser tabs will be lost.</li>
+                <li><i class="fas fa-exclamation-circle"></i> The application will be offline until manually restarted.</li>
+            </ul>
+        </div>
+
+        <!-- Spinner / progress (shown during shutdown) -->
+        <div class="sd-status-area" id="sdStatusArea">
+            <div class="sd-progress-block" id="sdProgressBlock">
+                <div class="sd-spinner"></div>
+                <div style="font-size:0.875rem;font-weight:600;color:#dc2626;">Shutting down&hellip;</div>
+                <div style="font-size:0.8125rem;color:var(--gray-500);margin-top:0.25rem;">Terminating active connections</div>
+            </div>
+            <div class="sd-stopped-block" id="sdStoppedBlock" style="display:none;">
+                <div class="sd-stopped-icon"><i class="fas fa-power-off"></i></div>
+                <div style="font-size:0.9375rem;font-weight:700;color:#111827;margin-bottom:0.375rem;">Server Stopped</div>
+                <div style="font-size:0.8125rem;color:var(--gray-500);line-height:1.6;">
+                    The server is no longer reachable.<br>
+                    Restart using the <em>Original Electronics</em> shortcut<br>
+                    or run <code style="font-size:0.75rem;background:#f3f4f6;padding:1px 5px;border-radius:3px;">start_server.bat</code>.
+                </div>
+            </div>
+        </div>
+
+        <div class="sd-modal-footer" id="sdModalFooter">
+            <button class="btn-sd-cancel" onclick="closeShutdownModal()">Cancel</button>
+            <button class="btn-sd-confirm" id="btnConfirmShutdown" onclick="confirmShutdown()">
+                <i class="fas fa-power-off" style="font-size:0.75rem;"></i>
+                Confirm Shutdown
+            </button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
+/* ── Logo upload preview ─────────────────────────────────────────────────── */
 function handleLogoSelect(input) {
     if (!input.files || !input.files[0]) return;
     var file = input.files[0];
@@ -254,6 +440,94 @@ function handleLogoSelect(input) {
         area.classList.add('has-logo');
     };
     reader.readAsDataURL(file);
+}
+
+/* ── Shutdown modal ──────────────────────────────────────────────────────── */
+function openShutdownModal() {
+    var overlay = document.getElementById('sdOverlay');
+    overlay.classList.add('active');
+    // Reset to confirm state
+    document.getElementById('sdModalBody').style.display = 'block';
+    document.getElementById('sdStatusArea').className = 'sd-status-area';
+    document.getElementById('sdProgressBlock').style.display = 'block';
+    document.getElementById('sdStoppedBlock').style.display = 'none';
+    document.getElementById('sdModalFooter').style.display = 'flex';
+    document.getElementById('sdModalFooter').innerHTML =
+        '<button class="btn-sd-cancel" onclick="closeShutdownModal()">Cancel</button>' +
+        '<button class="btn-sd-confirm" id="btnConfirmShutdown" onclick="confirmShutdown()">' +
+        '<i class="fas fa-power-off" style="font-size:0.75rem;"></i> Confirm Shutdown</button>';
+}
+
+function closeShutdownModal() {
+    document.getElementById('sdOverlay').classList.remove('active');
+}
+
+document.getElementById('sdOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeShutdownModal();
+});
+
+function showShuttingDown() {
+    document.getElementById('sdModalBody').style.display = 'none';
+    document.getElementById('sdModalFooter').style.display = 'none';
+    document.getElementById('sdStatusArea').className = 'sd-status-area visible';
+    document.getElementById('sdProgressBlock').style.display = 'block';
+    document.getElementById('sdStoppedBlock').style.display = 'none';
+}
+
+function showStopped() {
+    document.getElementById('sdProgressBlock').style.display = 'none';
+    document.getElementById('sdStoppedBlock').style.display = 'block';
+    document.getElementById('sdModalFooter').innerHTML =
+        '<button class="btn-sd-cancel" onclick="closeShutdownModal()">Close</button>';
+    document.getElementById('sdModalFooter').style.display = 'flex';
+    // Update the server status dot in the card
+    var dot = document.querySelector('.sc-status-dot');
+    var txt = document.querySelector('.sc-status-text');
+    if (dot) { dot.style.background = '#ef4444'; dot.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.2)'; }
+    if (txt) { txt.textContent = 'Server offline'; }
+    var onlineBadge = document.querySelector('.sc-status-row span:last-child');
+    if (onlineBadge) { onlineBadge.textContent = '● Offline'; onlineBadge.style.color = '#ef4444'; }
+}
+
+function confirmShutdown() {
+    var btn = document.getElementById('btnConfirmShutdown');
+    if (!btn) return;
+    btn.disabled = true;
+
+    var csrfInput = document.querySelector('input[name="csrf_token"]');
+    var csrfToken = csrfInput ? csrfInput.value : '';
+
+    showShuttingDown();
+
+    fetch('/admin/api/shutdown', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ confirm: true })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        if (data.status === 'shutdown_initiated') {
+            setTimeout(showStopped, 3000);
+        } else {
+            // Error — restore modal
+            document.getElementById('sdStatusArea').className = 'sd-status-area';
+            document.getElementById('sdModalBody').style.display = 'block';
+            document.getElementById('sdModalFooter').innerHTML =
+                '<button class="btn-sd-cancel" onclick="closeShutdownModal()">Cancel</button>' +
+                '<button class="btn-sd-confirm" id="btnConfirmShutdown" onclick="confirmShutdown()">' +
+                '<i class="fas fa-power-off" style="font-size:0.75rem;"></i> Confirm Shutdown</button>';
+            document.getElementById('sdModalFooter').style.display = 'flex';
+            // Show error hint
+            var errMsg = document.createElement('p');
+            errMsg.style.cssText = 'color:#dc2626;font-size:0.8125rem;margin:0.75rem 0 0;';
+            errMsg.textContent = data.message || 'Shutdown request failed. Try again.';
+            document.getElementById('sdModalBody').appendChild(errMsg);
+        }
+    })
+    .catch(function() {
+        // Network error after shutdown is expected — server closed the connection
+        setTimeout(showStopped, 3000);
+    });
 }
 </script>
 {% endblock %}

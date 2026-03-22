@@ -56,6 +56,8 @@ class Product(db.Model):
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=True)
     sku = db.Column(db.String(100), unique=True, nullable=False)
     barcode = db.Column(db.String(100), unique=True, nullable=True)
+    barcode_type = db.Column(db.String(20), nullable=True)    # 'Code128', 'EAN13', 'UPCA'
+    barcode_source = db.Column(db.String(20), nullable=True)  # 'generated', 'manual', 'supplier'
     description = db.Column(db.Text)
     image_filename = db.Column(db.String(255), nullable=True)  # Product image file
     
@@ -350,24 +352,10 @@ class Sale(db.Model):
 
     @staticmethod
     def generate_invoice_no():
-        """Generate unique invoice number: INV-YYYYMMDD-XXXX"""
+        """Generate unique invoice number: INV-YYYYMMDD-XXXX (race-condition safe)."""
         today = datetime.utcnow().strftime('%Y%m%d')
-        prefix = f'INV-{today}-'
-        
-        # Find the last invoice for today
-        last = Sale.query.filter(Sale.invoice_no.like(f'{prefix}%'))\
-            .order_by(Sale.invoice_no.desc()).first()
-        
-        if last and last.invoice_no:
-            try:
-                last_num = int(last.invoice_no.split('-')[-1])
-                next_num = last_num + 1
-            except:
-                next_num = 1
-        else:
-            next_num = 1
-        
-        return f'{prefix}{next_num:04d}'
+        next_num = InvoiceSequence.next_number(today)
+        return f'INV-{today}-{next_num:04d}'
 
     def get_returnable_qty(self, sale_item_id):
         """Calculate returnable quantity for a sale item (original qty - already returned)"""
@@ -464,6 +452,51 @@ class Payment(db.Model):
     def __repr__(self):
         currency = self.payment_currency.value if self.payment_currency else 'USD'
         return f'<Payment {self.id}: {self.payment_method.value} {self.amount} {currency}>'
+
+class BarcodeSequence(db.Model):
+    """Atomic sequence counter for concurrency-safe internal barcode generation."""
+    __tablename__ = 'barcode_sequence'
+
+    id = db.Column(db.Integer, primary_key=True)
+    prefix = db.Column(db.String(20), unique=True, nullable=False)
+    last_sequence = db.Column(db.Integer, nullable=False, default=0)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<BarcodeSequence prefix={self.prefix} last={self.last_sequence}>'
+
+
+class InvoiceSequence(db.Model):
+    """Atomic daily invoice counter — concurrency-safe via SELECT ... FOR UPDATE.
+    One row per calendar day (YYYYMMDD). Eliminates invoice number collisions
+    under simultaneous checkouts on multiple POS terminals.
+    """
+    __tablename__ = 'invoice_sequence'
+
+    id = db.Column(db.Integer, primary_key=True)
+    date_key = db.Column(db.String(8), unique=True, nullable=False)  # YYYYMMDD
+    last_sequence = db.Column(db.Integer, nullable=False, default=0)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<InvoiceSequence date={self.date_key} last={self.last_sequence}>'
+
+    @staticmethod
+    def next_number(date_key):
+        """Atomically get-and-increment the counter for the given date.
+        Must be called inside an active DB transaction (before commit).
+        """
+        row = InvoiceSequence.query.filter_by(date_key=date_key).with_for_update().first()
+        if row:
+            row.last_sequence += 1
+            db.session.flush()
+            return row.last_sequence
+        else:
+            row = InvoiceSequence(date_key=date_key, last_sequence=1)
+            db.session.add(row)
+            db.session.flush()
+            return 1
+
 
 class SystemSetting(db.Model):
     id = db.Column(db.Integer, primary_key=True)

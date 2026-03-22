@@ -10,6 +10,7 @@
         justify-content: space-between;
         gap: 1rem;
         margin-bottom: 1.5rem;
+        flex-wrap: wrap;
     }
 
     .page-header h1 {
@@ -227,10 +228,24 @@
     .dropdown-menu-sm .dropdown-item:hover {
         background: var(--gray-100);
     }
+    @media (max-width: 600px) {
+        .page-header { flex-direction: column; }
+        .page-header > div:last-child { width: 100%; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .page-header > div:last-child .btn { flex: 1 1 auto; justify-content: center; }
+        .filter-bar > div { width: 100%; }
+        .filter-bar .filter-input,
+        .filter-bar .filter-select { width: 100%; }
+        .filter-bar > div[style*="flex-end"] { justify-content: stretch; }
+        .filter-bar > div[style*="flex-end"] .btn { flex: 1; justify-content: center; }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="bc-nav">
+    <i class="fas fa-receipt" style="font-size:0.7rem;color:var(--blue-600);"></i>
+    <span class="bc-cur">Sales</span>
+</div>
 <div class="page-header">
     <div>
         <h1><i class="fas fa-receipt me-2" style="color:var(--blue-600);font-size:1.1rem;"></i>Sales</h1>
@@ -306,15 +321,16 @@
     <div class="panel-header">
         <h5 class="panel-title"><i class="fas fa-list"></i> Transactions</h5>
     </div>
+    <div class="table-responsive-cards">
     <table class="data-table">
         <thead>
             <tr>
                 <th>#</th>
                 <th>Date</th>
-                <th>Cashier</th>
-                <th style="text-align:center;">Items</th>
-                <th style="text-align:right;">Subtotal</th>
-                <th style="text-align:right;">Tax</th>
+                <th class="mobile-hide">Cashier</th>
+                <th style="text-align:center;" class="mobile-hide">Items</th>
+                <th style="text-align:right;" class="mobile-hide">Subtotal</th>
+                <th style="text-align:right;" class="mobile-hide">Tax</th>
                 <th style="text-align:right;">Total</th>
                 <th>Payment</th>
                 <th>Status</th>
@@ -325,20 +341,22 @@
             {% if sales.items %}
             {% for sale in sales.items %}
             <tr>
-                <td style="font-weight:600;color:var(--gray-900);">#{{ sale.id }}</td>
-                <td style="color:var(--gray-500);white-space:nowrap;">{{ sale.created_at.strftime('%b %d, %Y %H:%M') }}
+                <td class="td-primary">
+                    <span><span class="td-primary-label">Sale</span> #{{ sale.id }}</span>
+                    <span style="font-size:0.75rem;font-weight:500;color:var(--blue-500);">{{ sale.created_at.strftime('%b %d, %H:%M') }}</span>
                 </td>
-                <td>
+                <td data-label="Date" class="mobile-hide" style="color:var(--gray-500);white-space:nowrap;">{{ sale.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                <td data-label="Cashier" class="mobile-hide">
                     <div style="display:flex;align-items:center;gap:0.375rem;">
                         <div class="avatar-sm">{{ sale.user.username[0] | upper }}</div>
                         <span>{{ sale.user.username }}</span>
                     </div>
                 </td>
-                <td style="text-align:center;">{{ sale.sale_items | length }}</td>
-                <td style="text-align:right;">{{ format_currency(sale.subtotal) }}</td>
-                <td style="text-align:right;color:var(--gray-500);">{{ format_currency(sale.tax_amount) }}</td>
-                <td style="text-align:right;font-weight:700;">{{ format_currency(sale.grand_total) }}</td>
-                <td>
+                <td data-label="Items" class="mobile-hide" style="text-align:center;">{{ sale.sale_items | length }}</td>
+                <td data-label="Subtotal" class="mobile-hide" style="text-align:right;">{{ format_currency(sale.subtotal) }}</td>
+                <td data-label="Tax" class="mobile-hide" style="text-align:right;color:var(--gray-500);">{{ format_currency(sale.tax_amount) }}</td>
+                <td data-label="Total" style="text-align:right;font-weight:700;">{{ format_currency(sale.grand_total) }}</td>
+                <td data-label="Payment">
                     {% if sale.payments | length > 1 %}
                     <span class="pill pill-blue">Split</span>
                     {% else %}
@@ -355,20 +373,18 @@
                     {% endif %}
                     {% endif %}
                 </td>
-                <td>
+                <td data-label="Status">
                     {% set s = sale.sale_status.value if sale.sale_status else 'Completed' %}
                     {% if s == 'Completed' %}<span class="pill pill-green">{{ s }}</span>
                     {% elif s in ['Voided','VOIDED'] %}<span class="pill pill-red">Voided</span>
                     {% elif s in ['Refunded','REFUNDED'] %}<span class="pill pill-purple">Refunded</span>
-                    {% elif s in ['Partially Returned','PARTIALLY_RETURNED'] %}<span class="pill pill-amber">Part.
-                        Returned</span>
+                    {% elif s in ['Partially Returned','PARTIALLY_RETURNED'] %}<span class="pill pill-amber">Part. Returned</span>
                     {% else %}<span class="pill pill-gray">{{ s }}</span>
                     {% endif %}
                 </td>
-                <td style="text-align:right;">
-                    <div style="display:flex;gap:0.25rem;justify-content:flex-end;">
-                        <a href="{{ url_for('sales.detail', sale_id=sale.id) }}" class="act-btn" title="View"><i
-                                class="fas fa-eye"></i></a>
+                <td class="td-actions">
+                    <div style="display:flex;gap:0.375rem;justify-content:flex-end;">
+                        <a href="{{ url_for('sales.detail', sale_id=sale.id) }}" class="act-btn" title="View"><i class="fas fa-eye"></i></a>
                         {% set inv_s = sale.invoice_status.value if sale.invoice_status else 'Paid' %}
                         {% if inv_s in ['Unpaid', 'Partial'] %}
                         <a href="{{ url_for('sales.receipt', sale_id=sale.id) }}" class="act-btn" target="_blank"
@@ -383,12 +399,12 @@
             {% endfor %}
             {% else %}
             <tr>
-                <td colspan="10" style="text-align:center;padding:2.5rem;color:var(--gray-400);">No sales found for this
-                    period.</td>
+                <td colspan="10" style="text-align:center;padding:2.5rem;color:var(--gray-400);">No sales found for this period.</td>
             </tr>
             {% endif %}
         </tbody>
     </table>
+    </div>
 
     {% if sales.pages > 1 %}
     <div class="pagination-bar">

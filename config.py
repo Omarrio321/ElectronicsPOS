@@ -93,7 +93,9 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     """Production configuration - validates env vars"""
     DEBUG = False
-    
+    # Set FORCE_HTTPS=False in .env if deploying on HTTP-only local network (no SSL cert)
+    FORCE_HTTPS = os.environ.get('FORCE_HTTPS', 'true').lower() != 'false'
+
     def __init__(self):
         Config.validate_production_config()
 

@@ -54,10 +54,24 @@
     .pg-btn { width:30px; height:30px; border:var(--border); background:#fff; border-radius:5px; color:var(--gray-600); font-size:0.75rem; display:flex; align-items:center; justify-content:center; text-decoration:none; transition:all 0.12s; }
     .pg-btn:hover { background:var(--gray-100); color:var(--gray-900); }
     .pg-btn.active { background:var(--blue-600); border-color:var(--blue-600); color:#fff; }
+    @media (max-width: 600px) {
+        .page-header { flex-direction:column; }
+        .page-header > div:last-child { width:100%; display:flex; gap:0.5rem; flex-wrap:wrap; }
+        .page-header > div:last-child .btn { flex:1 1 auto; justify-content:center; font-size:0.75rem; min-height:40px; }
+        .filter-bar { flex-direction:column; align-items:stretch !important; }
+        .filter-bar > div { width:100%; }
+        .filter-bar .filter-input,
+        .filter-bar .filter-select { width:100% !important; }
+        .filter-bar .btn { width:100%; }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="bc-nav">
+    <i class="fas fa-file-invoice-dollar" style="font-size:0.7rem;color:var(--blue-600);"></i>
+    <span class="bc-cur">Expenses</span>
+</div>
 <div class="page-header">
     <div>
         <h1><i class="fas fa-file-invoice-dollar me-2" style="color:var(--blue-600);font-size:1.1rem;"></i>Expenses</h1>
@@ -144,39 +158,45 @@
             <div class="panel-header">
                 <h5 class="panel-title"><i class="fas fa-list"></i> Transactions</h5>
             </div>
+            <div class="table-responsive-cards">
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Date</th>
+                        <th class="mobile-hide">Date</th>
                         <th>Title</th>
-                        <th>Category</th>
+                        <th class="mobile-hide">Category</th>
                         <th style="text-align:right;">Amount</th>
-                        <th style="text-align:center;">Status</th>
+                        <th style="text-align:center;" class="mobile-hide">Status</th>
                         <th style="text-align:right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for expense in expenses %}
                     <tr>
-                        <td style="color:var(--gray-500);white-space:nowrap;">{{ expense.date.strftime('%d %b %Y') }}</td>
-                        <td>
-                            <div style="font-weight:600;color:var(--gray-900);">{{ expense.title }}</div>
-                            {% if expense.notes %}
-                            <div style="font-size:0.6875rem;color:var(--gray-400);">{{ expense.notes[:50] }}{% if expense.notes | length > 50 %}…{% endif %}</div>
-                            {% endif %}
+                        <td class="mobile-hide" style="color:var(--gray-500);white-space:nowrap;">{{ expense.date.strftime('%d %b %Y') }}</td>
+                        <td class="td-primary">
+                            <span style="display:flex;align-items:center;gap:0.5rem;min-width:0;">
+                                {% if expense.status == ExpenseStatus.PAID %}
+                                <span class="pill pill-green" style="font-size:0.5rem;flex-shrink:0;">Paid</span>
+                                {% else %}
+                                <span class="pill pill-amber" style="font-size:0.5rem;flex-shrink:0;">Pending</span>
+                                {% endif %}
+                                <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ expense.title }}</span>
+                            </span>
+                            <span style="font-size:0.75rem;font-weight:500;color:var(--blue-500);">{{ expense.date.strftime('%d %b') }}</span>
                         </td>
-                        <td>
+                        <td data-label="Category" class="mobile-hide">
                             <span class="pill pill-gray">{{ expense.category.name }}</span>
                         </td>
-                        <td style="text-align:right;font-weight:700;">{{ format_currency(expense.amount) }}</td>
-                        <td style="text-align:center;">
+                        <td data-label="Amount" style="font-weight:700;">{{ format_currency(expense.amount) }}</td>
+                        <td data-label="Status" class="mobile-hide" style="text-align:center;">
                             {% if expense.status == ExpenseStatus.PAID %}
                             <span class="pill pill-green">Paid</span>
                             {% else %}
                             <span class="pill pill-amber">Pending</span>
                             {% endif %}
                         </td>
-                        <td style="text-align:right;">
+                        <td class="td-actions">
                             <div style="display:flex;gap:0.25rem;justify-content:flex-end;">
                                 <a href="{{ url_for('expenses.edit', id=expense.id) }}" class="act-btn" title="Edit">
                                     <i class="fas fa-pencil-alt"></i>
@@ -199,6 +219,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            </div>
 
             {% if pagination.pages > 1 %}
             <div class="pagination-bar">

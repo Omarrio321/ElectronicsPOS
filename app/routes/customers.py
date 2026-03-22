@@ -3,7 +3,8 @@
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, current_app
 from flask_login import login_required, current_user
-from app.models import db, Customer, CustomerLedger, Sale, Payment, CustomerStatus, LedgerEntryType, InvoiceStatus, PaymentMethod, SaleStatus, SaleType, SystemSetting
+from app.models import db, Customer, CustomerLedger, Sale, Payment, CustomerStatus, LedgerEntryType, InvoiceStatus, PaymentMethod, PaymentCurrency, SaleStatus, SaleType, SystemSetting
+from app.services.currency_service import get_current_exchange_rate as cs_get_rate, to_usd as cs_to_usd
 import os
 from app.utils import format_currency
 from datetime import datetime, timedelta
@@ -124,18 +125,19 @@ def get_dashboard_stats():
         .filter(CustomerLedger.balance_after > 0).scalar() or 0
         
     # 3. Monthly Metrics
-    # Paid This Month
-    paid_this_month = db.session.query(func.sum(Payment.amount))\
-        .filter(Payment.created_at >= start_of_month).scalar() or 0
+    # Paid This Month (use USD-equivalent for dual-currency correctness)
+    paid_this_month = db.session.query(
+        func.sum(func.coalesce(Payment.amount_in_usd, Payment.amount))
+    ).filter(Payment.created_at >= start_of_month).scalar() or 0
         
     # Wholesale Sales This Month (SaleType.WHOLESALE)
     # Assuming we added SaleType to Sale model in shared context, otherwise use logic
     # If SaleType not in Sale model, we check price_type of items or similar.
     # Based on models.py viewed earlier, Sale has sale_type!
     wholesale_sales = db.session.query(func.sum(Sale.grand_total))\
-        .filter(Sale.created_at >= start_of_month, 
+        .filter(Sale.created_at >= start_of_month,
                 Sale.sale_status != SaleStatus.VOIDED,
-                # Sale.sale_type == SaleType.WHOLESALE  <-- If SaleType exists and is populated
+                Sale.sale_type == SaleType.WHOLESALE
                 ).scalar() or 0
     
     # Retail Sales (Approximate as Total - Wholesale for now if Mixed types exist)
@@ -269,9 +271,9 @@ def get_debtors_watchlist(limit=None):
             Sale.sale_status != SaleStatus.VOIDED
         ).scalar() or Decimal('0')
         
-        total_paid = db.session.query(func.sum(Payment.amount)).filter(
-            Payment.customer_id == debtor.id
-        ).scalar() or Decimal('0')
+        total_paid = db.session.query(
+            func.sum(func.coalesce(Payment.amount_in_usd, Payment.amount))
+        ).filter(Payment.customer_id == debtor.id).scalar() or Decimal('0')
         
         # Get last invoice date
         last_invoice = db.session.query(func.max(Sale.created_at)).filter(
@@ -543,106 +545,146 @@ def api_get(customer_id):
 @customers_bp.route('/<int:customer_id>/payment', methods=['GET', 'POST'])
 @login_required
 def receive_payment(customer_id):
-    """Receive payment for a customer and allocate to unpaid invoices"""
+    """Receive payment for a customer and allocate to unpaid invoices (supports USD + SLSH)"""
     customer = Customer.query.get_or_404(customer_id)
-    
+
     if request.method == 'POST':
         try:
-            amount = Decimal(request.form.get('amount', 0))
+            try:
+                amount = Decimal(str(request.form.get('amount', '0')))
+            except Exception:
+                flash('Invalid payment amount.', 'danger')
+                return redirect(url_for('customers.receive_payment', customer_id=customer_id))
+
             method_str = request.form.get('method', 'Cash')
+            currency_str = request.form.get('currency', 'USD')
             date_str = request.form.get('date', datetime.utcnow().strftime('%Y-%m-%d'))
             reference = request.form.get('reference', '').strip() or None
             notes = request.form.get('notes', '').strip() or None
-            
+
             if amount <= 0:
                 flash('Payment amount must be greater than 0.', 'danger')
                 return redirect(url_for('customers.receive_payment', customer_id=customer_id))
-            
-            # 1. Create Ledger Entry for the TOTAL amount (Single Source of Truth)
-            # This immediately reduces the customer's outstanding balance
+
+            # Validate method string
+            try:
+                payment_method = PaymentMethod(method_str)
+            except ValueError:
+                flash(f'Invalid payment method: {method_str}', 'danger')
+                return redirect(url_for('customers.receive_payment', customer_id=customer_id))
+
+            # Resolve currency and convert to USD
+            try:
+                payment_currency = PaymentCurrency(currency_str)
+            except ValueError:
+                payment_currency = PaymentCurrency.USD
+
+            # Card is USD-only
+            if payment_method == PaymentMethod.CARD:
+                payment_currency = PaymentCurrency.USD
+
+            exchange_rate = cs_get_rate()
+            amount_in_usd = cs_to_usd(amount, payment_currency, exchange_rate)
+
+            # Build ledger note with original currency info
+            if payment_currency == PaymentCurrency.SLSH:
+                currency_note = f'{int(amount):,} SLSH ≈ ${amount_in_usd}'
+                ledger_note = f'Payment Received ({method_str}, {currency_note})' + (f' - {notes}' if notes else '')
+            else:
+                ledger_note = f'Payment Received ({method_str})' + (f' - {notes}' if notes else '')
+
+            payment_date = datetime.strptime(date_str, '%Y-%m-%d')
+
+            # 1. Create Ledger Entry using USD-equivalent (Single Source of Truth)
             current_balance = customer.get_outstanding_balance()
-            new_balance = current_balance - amount
-            
-            # Re-instantiating cleanly:
+            new_balance = current_balance - amount_in_usd
+
             ledger_entry = CustomerLedger(
                 customer_id=customer.id,
                 entry_type=LedgerEntryType.PAYMENT,
                 debit=Decimal('0'),
-                credit=amount,
+                credit=amount_in_usd,
                 balance_after=new_balance,
-                note=f'Payment Received ({method_str})' + (f' - {notes}' if notes else ''),
-                created_at=datetime.strptime(date_str, '%Y-%m-%d')
+                note=ledger_note,
+                created_at=payment_date
             )
             db.session.add(ledger_entry)
 
-            # 2. Allocate to Unpaid Invoices (FIFO)
-            # Get unpaid invoices sorted by date (oldest first)
+            # 2. Allocate to Unpaid Invoices (FIFO, oldest first)
             unpaid_invoices = Sale.query.filter(
                 Sale.customer_id == customer_id,
                 Sale.invoice_status.in_([InvoiceStatus.UNPAID, InvoiceStatus.PARTIAL])
             ).order_by(Sale.created_at.asc()).all()
 
-            remaining_payment = amount
-            allocations = []
+            remaining_usd = amount_in_usd
 
             for invoice in unpaid_invoices:
-                if remaining_payment <= 0:
+                if remaining_usd <= 0:
                     break
-                
+
                 due = invoice.amount_due
-                to_pay = min(remaining_payment, due)
-                
-                # Create Payment record for this invoice
-                payment = Payment(
+                to_pay_usd = min(remaining_usd, due)
+
+                # Determine proportional original-currency amount for this allocation
+                if payment_currency == PaymentCurrency.SLSH and amount_in_usd > 0:
+                    to_pay_orig = (amount * (to_pay_usd / amount_in_usd)).quantize(Decimal('0.01'))
+                else:
+                    to_pay_orig = to_pay_usd
+
+                payment_rec = Payment(
                     sale_id=invoice.id,
                     customer_id=customer.id,
-                    amount=to_pay,
-                    payment_method=PaymentMethod(method_str),
+                    amount=to_pay_orig,
+                    payment_method=payment_method,
+                    payment_currency=payment_currency,
+                    exchange_rate_used=exchange_rate if payment_currency == PaymentCurrency.SLSH else Decimal('1.000000'),
+                    amount_in_usd=to_pay_usd,
                     reference=reference,
                     note=notes,
-                    created_by=current_user.id
+                    created_by=current_user.id,
+                    created_at=payment_date
                 )
-                db.session.add(payment)
-                
-                # Flush to ensure payment ID is generated and visible to relationships
+                db.session.add(payment_rec)
                 db.session.flush()
-                
-                # Update Invoice Status
-                # Append to relationships to ensure in-memory state is up to date for immediate calculation
-                # invoice.payments.append(payment) 
-                
-                remaining_payment -= to_pay
-                allocations.append(f"{invoice.invoice_no}: {to_pay}")
+
+                remaining_usd -= to_pay_usd
 
             # 3. Handle Excess Payment (Credit)
-            if remaining_payment > 0:
-                customer.credit_balance = (customer.credit_balance or 0) + remaining_payment
-                
-                # Create Payment record for the credit amount (so it appears in history and recalculation)
+            if remaining_usd > 0:
+                customer.credit_balance = (customer.credit_balance or Decimal('0')) + remaining_usd
+
+                credit_orig = remaining_usd
+                if payment_currency == PaymentCurrency.SLSH and amount_in_usd > 0:
+                    credit_orig = (amount * (remaining_usd / amount_in_usd)).quantize(Decimal('0.01'))
+
                 credit_payment = Payment(
-                    sale_id=None,  # Not linked to a specific sale
+                    sale_id=None,
                     customer_id=customer.id,
-                    amount=remaining_payment,
-                    payment_method=PaymentMethod(method_str),
+                    amount=credit_orig,
+                    payment_method=payment_method,
+                    payment_currency=payment_currency,
+                    exchange_rate_used=exchange_rate if payment_currency == PaymentCurrency.SLSH else Decimal('1.000000'),
+                    amount_in_usd=remaining_usd,
                     reference=reference,
                     note=f'Credit Deposit' + (f' - {notes}' if notes else ''),
                     created_by=current_user.id,
-                    created_at=datetime.strptime(date_str, '%Y-%m-%d')
+                    created_at=payment_date
                 )
                 db.session.add(credit_payment)
-                
-                flash(f'Payment allocated. ${remaining_payment} added to credit balance.', 'info')
-            
-            # Commit all changes
-            db.session.commit()
-            
-            # 4. Post-commit: Update invoice statuses
-            # We need to re-fetch or iterate to call update_payment_status which uses SQL sum
-            for invoice in unpaid_invoices:
-                 invoice.update_payment_status()
+                flash(f'Payment allocated. {format_currency(remaining_usd)} added to credit balance.', 'info')
+
+            # Commit all
             db.session.commit()
 
-            flash(f'Payment of ${amount} recorded successfully.', 'success')
+            # 4. Post-commit: Update invoice statuses via fresh DB queries
+            for invoice in unpaid_invoices:
+                invoice.update_payment_status()
+            db.session.commit()
+
+            if payment_currency == PaymentCurrency.SLSH:
+                flash(f'Payment of {int(amount):,} SLSH ({format_currency(amount_in_usd)}) recorded successfully.', 'success')
+            else:
+                flash(f'Payment of {format_currency(amount_in_usd)} recorded successfully.', 'success')
             return redirect(url_for('customers.profile', customer_id=customer_id))
 
         except Exception as e:
@@ -656,12 +698,105 @@ def receive_payment(customer_id):
         Sale.customer_id == customer_id,
         Sale.invoice_status.in_([InvoiceStatus.UNPAID, InvoiceStatus.PARTIAL])
     ).order_by(Sale.created_at.asc()).all()
-    
+    exchange_rate = cs_get_rate()
+
     return render_template('customers/payment.html',
                            customer=customer,
                            outstanding_balance=outstanding_balance,
                            unpaid_invoices=unpaid_invoices,
+                           exchange_rate=exchange_rate,
                            today=datetime.utcnow().strftime('%Y-%m-%d'))
+
+
+# =============================================================================
+# APPLY CREDIT TO INVOICES
+# =============================================================================
+
+@customers_bp.route('/<int:customer_id>/apply-credit', methods=['POST'])
+@login_required
+def apply_credit(customer_id):
+    """Apply available credit (negative ledger balance) to unpaid invoices (FIFO)"""
+    customer = Customer.query.get_or_404(customer_id)
+
+    try:
+        available_credit = customer.get_available_credit()
+
+        if available_credit <= 0:
+            flash('No available credit to apply.', 'info')
+            return redirect(url_for('customers.profile', customer_id=customer_id))
+
+        unpaid_invoices = Sale.query.filter(
+            Sale.customer_id == customer_id,
+            Sale.invoice_status.in_([InvoiceStatus.UNPAID, InvoiceStatus.PARTIAL])
+        ).order_by(Sale.created_at.asc()).all()
+
+        if not unpaid_invoices:
+            flash('No unpaid invoices to apply credit to.', 'info')
+            return redirect(url_for('customers.profile', customer_id=customer_id))
+
+        remaining_credit = available_credit
+        total_applied = Decimal('0')
+        invoices_paid = 0
+
+        for invoice in unpaid_invoices:
+            if remaining_credit <= 0:
+                break
+
+            due = invoice.amount_due
+            to_apply = min(remaining_credit, due)
+
+            payment_rec = Payment(
+                sale_id=invoice.id,
+                customer_id=customer.id,
+                amount=to_apply,
+                payment_method=PaymentMethod.STORE_CREDIT,
+                payment_currency=PaymentCurrency.USD,
+                amount_in_usd=to_apply,
+                note='Credit Applied',
+                created_by=current_user.id
+            )
+            db.session.add(payment_rec)
+            db.session.flush()
+
+            remaining_credit -= to_apply
+            total_applied += to_apply
+            invoices_paid += 1
+
+        if total_applied > 0:
+            # Create CREDIT_USED ledger entry to reflect that credit was consumed
+            current_balance = customer.get_outstanding_balance()
+            new_balance = current_balance + total_applied
+
+            ledger_entry = CustomerLedger(
+                customer_id=customer.id,
+                entry_type=LedgerEntryType.CREDIT_USED,
+                debit=total_applied,
+                credit=Decimal('0'),
+                balance_after=new_balance,
+                note=f'Credit Applied to {invoices_paid} invoice(s)'
+            )
+            db.session.add(ledger_entry)
+
+            # Reduce the denormalized credit_balance column proportionally
+            customer.credit_balance = max(
+                Decimal('0'),
+                (customer.credit_balance or Decimal('0')) - total_applied
+            )
+
+        db.session.commit()
+
+        # Update invoice statuses post-commit
+        for invoice in unpaid_invoices:
+            invoice.update_payment_status()
+        db.session.commit()
+
+        flash(f'{format_currency(total_applied)} credit applied to invoices successfully.', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error applying credit: {str(e)}', 'danger')
+
+    return redirect(url_for('customers.profile', customer_id=customer_id))
 
 
 # =============================================================================
@@ -687,8 +822,10 @@ def recalculate_balance(customer_id):
         ).scalar() or Decimal('0')
         
         # Total Payments (Credit) - EXCLUDING Store Credit usage (internal transfer)
-        # We only count actual money coming in (Cash, Card, Zaad, etc.)
-        total_payments = db.session.query(db.func.sum(Payment.amount)).filter(
+        # Use USD-equivalent for dual-currency correctness
+        total_payments = db.session.query(
+            db.func.sum(func.coalesce(Payment.amount_in_usd, Payment.amount))
+        ).filter(
             Payment.customer_id == customer_id,
             Payment.payment_method != PaymentMethod.STORE_CREDIT
         ).scalar() or Decimal('0')
@@ -941,17 +1078,24 @@ def export_pdf():
         path_wkhtmltopdf = current_app.config.get('WKHTMLTOPDF_PATH')
         config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
         
-        # Professional PDF Options
         options = {
-            'page-size': 'A4',
-            'margin-top': '10mm',
-            'margin-right': '10mm',
-            'margin-bottom': '15mm',
-            'margin-left': '10mm',
-            'encoding': 'UTF-8',
-            'footer-center': '[page] of [toPage]',
-            'footer-font-size': '9',
-            'footer-spacing': '5'
+            'page-size':               'A4',
+            'orientation':             'Portrait',
+            'margin-top':              '12mm',
+            'margin-bottom':           '15mm',
+            'margin-left':             '12mm',
+            'margin-right':            '12mm',
+            'encoding':                'UTF-8',
+            'no-outline':              None,
+            'enable-local-file-access': None,
+            'dpi':                     '96',
+            'zoom':                    '1',
+            'print-media-type':        None,
+            'disable-smart-shrinking': None,
+            'minimum-font-size':       '10',
+            'footer-center':           '[page] of [toPage]',
+            'footer-font-size':        '9',
+            'footer-spacing':          '5',
         }
         
         pdf_bytes = pdfkit.from_string(html_content, False, configuration=config, options=options)

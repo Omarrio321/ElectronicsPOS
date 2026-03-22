@@ -1,157 +1,497 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <title>Inventory Report</title>
     <style>
+        /* ─────────────────────────────────────────────────────────────────
+           BASE
+           · Verdana: wide natural sidebearings, no kern-pair dependency.
+             Confirmed fix for wkhtmltopdf GDI kern table mismatch on Windows.
+           · font-kerning:none + font-feature-settings as secondary guard.
+           · font-weight capped at 700.
+        ───────────────────────────────────────────────────────────────── */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 12px;
-            line-height: 1.4;
-            color: #333;
-        }
-
-        .header {
-            margin-bottom: 20px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 15px;
-        }
-
-        .header h1 {
-            margin: 0;
-            color: #444;
-            font-size: 24px;
-        }
-
-        .meta {
-            margin-top: 5px;
-            color: #777;
+            font-family: Verdana, Geneva, sans-serif;
             font-size: 11px;
+            line-height: 1.5;
+            color: #2d3748;
+            background: #fff;
+            -webkit-font-feature-settings: "kern" 0;
+            font-feature-settings: "kern" 0;
+            font-kerning: none;
         }
 
-        table {
+        /* ── Cover Header ── */
+        .cover-header {
+            display: table;
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 16px;
+            margin-bottom: 22px;
         }
-
-        th {
-            background-color: #f8f9fa;
-            border-bottom: 2px solid #dee2e6;
-            text-align: left;
-            padding: 8px;
-            font-weight: bold;
-            font-size: 11px;
-            text-transform: uppercase;
-            color: #555;
+        .cover-header-logo {
+            display: table-cell;
+            vertical-align: middle;
+            width: 90px;
         }
-
-        td {
-            border-bottom: 1px solid #dee2e6;
-            padding: 8px;
+        .company-logo {
+            max-height: 60px;
+            max-width: 80px;
+            object-fit: contain;
+        }
+        .cover-header-body {
+            display: table-cell;
             vertical-align: middle;
         }
-
-        tr:nth-child(even) {
-            background-color: #fcfcfc;
-        }
-
-        .text-right {
+        .cover-header-right {
+            display: table-cell;
+            vertical-align: bottom;
             text-align: right;
+            white-space: nowrap;
+        }
+        .cover-header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #2563eb;
+            line-height: 1.2;
+        }
+        .cover-header .company-name {
+            font-size: 15px;
+            color: #1e293b;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        .cover-header .report-date {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 3px;
+        }
+        .cover-header .company-meta {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 2px;
         }
 
-        .text-center {
+        /* ── Stats Row ── */
+        .stats-row {
+            display: table;
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: #f8fafc;
+            margin-bottom: 24px;
+        }
+        .stats-cell {
+            display: table-cell;
+            width: 33.33%;
             text-align: center;
+            padding: 16px 10px;
+            border-right: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+        .stats-cell:last-child { border-right: none; }
+        .stats-cell .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2563eb;
+            display: block;
+            line-height: 1.15;
+        }
+        .stats-cell .stat-label {
+            font-size: 10px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-top: 5px;
+            display: block;
+        }
+        .stats-cell.stat-danger .stat-number { color: #dc2626; }
+
+        /* ── Section ── */
+        .section { margin-bottom: 26px; }
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #1e3a5f;
+            text-transform: uppercase;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 6px 10px 5px;
+            margin-bottom: 11px;
+            background: #f8fafc;
+            border-left: 4px solid #2563eb;
         }
 
-        .badge {
-            padding: 3px 6px;
+        /* ── Summary key-value table ── */
+        .summary-table {
+            width: 62%;
+            margin: 0 auto;
+            border: 1px solid #e2e8f0;
             border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
-            color: white;
-            display: inline-block;
+            overflow: hidden;
+            border-collapse: collapse;
         }
-
-        .bg-success {
-            background-color: #198754;
+        .summary-table td {
+            padding: 8px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 11px;
         }
-
-        .bg-warning {
-            background-color: #ffc107;
-            color: #212529;
+        .summary-table tr:last-child td { border-bottom: none; }
+        .summary-table .key-cell {
+            color: #4a5568;
+            font-weight: 500;
         }
-
-        .footer {
-            margin-top: 30px;
-            font-size: 10px;
-            color: #999;
-            text-align: center;
-            border-top: 1px solid #eee;
-            padding-top: 10px;
-        }
-
-        /* Utility for currency alignment */
-        .currency {
+        .summary-table .val-cell {
+            text-align: right;
+            font-weight: 700;
+            color: #1a3a5c;
             font-family: 'Courier New', monospace;
         }
+        .summary-table tr.row-alt     td { background: #f7fafc; }
+        .summary-table tr.row-low     td { background: #fff5f5; }
+        .summary-table tr.row-low     .val-cell { color: #c53030; }
+        .summary-table tr.row-good    td { background: #f0fff4; }
+        .summary-table tr.row-good    .val-cell { color: #276749; }
+        .summary-table tr.row-primary td { background: #ebf8ff; }
+        .summary-table tr.row-primary .val-cell { color: #1a3a5c; }
+
+        /* ── Data Tables ──
+           table-layout: fixed — columns honour declared widths, no overflow.
+           Cells clip with ellipsis so nothing bleeds outside A4 margins.
+        ── */
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        table.data-table thead tr { background-color: #1e3a5f; }
+        table.data-table thead th {
+            color: #fff;
+            padding: 7px 6px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-align: left;
+            border: none;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        table.data-table thead th.th-right  { text-align: right; }
+        table.data-table thead th.th-center { text-align: center; }
+
+        table.data-table tbody tr:nth-child(even) { background: #f7fafc; }
+        table.data-table tbody td {
+            padding: 6px 6px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+            font-size: 10px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        table.data-table tbody .td-right  { text-align: right; }
+        table.data-table tbody .td-center { text-align: center; }
+
+        .product-name {
+            font-weight: 600;
+            color: #1a3a5c;
+        }
+
+        .mono {
+            font-family: 'Courier New', monospace;
+        }
+
+        /* ── Badges ── */
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-ok  { background: #c6f6d5; color: #22543d; }
+        .badge-low { background: #fed7d7; color: #742a2a; }
+
+        /* ── Profit cells ── */
+        .profit-pos  { color: #276749; font-weight: 700; }
+        .profit-zero { color: #a0aec0; }
+        .profit-neg  { color: #c53030; font-weight: 700; }
+
+        /* ── Margin pill ── */
+        .mpill {
+            display: inline-block;
+            padding: 1px 5px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        .mpill-high { background: #c6f6d5; color: #22543d; }
+        .mpill-mid  { background: #fefcbf; color: #744210; }
+        .mpill-low  { background: #fed7d7; color: #742a2a; }
+        .mpill-none { background: #edf2f7; color: #718096; }
+
+        /* ── Filter notice ── */
+        .filter-notice {
+            background: #eff6ff;
+            border-left: 3px solid #2563eb;
+            padding: 6px 12px;
+            font-size: 10px;
+            color: #1e40af;
+            margin-bottom: 16px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* ── Doc footer ── */
+        .doc-footer {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+            display: table;
+            width: 100%;
+            font-size: 9px;
+            color: #94a3b8;
+        }
+        .doc-footer-left  { display: table-cell; text-align: left; }
+        .doc-footer-right { display: table-cell; text-align: right; }
+
+        /* ── Stock quantity coloring ── */
+        .qty-out { color: #dc2626; font-weight: 700; }
+        .qty-low { color: #d97706; font-weight: 700; }
+
+        /* ── Page breaks ── */
+        .page-break { page-break-before: always; }
     </style>
 </head>
-
 <body>
-    <div class="header">
-        <h1>Inventory Report</h1>
-        <div class="meta">
-            Generated on: {{ generated_at }}<br>
-            {{ company_name }}
-            {% if category_filter %} | Category: {{ category_filter }}{% endif %}
-            {% if search_query %} | Search: "{{ search_query }}"{% endif %}
+
+    <!-- ══ COVER HEADER ══ -->
+    <div class="cover-header">
+        <div class="cover-header-logo">
+            {% if company_logo %}
+            <img src="{{ url_for('static', filename=company_logo, _external=True) }}"
+                 alt="{{ company_name }}" class="company-logo">
+            {% endif %}
+        </div>
+        <div class="cover-header-body">
+            <div class="company-name">{{ company_name }}</div>
+            {% if company_address or company_phone %}
+            <div class="company-meta">
+                {% if company_address %}{{ company_address }}{% endif %}
+                {% if company_address and company_phone %} &bull; {% endif %}
+                {% if company_phone %}{{ company_phone }}{% endif %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="cover-header-right">
+            <h1>Inventory Report</h1>
+            <div class="report-date">Generated: {{ generated_at }}</div>
         </div>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 5%">ID</th>
-                <th style="width: 25%">Name</th>
-                <th style="width: 15%">Category</th>
-                <th style="width: 15%">SKU</th>
-                <th style="width: 10%" class="text-right">Cost</th>
-                <th style="width: 10%" class="text-right">Price</th>
-                <th style="width: 10%" class="text-center">Stock</th>
-                <th style="width: 10%" class="text-center">Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for product in products %}
-            <tr>
-                <td>{{ product.id }}</td>
-                <td>{{ product.name }}</td>
-                <td>{{ product.category.name if product.category else '-' }}</td>
-                <td>{{ product.sku }}</td>
-                <td class="text-right currency">{{ format_currency(product.cost_price) }}</td>
-                <td class="text-right currency">{{ format_currency(product.selling_price) }}</td>
-                <td class="text-center">{{ product.quantity_in_stock }}</td>
-                <td class="text-center">
-                    {% if product.is_low_stock %}
-                    <span class="badge bg-warning">Low</span>
-                    {% else %}
-                    <span class="badge bg-success">OK</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="8" class="text-center" style="padding: 20px;">No products found matching the criteria.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <div class="footer">
-        Page <span class="page"></span> of <span class="topage"></span>
+    {% if category_filter or search_query %}
+    <div class="filter-notice">
+        <strong>Filter:</strong>
+        {% if category_filter %}Category &mdash; <em>{{ category_filter }}</em>{% endif %}
+        {% if category_filter and search_query %} &nbsp;&bull;&nbsp; {% endif %}
+        {% if search_query %}Search &mdash; <em>"{{ search_query }}"</em>{% endif %}
     </div>
-</body>
+    {% endif %}
 
+    <!-- ══ STATS ROW ══ -->
+    <div class="stats-row">
+        <div class="stats-cell">
+            <span class="stat-number">{{ total_products }}</span>
+            <span class="stat-label">Products</span>
+        </div>
+        <div class="stats-cell">
+            <span class="stat-number">{{ total_units }}</span>
+            <span class="stat-label">Total Units</span>
+        </div>
+        <div class="stats-cell {% if low_stock_count > 0 %}stat-danger{% endif %}">
+            <span class="stat-number">{{ low_stock_count }}</span>
+            <span class="stat-label">Low Stock</span>
+        </div>
+    </div>
+
+    <!-- ══ INVENTORY SUMMARY ══ -->
+    <div class="section">
+        <div class="section-title">Inventory Summary</div>
+        <table class="summary-table">
+            <tbody>
+                <tr class="row-alt">
+                    <td class="key-cell">Total Products</td>
+                    <td class="val-cell">{{ total_products }}</td>
+                </tr>
+                <tr>
+                    <td class="key-cell">Total Units in Stock</td>
+                    <td class="val-cell">{{ total_units }}</td>
+                </tr>
+                <tr class="row-alt">
+                    <td class="key-cell">Inventory Value (Cost)</td>
+                    <td class="val-cell">{{ format_currency(wholesale_value) }}</td>
+                </tr>
+                <tr class="row-primary">
+                    <td class="key-cell">Inventory Value (Retail)</td>
+                    <td class="val-cell">{{ format_currency(retail_value) }}</td>
+                </tr>
+                <tr class="row-good">
+                    <td class="key-cell">Potential Profit (Retail Margin)</td>
+                    <td class="val-cell">{{ format_currency(potential_margin) }}</td>
+                </tr>
+                <tr class="row-alt">
+                    <td class="key-cell">Products OK</td>
+                    <td class="val-cell" style="font-family:inherit;color:#276749;">{{ ok_count }}</td>
+                </tr>
+                <tr class="{% if low_stock_count > 0 %}row-low{% endif %}">
+                    <td class="key-cell">Products Low Stock</td>
+                    <td class="val-cell" style="font-family:inherit;">{{ low_stock_count }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ══ CATEGORY BREAKDOWN ══ -->
+    <div class="section">
+        <div class="section-title">C a t e g o r y B r e a k d o w n</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th class="th-center">Products</th>
+                    <th class="th-center">Units</th>
+                    <th class="th-right">Cost Value</th>
+                    <th class="th-right">Retail Value</th>
+                    <th class="th-right">Potential Profit</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat_name, data in category_breakdown %}
+                {% set cat_profit = data.retail - data.wholesale %}
+                <tr>
+                    <td class="product-name">{{ cat_name }}</td>
+                    <td class="td-center">{{ data.products }}</td>
+                    <td class="td-center">{{ data.units }}</td>
+                    <td class="td-right mono">{{ format_currency(data.wholesale) }}</td>
+                    <td class="td-right mono">{{ format_currency(data.retail) }}</td>
+                    <td class="td-right mono profit-pos">{{ format_currency(cat_profit) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ══ LOW STOCK ALERTS ══ -->
+    {% if low_stock_items %}
+    <div class="section page-break">
+        <div class="section-title">Low Stock Alerts</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:5%">ID</th>
+                    <th style="width:30%">Product Name</th>
+                    <th style="width:18%">Category</th>
+                    <th class="th-center" style="width:7%">Stock</th>
+                    <th class="th-right" style="width:13%">Cost Price</th>
+                    <th class="th-right" style="width:13%">Wholesale Price</th>
+                    <th class="th-right" style="width:14%">Retail Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in low_stock_items %}
+                <tr>
+                    <td>{{ p.id }}</td>
+                    <td class="product-name">{{ p.name }}</td>
+                    <td>{{ p.category.name if p.category else '—' }}</td>
+                    <td class="td-center" style="color:#c53030;font-weight:800;">
+                        {{ p.quantity_in_stock }}
+                    </td>
+                    <td class="td-right mono">{{ format_currency(p.cost_price) }}</td>
+                    <td class="td-right mono">
+                        {% if p.wholesale_price %}{{ format_currency(p.wholesale_price) }}{% else %}—{% endif %}
+                    </td>
+                    <td class="td-right mono">{{ format_currency(p.selling_price) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- ══ COMPLETE INVENTORY ══ -->
+    <div class="section page-break" style="margin-bottom:0;">
+        <div class="section-title">Complete Inventory</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:4%">#</th>
+                    <th style="width:22%">Product Name</th>
+                    <th style="width:12%">SKU</th>
+                    <th style="width:12%">Category</th>
+                    <th class="th-right" style="width:9%">Cost</th>
+                    <th class="th-right" style="width:9%">Wholesale</th>
+                    <th class="th-right" style="width:9%">Retail</th>
+                    <th class="th-right" style="width:8%">Margin</th>
+                    <th class="th-center" style="width:7%">Stock</th>
+                    <th class="th-center" style="width:8%">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in products %}
+                {% set cost  = p.cost_price  if p.cost_price  else 0 %}
+                {% set price = p.selling_price if p.selling_price else 0 %}
+                {% set r_profit = price - cost %}
+                {% set margin_pct = ((r_profit / cost * 100) | round(1)) if cost and cost > 0 else 0 %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td class="product-name">{{ p.name }}</td>
+                    <td class="mono" style="font-size:9px;color:#64748b;">{{ p.sku or '—' }}</td>
+                    <td style="font-size:9px;color:#64748b;">{{ p.category.name if p.category else '—' }}</td>
+                    <td class="td-right mono">{{ format_currency(cost) }}</td>
+                    <td class="td-right mono">
+                        {% if p.wholesale_price %}{{ format_currency(p.wholesale_price) }}{% else %}<span style="color:#94a3b8;">—</span>{% endif %}
+                    </td>
+                    <td class="td-right mono">{{ format_currency(price) }}</td>
+                    <td class="td-right">
+                        {% if cost and cost > 0 %}
+                        <span class="mpill {% if margin_pct >= 30 %}mpill-high{% elif margin_pct >= 10 %}mpill-mid{% else %}mpill-low{% endif %}">
+                            {{ margin_pct }}%
+                        </span>
+                        {% else %}
+                        <span class="mpill mpill-none">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="td-center {% if p.quantity_in_stock == 0 %}qty-out{% elif p.is_low_stock %}qty-low{% endif %}">
+                        {{ p.quantity_in_stock }}
+                    </td>
+                    <td class="td-center">
+                        {% if p.quantity_in_stock == 0 %}
+                        <span class="badge badge-low" style="background:#fee2e2;color:#991b1b;">Out</span>
+                        {% elif p.is_low_stock %}
+                        <span class="badge badge-low">Low</span>
+                        {% else %}
+                        <span class="badge badge-ok">OK</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" class="td-center" style="padding:20px;color:#94a3b8;">
+                        No products found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ══ FOOTER ══ -->
+    <div class="doc-footer">
+        <div class="doc-footer-left">{{ company_name }} &mdash; Confidential &bull; Internal Use Only</div>
+        <div class="doc-footer-right">Exported {{ generated_at }}</div>
+    </div>
+
+</body>
 </html>

@@ -17,6 +17,11 @@
                 onclick="togglePosFullscreen()">
                 <i class="fas fa-expand"></i>
             </button>
+            {# Camera scan button — visible on all devices, especially useful on mobile #}
+            <button class="scan-camera-btn" onclick="PosScanner.open()" title="Scan barcode with camera" aria-label="Open camera barcode scanner">
+                <i class="fas fa-camera"></i>
+                <span class="scan-btn-label">Scan</span>
+            </button>
             <div class="search-container">
                 <div class="search-input-group">
                     <i class="fas fa-search text-muted"></i>
@@ -40,6 +45,17 @@
     {% include 'pos/_cart.html' %}
 </div>
 
+{# Cart backdrop overlay (mobile only) #}
+<div class="cart-backdrop" id="cartBackdrop" onclick="closeCartSheet()"></div>
+
+{# Cart FAB — mobile only #}
+<div class="cart-fab" id="cartFab">
+    <button class="cart-fab-btn" onclick="openCartSheet()" aria-label="Open cart">
+        <i class="fas fa-shopping-cart"></i>
+        <span class="cart-fab-badge" id="cartFabBadge" style="display:none;">0</span>
+    </button>
+</div>
+
 {# Toast Notifications #}
 <div class="position-fixed bottom-0 start-50 translate-middle-x mb-3" style="z-index:1200;">
     <div id="liveToast" class="toast align-items-center text-white bg-danger border-0" role="alert"
@@ -57,6 +73,82 @@
 {# Using modals block places it OUTSIDE container-fluid/row/main structure #}
 {% block modals %}
 {% include 'pos/_modal.html' %}
+
+{# ── Camera Barcode Scanner Overlay ────────────────────────────────────────
+     Placed outside all Bootstrap modals/stacking contexts so z-index works.
+     Controlled entirely by PosScanner.open() / PosScanner.close() in scanner.js
+─────────────────────────────────────────────────────────────────────────── #}
+<div id="scannerOverlay" class="scanner-overlay" role="dialog" aria-modal="true" aria-label="Camera barcode scanner">
+
+    {# Header #}
+    <div class="scanner-header">
+        <div class="scanner-title">
+            <i class="fas fa-camera"></i>
+            Scan Barcode
+        </div>
+        <button class="scanner-close-btn" onclick="PosScanner.close()" aria-label="Close scanner">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    {# Sell / Restock mode toggle #}
+    <div class="scanner-mode-toggle" role="group" aria-label="Scanner mode">
+        <button id="scanModeSell" class="scan-mode-btn active" onclick="PosScanner.setMode('sell')">
+            <i class="fas fa-cart-plus"></i> Sell
+        </button>
+        <button id="scanModeRestock" class="scan-mode-btn" onclick="PosScanner.setMode('restock')">
+            <i class="fas fa-boxes"></i> Restock
+        </button>
+    </div>
+
+    {# Camera feed + aim frame #}
+    <div class="scanner-viewport-wrap">
+        {# html5-qrcode appends <video> here #}
+        <div id="scannerViewport"></div>
+
+        {# Scanning frame overlay (corners + animated scan line) #}
+        <div id="scannerFrame" class="scanner-frame">
+            <div class="scanner-aim">
+                {# Bottom corners — top corners use ::before / ::after pseudo-elements #}
+                <span class="scanner-corner-bl"></span>
+                <span class="scanner-corner-br"></span>
+                <span class="scanner-line"></span>
+            </div>
+        </div>
+    </div>
+
+    {# Restock panel — hidden until a product is found in Restock mode #}
+    <div id="restockPanel" class="scanner-restock-panel" style="display:none">
+        <div class="restock-product-header">
+            <i class="fas fa-box restock-icon"></i>
+            <div id="restockProductName" class="restock-name">—</div>
+        </div>
+        <div class="restock-stock-row">
+            Current stock: <strong id="restockCurrentStock">—</strong> units
+        </div>
+        <div class="restock-qty-row">
+            <button class="restock-qty-btn" onclick="PosScanner.adjustRestockQty(-1)" aria-label="Decrease">−</button>
+            <input id="restockQtyInput" type="number" class="restock-qty-input"
+                   value="1" min="1" max="9999" aria-label="Quantity to add">
+            <button class="restock-qty-btn" onclick="PosScanner.adjustRestockQty(1)" aria-label="Increase">+</button>
+        </div>
+        <div class="restock-actions">
+            <button class="restock-submit-btn" onclick="PosScanner.submitRestock()">
+                <i class="fas fa-plus-circle"></i> Add Stock
+            </button>
+            <button class="restock-cancel-btn" onclick="PosScanner.cancelRestock()">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+    {# Status message #}
+    <div class="scanner-footer">
+        <span id="scannerStatus" class="scanner-status scanner-status-info">Starting camera…</span>
+        <p class="scanner-tip">Align the barcode inside the frame · Supports Code128, EAN, UPC, QR</p>
+    </div>
+
+</div>
 
 {# Held Sales Modal #}
 <div class="modal fade" id="heldSalesModal" tabindex="-1" aria-labelledby="heldSalesModalLabel" aria-hidden="true">
@@ -83,7 +175,100 @@
 {% endblock %}
 
 {% block scripts %}
+{# html5-qrcode — served locally for offline LAN operation #}
+<script src="{{ url_for('static', filename='js/html5-qrcode.min.js') }}"></script>
+
 {# Load POS scripts in correct order #}
 <script src="{{ url_for('static', filename='js/pos.js') }}"></script>
 <script src="{{ url_for('static', filename='js/payment.js') }}"></script>
+<script src="{{ url_for('static', filename='js/scanner.js') }}"></script>
+<script>
+    // ── Mobile Cart Bottom Sheet ─────────────────────────────────
+    function openCartSheet() {
+        var cart     = document.getElementById('posCart');
+        var backdrop = document.getElementById('cartBackdrop');
+        var fab      = document.getElementById('cartFab');
+        if (!cart) return;
+        cart.classList.add('cart-open');
+        if (backdrop) backdrop.classList.add('open');
+        if (fab) fab.style.display = 'none';
+        document.body.style.overflow = 'hidden';
+    }
+    function closeCartSheet() {
+        var cart     = document.getElementById('posCart');
+        var backdrop = document.getElementById('cartBackdrop');
+        var fab      = document.getElementById('cartFab');
+        if (!cart) return;
+        cart.classList.remove('cart-open');
+        if (backdrop) backdrop.classList.remove('open');
+        // Only show FAB on mobile
+        if (fab && window.innerWidth < 768) fab.style.display = 'flex';
+        document.body.style.overflow = '';
+    }
+
+    // Update FAB badge count whenever cart changes
+    function updateCartFab(itemCount) {
+        var badge = document.getElementById('cartFabBadge');
+        var fab   = document.getElementById('cartFab');
+        if (!badge || !fab) return;
+        if (itemCount > 0) {
+            badge.textContent = itemCount > 99 ? '99+' : itemCount;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    // Hook into existing pos.js cart update — intercept renderCart
+    document.addEventListener('DOMContentLoaded', function() {
+        // Observe itemCount element for changes to keep FAB badge in sync
+        var itemCountEl = document.getElementById('itemCount');
+        if (itemCountEl && typeof MutationObserver !== 'undefined') {
+            var obs = new MutationObserver(function() {
+                var text  = itemCountEl.textContent || '';
+                var match = text.match(/(\d+)/);
+                var count = match ? parseInt(match[1], 10) : 0;
+                updateCartFab(count);
+            });
+            obs.observe(itemCountEl, { childList: true, characterData: true, subtree: true });
+        }
+    });
+
+    // Swipe-down to close cart on mobile
+    (function() {
+        var cart       = null;
+        var startY     = 0;
+        var isDragging = false;
+
+        document.addEventListener('touchstart', function(e) {
+            cart = document.getElementById('posCart');
+            if (!cart || !cart.classList.contains('cart-open')) return;
+            if (!cart.contains(e.target) && e.target.id !== 'posCart') return;
+            startY     = e.touches[0].clientY;
+            isDragging = true;
+        }, { passive: true });
+
+        document.addEventListener('touchmove', function(e) {
+            if (!isDragging || !cart) return;
+            var delta = e.touches[0].clientY - startY;
+            if (delta > 0) {
+                cart.style.transform = 'translateY(' + delta + 'px)';
+                cart.style.transition = 'none';
+            }
+        }, { passive: true });
+
+        document.addEventListener('touchend', function(e) {
+            if (!isDragging || !cart) return;
+            isDragging = false;
+            var delta = (e.changedTouches[0].clientY - startY);
+            cart.style.transition = '';
+            cart.style.transform  = '';
+            if (delta > 100) {
+                closeCartSheet();
+            } else {
+                cart.style.transform = '';
+            }
+        }, { passive: true });
+    }());
+</script>
 {% endblock %}

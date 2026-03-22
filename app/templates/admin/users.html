@@ -29,10 +29,19 @@
     .pg-btn { width:30px; height:30px; border:var(--border); background:#fff; border-radius:5px; color:var(--gray-600); font-size:0.75rem; display:flex; align-items:center; justify-content:center; text-decoration:none; transition:all 0.12s; }
     .pg-btn:hover { background:var(--gray-100); color:var(--gray-900); }
     .pg-btn.active { background:var(--blue-600); border-color:var(--blue-600); color:#fff; }
+    @media (max-width: 600px) {
+        .page-header { flex-direction:column; }
+        .page-header > a { width:100%; justify-content:center; }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="bc-nav">
+    <a href="{{ url_for('admin.settings') }}"><i class="fas fa-shield-alt" style="font-size:0.7rem;"></i> Administration</a>
+    <i class="fas fa-chevron-right bc-sep"></i>
+    <span class="bc-cur">Users</span>
+</div>
 <div class="page-header">
     <div>
         <h1><i class="fas fa-users-cog me-2" style="color:var(--blue-600);font-size:1.1rem;"></i>Users</h1>
@@ -48,42 +57,46 @@
         <h5 class="panel-title"><i class="fas fa-list"></i> All Users</h5>
         <span style="font-size:0.75rem;color:var(--gray-400);">{{ users.total }} total</span>
     </div>
+    <div class="table-responsive-cards">
     <table class="data-table">
         <thead>
             <tr>
-                <th>#</th>
+                <th class="mobile-hide">#</th>
                 <th>User</th>
-                <th>Email</th>
+                <th class="mobile-hide">Email</th>
                 <th>Role</th>
-                <th style="text-align:center;">Status</th>
-                <th>Joined</th>
+                <th style="text-align:center;" class="mobile-hide">Status</th>
+                <th class="mobile-hide">Joined</th>
                 <th style="text-align:right;">Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for user in users.items %}
             <tr>
-                <td style="color:var(--gray-400);font-size:0.75rem;">{{ user.id }}</td>
-                <td>
-                    <div style="display:flex;align-items:center;gap:0.5rem;">
-                        <div style="width:30px;height:30px;border-radius:8px;background:var(--blue-50);color:var(--blue-600);font-weight:700;font-size:0.8125rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <td class="mobile-hide" style="color:var(--gray-400);font-size:0.75rem;">{{ user.id }}</td>
+                <td class="td-primary">
+                    <span style="display:flex;align-items:center;gap:0.5rem;">
+                        <div style="width:28px;height:28px;border-radius:7px;background:var(--blue-50);color:var(--blue-600);font-weight:700;font-size:0.8125rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                             {{ user.username[0] | upper }}
                         </div>
-                        <span style="font-weight:600;color:var(--gray-900);">{{ user.username }}</span>
-                    </div>
+                        <span style="font-weight:700;">{{ user.username }}</span>
+                    </span>
+                    <span class="status-pill {{ 'status-active' if user.is_active else 'status-inactive' }}" style="font-size:0.5625rem;">
+                        {{ 'Active' if user.is_active else 'Inactive' }}
+                    </span>
                 </td>
-                <td style="color:var(--gray-500);">{{ user.email or '—' }}</td>
-                <td>
+                <td data-label="Email" class="mobile-hide" style="color:var(--gray-500);">{{ user.email or '—' }}</td>
+                <td data-label="Role">
                     {% set rname = user.role.name | lower %}
                     <span class="role-pill role-{{ rname }}">{{ user.role.name }}</span>
                 </td>
-                <td style="text-align:center;">
+                <td data-label="Status" class="mobile-hide" style="text-align:center;">
                     <span class="status-pill {{ 'status-active' if user.is_active else 'status-inactive' }}">
                         {{ 'Active' if user.is_active else 'Inactive' }}
                     </span>
                 </td>
-                <td style="color:var(--gray-500);">{{ user.created_at.strftime('%d %b %Y') }}</td>
-                <td style="text-align:right;">
+                <td data-label="Joined" class="mobile-hide" style="color:var(--gray-500);">{{ user.created_at.strftime('%d %b %Y') }}</td>
+                <td class="td-actions">
                     <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="act-btn" title="Edit">
                         <i class="fas fa-pencil-alt"></i>
                     </a>
@@ -99,6 +112,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 
     {% if users.pages > 1 %}
     <div class="pagination-bar">

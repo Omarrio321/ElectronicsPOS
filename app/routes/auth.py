@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse, urljoin
 from app.models import User
-from app import db
+from app import db, limiter
 from app.forms import LoginForm, RegistrationForm, ProfileForm
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -19,6 +19,7 @@ def is_safe_url(target):
 from app.services.audit_service import AuditService
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute; 30 per hour", methods=["POST"])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))

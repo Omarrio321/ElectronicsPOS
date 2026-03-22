@@ -168,7 +168,23 @@ def export_pdf():
     try:
         path_wkhtmltopdf = current_app.config.get('WKHTMLTOPDF_PATH')
         config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
-        pdf_bytes = pdfkit.from_string(html, False, configuration=config)
+        options = {
+            'page-size':               'A4',
+            'orientation':             'Portrait',
+            'margin-top':              '12mm',
+            'margin-bottom':           '15mm',
+            'margin-left':             '12mm',
+            'margin-right':            '12mm',
+            'encoding':                'UTF-8',
+            'no-outline':              None,
+            'enable-local-file-access': None,
+            'dpi':                     '96',
+            'zoom':                    '1',
+            'print-media-type':        None,
+            'disable-smart-shrinking': None,
+            'minimum-font-size':       '10',
+        }
+        pdf_bytes = pdfkit.from_string(html, False, configuration=config, options=options)
     except Exception as e:
         current_app.logger.exception("pdfkit failed to generate PDF")
         flash(f"PDF generation failed: {str(e)}", "danger")

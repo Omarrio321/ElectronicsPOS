@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Low Stock Alert Report</title>
+    <style>
+        /* ─────────────────────────────────────────────────────────────────
+           BASE — Verdana: wide sidebearings, no kern-pair dependency.
+           Confirmed fix for wkhtmltopdf GDI kern table mismatch on Windows.
+           font-kerning:none + font-feature-settings as secondary guard.
+           font-weight capped at 700.
+        ───────────────────────────────────────────────────────────────── */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Verdana, Geneva, sans-serif;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #2d3748;
+            background: #fff;
+            -webkit-font-feature-settings: "kern" 0;
+            font-feature-settings: "kern" 0;
+            font-kerning: none;
+        }
+
+        /* ── Cover Header ── */
+        .cover-header {
+            display: table;
+            width: 100%;
+            border-bottom: 3px solid #dc2626;
+            padding-bottom: 16px;
+            margin-bottom: 22px;
+        }
+        .cover-header-logo {
+            display: table-cell;
+            vertical-align: middle;
+            width: 90px;
+        }
+        .company-logo {
+            max-height: 60px;
+            max-width: 80px;
+            object-fit: contain;
+        }
+        .cover-header-body {
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .cover-header-right {
+            display: table-cell;
+            vertical-align: bottom;
+            text-align: right;
+            white-space: nowrap;
+        }
+        .cover-header .company-name {
+            font-size: 15px;
+            color: #1e293b;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        .cover-header .company-meta {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        .cover-header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #dc2626;
+            line-height: 1.2;
+        }
+        .cover-header .report-date {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 3px;
+        }
+
+        /* ── Stats Row ── */
+        .stats-row {
+            display: table;
+            width: 100%;
+            border: 1px solid #fed7d7;
+            border-radius: 6px;
+            background: #fff5f5;
+            margin-bottom: 22px;
+        }
+        .stats-cell {
+            display: table-cell;
+            width: 25%;
+            text-align: center;
+            padding: 14px 8px;
+            border-right: 1px solid #fed7d7;
+            vertical-align: middle;
+        }
+        .stats-cell:last-child { border-right: none; }
+        .stats-cell .stat-number {
+            font-size: 22px;
+            font-weight: 700;
+            display: block;
+            line-height: 1.15;
+        }
+        .stats-cell .stat-label {
+            font-size: 10px;
+            color: #718096;
+            text-transform: uppercase;
+            margin-top: 5px;
+            display: block;
+        }
+        .stat-critical .stat-number { color: #c53030; }
+        .stat-warning  .stat-number { color: #c05621; }
+        .stat-needed   .stat-number { color: #92230c; }
+        .stat-risk     .stat-number { color: #276749; font-size: 17px; }
+
+        /* ── Section ── */
+        .section { margin-bottom: 24px; }
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #7f1d1d;
+            text-transform: uppercase;
+            border-bottom: 2px solid #fecaca;
+            padding: 6px 10px 5px;
+            margin-bottom: 10px;
+            background: #fff5f5;
+            border-left: 4px solid #dc2626;
+        }
+
+        /* ── Doc footer ── */
+        .doc-footer {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #fecaca;
+            display: table;
+            width: 100%;
+            font-size: 9px;
+            color: #94a3b8;
+        }
+        .doc-footer-left  { display: table-cell; text-align: left; }
+        .doc-footer-right { display: table-cell; text-align: right; }
+
+        /* ── Summary box ── */
+        .summary-table {
+            width: 58%;
+            margin: 0 auto;
+            border: 1px solid #fed7d7;
+            border-radius: 4px;
+            overflow: hidden;
+            border-collapse: collapse;
+        }
+        .summary-table td {
+            padding: 8px 14px;
+            border-bottom: 1px solid #fed7d7;
+            font-size: 11px;
+        }
+        .summary-table tr:last-child td { border-bottom: none; }
+        .summary-table .key-cell { color: #4a5568; font-weight: 500; }
+        .summary-table .val-cell {
+            text-align: right;
+            font-weight: 700;
+            color: #92230c;
+            font-family: 'Courier New', monospace;
+        }
+        .summary-table tr.row-alt  td { background: #fff5f5; }
+        .summary-table tr.row-good td { background: #f0fff4; }
+        .summary-table tr.row-good .val-cell { color: #276749; }
+
+        /* ── Data Tables ── table-layout: fixed prevents A4 overflow ── */
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        table.data-table thead tr { background-color: #742a2a; }
+        table.data-table thead th {
+            color: #fff;
+            padding: 7px 6px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-align: left;
+            border: none;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        table.data-table thead th.th-right  { text-align: right; }
+        table.data-table thead th.th-center { text-align: center; }
+
+        table.data-table tbody tr { border-bottom: 1px solid #fed7d7; }
+        table.data-table tbody tr:nth-child(even) { background: #fff5f5; }
+        table.data-table tbody td {
+            padding: 6px 6px;
+            vertical-align: middle;
+            font-size: 10px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        table.data-table tbody .td-right  { text-align: right; }
+        table.data-table tbody .td-center { text-align: center; }
+
+        .product-name {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        .mono {
+            font-family: 'Courier New', monospace;
+        }
+
+        /* ── Priority badges ── */
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-critical { background: #fed7d7; color: #742a2a; }
+        .badge-low      { background: #fefcbf; color: #744210; }
+        .badge-out      { background: #92230c; color: #fff; }
+
+        /* ── Needed qty / profit ── */
+        .needed-qty  { color: #c53030; font-weight: 700; }
+        .profit-pos  { color: #276749; font-weight: 700; }
+        .profit-zero { color: #a0aec0; }
+
+        /* ── Note box ── */
+        .alert-note {
+            background: #fffbeb;
+            border-left: 3px solid #d69e2e;
+            padding: 8px 14px;
+            font-size: 10px;
+            color: #744210;
+            margin-bottom: 18px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* ── Page breaks ── */
+        .page-break { page-break-before: always; }
+    </style>
+</head>
+<body>
+
+    <!-- ══ COVER HEADER ══ -->
+    <div class="cover-header">
+        <div class="cover-header-logo">
+            {% if company_logo %}
+            <img src="{{ url_for('static', filename=company_logo, _external=True) }}"
+                 alt="{{ company_name }}" class="company-logo">
+            {% endif %}
+        </div>
+        <div class="cover-header-body">
+            <div class="company-name">{{ company_name }}</div>
+            {% if company_address or company_phone %}
+            <div class="company-meta">
+                {% if company_address %}{{ company_address }}{% endif %}
+                {% if company_address and company_phone %} &bull; {% endif %}
+                {% if company_phone %}{{ company_phone }}{% endif %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="cover-header-right">
+            <h1>Low Stock Alert</h1>
+            <div class="report-date">Generated: {{ generated_at }} &mdash; {{ generated_time }}</div>
+        </div>
+    </div>
+
+    <!-- ══ STATS ROW ══ -->
+    <div class="stats-row">
+        <div class="stats-cell stat-out">
+            <span class="stat-number" style="color:#c53030;">{{ critical_items | length }}</span>
+            <span class="stat-label">Out of Stock</span>
+        </div>
+        <div class="stats-cell stat-warning">
+            <span class="stat-number" style="color:#c05621;">{{ low_items | length }}</span>
+            <span class="stat-label">Below Threshold</span>
+        </div>
+        <div class="stats-cell stat-needed">
+            <span class="stat-number" style="color:#92230c;">{{ total_needed }}</span>
+            <span class="stat-label">Units Needed</span>
+        </div>
+        <div class="stats-cell stat-risk">
+            <span class="stat-number">{{ format_currency(retail_at_risk) }}</span>
+            <span class="stat-label">Potential Lost Sales</span>
+        </div>
+    </div>
+
+    {% if critical_items or low_items %}
+    <div class="alert-note">
+        <strong>Action Required:</strong>
+        {% if critical_items | length > 0 %}
+            {{ critical_items | length }} product{{ 's' if critical_items | length != 1 }} are completely out of stock.
+        {% endif %}
+        {% if low_items | length > 0 %}
+            {{ low_items | length }} product{{ 's' if low_items | length != 1 }} are below the minimum threshold.
+        {% endif %}
+        Restock as soon as possible to avoid lost sales.
+    </div>
+    {% endif %}
+
+    <!-- ══ SUMMARY ══ -->
+    <div class="section">
+        <div class="section-title">Alert Summary</div>
+        <table class="summary-table">
+            <tbody>
+                <tr class="row-alt">
+                    <td class="key-cell">Total Products Affected</td>
+                    <td class="val-cell" style="font-family:inherit;">{{ products | length }}</td>
+                </tr>
+                <tr>
+                    <td class="key-cell">Out of Stock (0 units)</td>
+                    <td class="val-cell" style="font-family:inherit;">{{ critical_items | length }}</td>
+                </tr>
+                <tr class="row-alt">
+                    <td class="key-cell">Below Threshold</td>
+                    <td class="val-cell" style="font-family:inherit;">{{ low_items | length }}</td>
+                </tr>
+                <tr>
+                    <td class="key-cell">Total Units to Restock</td>
+                    <td class="val-cell" style="font-family:inherit;">{{ total_needed }}</td>
+                </tr>
+                <tr class="row-good">
+                    <td class="key-cell">Potential Lost Sales (Retail)</td>
+                    <td class="val-cell">{{ format_currency(retail_at_risk) }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ══ CRITICAL — OUT OF STOCK ══ -->
+    {% if critical_items %}
+    <div class="section">
+        <div class="section-title">Out of Stock &mdash; Immediate Action Required</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:4%">ID</th>
+                    <th style="width:28%">Product Name</th>
+                    <th style="width:14%">Category</th>
+                    <th class="th-right" style="width:10%">Cost</th>
+                    <th class="th-right" style="width:10%">Wholesale</th>
+                    <th class="th-right" style="width:10%">Retail</th>
+                    <th class="th-right" style="width:10%">R. Profit</th>
+                    <th class="th-center" style="width:7%">Threshold</th>
+                    <th class="th-center" style="width:7%">Priority</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in critical_items %}
+                {% set cost  = p.cost_price if p.cost_price else 0 %}
+                {% set price = p.selling_price if p.selling_price else 0 %}
+                {% set r_profit = price - cost %}
+                <tr>
+                    <td>{{ p.id }}</td>
+                    <td class="product-name">{{ p.name }}</td>
+                    <td style="font-size:9px;color:#4a5568;">{{ p.category.name if p.category else '—' }}</td>
+                    <td class="td-right mono">{{ format_currency(cost) }}</td>
+                    <td class="td-right mono">
+                        {% if p.wholesale_price %}{{ format_currency(p.wholesale_price) }}{% else %}<span style="color:#a0aec0;">—</span>{% endif %}
+                    </td>
+                    <td class="td-right mono">{{ format_currency(price) }}</td>
+                    <td class="td-right mono {% if r_profit > 0 %}profit-pos{% else %}profit-zero{% endif %}">
+                        {{ format_currency(r_profit) }}
+                    </td>
+                    <td class="td-center" style="font-weight:700;color:#92230c;">{{ p.low_stock_threshold }}</td>
+                    <td class="td-center"><span class="badge badge-out">Critical</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- ══ LOW STOCK — BELOW THRESHOLD ══ -->
+    {% if low_items %}
+    <div class="section {% if critical_items %}page-break{% endif %}">
+        <div class="section-title">Below Minimum Threshold</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:4%">ID</th>
+                    <th style="width:26%">Product Name</th>
+                    <th style="width:13%">Category</th>
+                    <th class="th-right" style="width:9%">Cost</th>
+                    <th class="th-right" style="width:9%">Wholesale</th>
+                    <th class="th-right" style="width:9%">Retail</th>
+                    <th class="th-right" style="width:9%">R. Profit</th>
+                    <th class="th-center" style="width:6%">Stock</th>
+                    <th class="th-center" style="width:6%">Min.</th>
+                    <th class="th-center" style="width:9%">Needed</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in low_items %}
+                {% set cost  = p.cost_price if p.cost_price else 0 %}
+                {% set price = p.selling_price if p.selling_price else 0 %}
+                {% set r_profit = price - cost %}
+                {% set needed = [p.low_stock_threshold - p.quantity_in_stock, 0] | max %}
+                <tr>
+                    <td>{{ p.id }}</td>
+                    <td class="product-name">{{ p.name }}</td>
+                    <td style="font-size:9px;color:#4a5568;">{{ p.category.name if p.category else '—' }}</td>
+                    <td class="td-right mono">{{ format_currency(cost) }}</td>
+                    <td class="td-right mono">
+                        {% if p.wholesale_price %}{{ format_currency(p.wholesale_price) }}{% else %}<span style="color:#a0aec0;">—</span>{% endif %}
+                    </td>
+                    <td class="td-right mono">{{ format_currency(price) }}</td>
+                    <td class="td-right mono {% if r_profit > 0 %}profit-pos{% else %}profit-zero{% endif %}">
+                        {{ format_currency(r_profit) }}
+                    </td>
+                    <td class="td-center" style="font-weight:700;color:#c05621;">{{ p.quantity_in_stock }}</td>
+                    <td class="td-center" style="color:#718096;">{{ p.low_stock_threshold }}</td>
+                    <td class="td-center needed-qty">+{{ needed }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if not products %}
+    <div style="text-align:center;padding:40px 20px;color:#94a3b8;">
+        <div style="font-size:22px;margin-bottom:8px;">&#10003;</div>
+        All products are well stocked. No action required.
+    </div>
+    {% endif %}
+
+    <!-- ══ FOOTER ══ -->
+    <div class="doc-footer">
+        <div class="doc-footer-left">{{ company_name }} &mdash; Confidential &bull; Internal Use Only</div>
+        <div class="doc-footer-right">Exported {{ generated_at }}</div>
+    </div>
+
+</body>
+</html>

@@ -4,152 +4,43 @@
 
 {% block head %}
 <style>
+    /* ── Page header ─────────────────────────────── */
     .page-header {
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
         gap: 1rem;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.25rem;
     }
-
     .page-header h1 {
         font-size: 1.375rem;
         font-weight: 700;
         color: var(--gray-900);
         margin: 0;
         letter-spacing: -0.01em;
-    }
-
-    .page-header .sub {
-        font-size: 0.8125rem;
-        color: var(--gray-500);
-        margin-top: 2px;
-    }
-
-    .kpi-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    @media(max-width:900px) {
-        .kpi-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
-    @media(max-width:480px) {
-        .kpi-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .kpi-tile {
-        background: #fff;
-        border: var(--border);
-        border-radius: var(--radius);
-        padding: 1rem 1.125rem;
-        box-shadow: var(--shadow-sm);
-    }
-
-    .kpi-tile .t-label {
-        font-size: 0.6875rem;
-        font-weight: 600;
-        letter-spacing: 0.07em;
-        text-transform: uppercase;
-        color: var(--gray-500);
-        margin-bottom: 0.375rem;
-    }
-
-    .kpi-tile .t-value {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: var(--gray-900);
-        line-height: 1;
-    }
-
-    .kpi-tile .t-value.blue {
-        color: var(--blue-600);
-    }
-
-    .kpi-tile .t-value.green {
-        color: var(--green-600);
-    }
-
-    .kpi-tile .t-value.red {
-        color: var(--red-600);
-    }
-
-    .kpi-tile .t-value.purple {
-        color: #7C3AED;
-    }
-
-    .kpi-tile .t-value.teal {
-        color: #0F766E;
-    }
-
-    .kpi-tile .t-icon {
-        width: 30px;
-        height: 30px;
-        border-radius: 7px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.75rem;
-        margin-bottom: 0.625rem;
-    }
-
-    .t-icon.blue {
-        background: var(--blue-50);
-        color: var(--blue-600);
-    }
-
-    .t-icon.green {
-        background: var(--green-50);
-        color: var(--green-600);
-    }
-
-    .t-icon.red {
-        background: var(--red-50);
-        color: var(--red-600);
-    }
-
-    .t-icon.purple {
-        background: #F5F3FF;
-        color: #7C3AED;
-    }
-
-    .t-icon.teal {
-        background: #F0FDFA;
-        color: #0F766E;
-    }
-
-    .t-icon.amber {
-        background: var(--amber-50);
-        color: var(--amber-600);
-    }
-
-    .section-label {
-        font-size: 0.6875rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--gray-400);
-        margin-bottom: 0.75rem;
-        margin-top: 0.25rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;
     }
+    .page-header h1 i { color: var(--blue-600); font-size: 1.1rem; }
+    .page-header .sub { font-size: 0.8125rem; color: var(--gray-500); margin-top: 2px; }
 
-    .section-label::after {
-        content: '';
-        flex: 1;
-        height: 1px;
-        background: var(--gray-200);
+    /* ── Period badge ────────────────────────────── */
+    .period-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        background: var(--blue-50);
+        color: var(--blue-700);
+        border: 1px solid #BFDBFE;
+        border-radius: 20px;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-top: 4px;
     }
 
+    /* ── Panels ──────────────────────────────────── */
     .panel {
         background: #fff;
         border: var(--border);
@@ -157,7 +48,6 @@
         box-shadow: var(--shadow-sm);
         overflow: hidden;
     }
-
     .panel-header {
         padding: 0.875rem 1.25rem;
         border-bottom: var(--border);
@@ -165,7 +55,6 @@
         align-items: center;
         justify-content: space-between;
     }
-
     .panel-title {
         font-size: 0.875rem;
         font-weight: 600;
@@ -175,83 +64,171 @@
         align-items: center;
         gap: 0.5rem;
     }
+    .panel-title i { color: var(--blue-600); }
 
-    .panel-title i {
-        color: var(--blue-600);
-    }
-
-    .charts-grid {
-        display: grid;
-        grid-template-columns: 1fr 340px;
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    @media(max-width:900px) {
-        .charts-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .tables-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    @media(max-width:900px) {
-        .tables-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .filter-bar {
+    /* ── Section labels ──────────────────────────── */
+    .section-label {
+        font-size: 0.6875rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--gray-400);
+        margin-bottom: 0.625rem;
+        margin-top: 0.25rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        flex-wrap: wrap;
+    }
+    .section-label::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--gray-200);
     }
 
-    .filter-label {
+    /* ── KPI grid ────────────────────────────────── */
+    .kpi-grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.875rem;
+        margin-bottom: 0.875rem;
+    }
+    .kpi-grid-5 {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 0.875rem;
+        margin-bottom: 0.875rem;
+    }
+    @media(max-width:1100px) {
+        .kpi-grid-5 { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media(max-width:900px) {
+        .kpi-grid-4 { grid-template-columns: repeat(2, 1fr); }
+        .kpi-grid-5 { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media(max-width:480px) {
+        .kpi-grid-4, .kpi-grid-5 { grid-template-columns: 1fr; }
+    }
+
+    .kpi-tile {
+        background: #fff;
+        border: var(--border);
+        border-radius: var(--radius);
+        padding: 1rem 1.125rem;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        overflow: hidden;
+    }
+    .kpi-tile::before {
+        content: '';
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 3px;
+        border-radius: var(--radius) 0 0 var(--radius);
+    }
+    .kpi-tile.accent-blue::before   { background: var(--blue-600); }
+    .kpi-tile.accent-green::before  { background: var(--green-600); }
+    .kpi-tile.accent-red::before    { background: var(--red-600); }
+    .kpi-tile.accent-amber::before  { background: var(--amber-600); }
+    .kpi-tile.accent-purple::before { background: #7C3AED; }
+    .kpi-tile.accent-teal::before   { background: #0F766E; }
+    .kpi-tile.accent-gray::before   { background: var(--gray-400); }
+    .kpi-tile.accent-orange::before { background: #EA580C; }
+    .kpi-tile.accent-cyan::before   { background: #0891B2; }
+
+    .kpi-tile .t-label {
         font-size: 0.6875rem;
         font-weight: 600;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.07em;
         text-transform: uppercase;
         color: var(--gray-500);
-        display: block;
         margin-bottom: 0.25rem;
     }
-
-    .filter-input {
-        border: var(--border);
-        border-radius: 6px;
-        padding: 0.375rem 0.75rem;
-        font-size: 0.8125rem;
+    .kpi-tile .t-value {
+        font-size: 1.25rem;
+        font-weight: 700;
         color: var(--gray-900);
+        line-height: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 0.2rem;
+    }
+    .kpi-tile .t-value.blue   { color: var(--blue-600); }
+    .kpi-tile .t-value.green  { color: var(--green-600); }
+    .kpi-tile .t-value.red    { color: var(--red-600); }
+    .kpi-tile .t-value.purple { color: #7C3AED; }
+    .kpi-tile .t-value.teal   { color: #0F766E; }
+    .kpi-tile .t-value.amber  { color: var(--amber-600); }
+    .kpi-tile .t-value.orange { color: #EA580C; }
+    .kpi-tile .t-value.cyan   { color: #0891B2; }
+    .kpi-tile .t-icon {
+        width: 28px; height: 28px;
+        border-radius: 7px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.7rem;
+        margin-bottom: 0.5rem;
+    }
+    .t-icon.blue   { background: var(--blue-50);  color: var(--blue-600); }
+    .t-icon.green  { background: var(--green-50); color: var(--green-600); }
+    .t-icon.red    { background: var(--red-50);   color: var(--red-600); }
+    .t-icon.purple { background: #F5F3FF; color: #7C3AED; }
+    .t-icon.teal   { background: #F0FDFA; color: #0F766E; }
+    .t-icon.amber  { background: var(--amber-50); color: var(--amber-600); }
+    .t-icon.orange { background: #FFF7ED; color: #EA580C; }
+    .t-icon.cyan   { background: #ECFEFF; color: #0891B2; }
+    .t-icon.gray   { background: var(--gray-100); color: var(--gray-500); }
+
+    .kpi-tile .t-sub {
+        font-size: 0.6875rem;
+        color: var(--gray-400);
+    }
+
+    /* ── Returns & Voids strip ───────────────────── */
+    .rv-strip {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 0.875rem;
+        margin-bottom: 0.875rem;
+    }
+    @media(max-width:1000px) { .rv-strip { grid-template-columns: repeat(3, 1fr); } }
+    @media(max-width:640px)  { .rv-strip { grid-template-columns: repeat(2, 1fr); } }
+
+    .rv-card {
         background: #fff;
-        outline: none;
-        transition: border-color 0.15s;
-    }
-
-    .filter-input:focus {
-        border-color: var(--blue-500);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-    }
-
-    .filter-select {
         border: var(--border);
-        border-radius: 6px;
-        padding: 0.375rem 1.75rem 0.375rem 0.625rem;
-        font-size: 0.8125rem;
-        color: var(--gray-700);
-        background: #fff;
-        outline: none;
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 0.5rem center;
+        border-radius: var(--radius);
+        padding: 0.875rem 1rem;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
     }
+    .rv-card .rv-label {
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--gray-400);
+    }
+    .rv-card .rv-val {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--gray-900);
+    }
+    .rv-card .rv-val.red    { color: var(--red-600); }
+    .rv-card .rv-val.amber  { color: var(--amber-600); }
+    .rv-card .rv-val.green  { color: var(--green-600); }
+    .rv-card .rv-val.blue   { color: var(--blue-600); }
+
+    /* ── Charts layout ───────────────────────────── */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 0.875rem;
+        margin-bottom: 0.875rem;
+    }
+    @media(max-width:1000px) { .charts-grid { grid-template-columns: 1fr; } }
 
     .chart-placeholder {
         display: flex;
@@ -261,8 +238,65 @@
         color: var(--gray-400);
         font-size: 0.8125rem;
         gap: 0.5rem;
+        flex-direction: column;
     }
 
+    /* ── Tables grid ─────────────────────────────── */
+    .tables-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.875rem;
+        margin-bottom: 0.875rem;
+    }
+    @media(max-width:900px) { .tables-grid { grid-template-columns: 1fr; } }
+
+    /* ── Filter elements ─────────────────────────── */
+    .filter-bar {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 3px; }
+    .filter-label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--gray-500);
+    }
+    .filter-input {
+        border: var(--border);
+        border-radius: 6px;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8125rem;
+        color: var(--gray-900);
+        background: #fff;
+        outline: none;
+        transition: border-color 0.15s;
+        height: 32px;
+    }
+    .filter-input:focus {
+        border-color: var(--blue-500);
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+    }
+    .filter-select {
+        border: var(--border);
+        border-radius: 6px;
+        padding: 0.375rem 1.75rem 0.375rem 0.625rem;
+        font-size: 0.8125rem;
+        color: var(--gray-700);
+        background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 0.5rem center;
+        outline: none;
+        appearance: none;
+        height: 32px;
+    }
+    .filter-select:focus {
+        border-color: var(--blue-500);
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+    }
+
+    /* ── Pills ───────────────────────────────────── */
     .pill {
         display: inline-block;
         padding: 0.125rem 0.5rem;
@@ -270,37 +304,37 @@
         font-size: 0.6875rem;
         font-weight: 600;
     }
+    .pill-green  { background: var(--green-50);  color: var(--green-600); }
+    .pill-amber  { background: var(--amber-50);  color: var(--amber-600); }
+    .pill-blue   { background: var(--blue-50);   color: var(--blue-600); }
+    .pill-red    { background: var(--red-50);    color: var(--red-600); }
+    .pill-gray   { background: var(--gray-100);  color: var(--gray-600); }
 
-    .pill-green {
-        background: var(--green-50);
-        color: var(--green-600);
+    /* ── Rank dot ────────────────────────────────── */
+    .rank-num {
+        width: 20px; height: 20px;
+        border-radius: 50%;
+        background: var(--blue-50);
+        color: var(--blue-600);
+        font-size: 0.625rem;
+        font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
     }
 
-    .pill-amber {
-        background: var(--amber-50);
-        color: var(--amber-600);
+    /* ── Avatar sm ───────────────────────────────── */
+    .avatar-sm {
+        width: 24px; height: 24px;
+        border-radius: 6px;
+        background: var(--blue-50);
+        color: var(--blue-600);
+        font-size: 0.625rem;
+        font-weight: 700;
+        display: inline-flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
     }
 
-    .dropdown-menu-sm {
-        min-width: 160px;
-        border: var(--border);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        border-radius: 7px;
-        padding: 0.25rem;
-    }
-
-    .dropdown-menu-sm .dropdown-item {
-        border-radius: 5px;
-        padding: 0.4375rem 0.625rem;
-        font-size: 0.8125rem;
-        color: var(--gray-700);
-    }
-
-    .dropdown-menu-sm .dropdown-item:hover {
-        background: var(--gray-100);
-    }
-
-    /* Toast */
+    /* ── Toast ───────────────────────────────────── */
     .toast-fixed {
         position: fixed;
         bottom: 20px;
@@ -309,61 +343,101 @@
         z-index: 1200;
         min-width: 280px;
     }
+
+    /* ── Export dropdown ─────────────────────────── */
+    .dropdown-menu-sm {
+        min-width: 150px;
+        border: var(--border);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        border-radius: 7px;
+        padding: 0.25rem;
+    }
+    .dropdown-menu-sm .dropdown-item {
+        border-radius: 5px;
+        padding: 0.4375rem 0.625rem;
+        font-size: 0.8125rem;
+        color: var(--gray-700);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .dropdown-menu-sm .dropdown-item:hover { background: var(--gray-100); }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="bc-nav">
+    <i class="fas fa-chart-line" style="font-size:0.7rem;color:var(--blue-600);"></i>
+    <span class="bc-cur">Reports</span>
+</div>
+
+<!-- ── Page Header ─────────────────────────────────────────── -->
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-chart-line me-2" style="color:var(--blue-600);font-size:1.1rem;"></i>Reports</h1>
-        <div class="sub">Business performance overview and sales analytics.</div>
+        <h1><i class="fas fa-chart-line"></i> Reports</h1>
+        <div class="sub">
+            Business performance overview and analytics.
+        </div>
+        <div style="margin-top:6px;">
+            {% if report_type == 'daily' %}
+            <span class="period-badge"><i class="fas fa-calendar-day"></i> Today</span>
+            {% elif report_type == 'weekly' %}
+            <span class="period-badge"><i class="fas fa-calendar-week"></i> Last 7 Days</span>
+            {% elif report_type == 'monthly' %}
+            <span class="period-badge"><i class="fas fa-calendar-alt"></i> This Month</span>
+            {% elif report_type == 'custom' and start_date and end_date %}
+            <span class="period-badge"><i class="fas fa-calendar-range"></i> {{ start_date.strftime('%b %d') }} &ndash; {{ end_date.strftime('%b %d, %Y') }}</span>
+            {% else %}
+            <span class="period-badge"><i class="fas fa-calendar-alt"></i> Last 30 Days</span>
+            {% endif %}
+        </div>
     </div>
-    <div style="display:flex;gap:0.5rem;flex-shrink:0;">
+    <div style="display:flex;gap:0.5rem;flex-shrink:0;align-items:flex-start;">
         <div class="dropdown">
-            <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" style="font-size:0.8125rem;">
                 <i class="fas fa-download" style="font-size:0.75rem;"></i> Export
             </button>
             <ul class="dropdown-menu dropdown-menu-end dropdown-menu-sm">
-                <li><a class="dropdown-item" href="#" onclick="exportReport('pdf'); return false;"><i
-                            class="fas fa-file-pdf text-danger"></i>PDF</a></li>
-                <li><a class="dropdown-item" href="#" onclick="exportReport('excel'); return false;"><i
-                            class="fas fa-file-excel text-success"></i>Excel</a></li>
+                <li><a class="dropdown-item" href="#" onclick="exportReport('pdf'); return false;"><i class="fas fa-file-pdf text-danger"></i> PDF Report</a></li>
+                <li><a class="dropdown-item" href="#" onclick="exportReport('excel'); return false;"><i class="fas fa-file-excel text-success"></i> Excel Workbook</a></li>
             </ul>
         </div>
-        <a href="{{ url_for('sales.reports') }}" class="btn btn-light" style="border:var(--border);">
+        <a href="{{ url_for('sales.reports') }}" class="btn btn-light" style="border:var(--border);font-size:0.8125rem;">
             <i class="fas fa-sync-alt" style="font-size:0.75rem;"></i> Reset
         </a>
     </div>
 </div>
 
-<!-- Filters -->
+<!-- ── Filter Panel ────────────────────────────────────────── -->
 <div class="panel" style="margin-bottom:1rem;">
     <div class="panel-header">
         <h5 class="panel-title"><i class="fas fa-filter"></i> Filter Period</h5>
     </div>
     <div style="padding:1rem 1.25rem;">
         <form method="GET" id="reportForm" class="filter-bar">
-            <div>
-                <div class="filter-label">Report Type</div>
+            <div class="filter-group">
+                <label class="filter-label" for="reportType">Report Type</label>
                 <select name="type" id="reportType" class="filter-select" onchange="onReportTypeChange()">
-                    <option value="daily" {% if report_type=='daily' %}selected{% endif %}>Today</option>
-                    <option value="weekly" {% if report_type=='weekly' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="daily"   {% if report_type=='daily'   %}selected{% endif %}>Today</option>
+                    <option value="weekly"  {% if report_type=='weekly'  %}selected{% endif %}>Last 7 Days</option>
                     <option value="monthly" {% if report_type=='monthly' %}selected{% endif %}>This Month</option>
-                    <option value="custom" {% if report_type=='custom' %}selected{% endif %}>Custom Range</option>
+                    <option value="custom"  {% if report_type=='custom'  %}selected{% endif %}>Custom Range</option>
                 </select>
             </div>
-            <div>
-                <div class="filter-label">Start Date</div>
+            <div class="filter-group">
+                <label class="filter-label" for="startDate">Start Date</label>
                 <input type="date" name="start_date" id="startDate" class="filter-input"
-                    value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
+                    value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}"
+                    {% if report_type != 'custom' %}disabled{% endif %}>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label" for="endDate">End Date</label>
+                <input type="date" name="end_date" id="endDate" class="filter-input"
+                    value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}"
+                    {% if report_type != 'custom' %}disabled{% endif %}>
             </div>
             <div>
-                <div class="filter-label">End Date</div>
-                <input type="date" name="end_date" id="endDate" class="filter-input"
-                    value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
-            </div>
-            <div style="display:flex;gap:0.375rem;align-items:flex-end;">
-                <button type="submit" class="btn btn-primary btn-sm">
+                <button type="submit" class="btn btn-primary btn-sm" style="height:32px;">
                     <i class="fas fa-search" style="font-size:0.7rem;"></i> Generate
                 </button>
             </div>
@@ -371,162 +445,252 @@
     </div>
 </div>
 
-<!-- Financial KPIs -->
+<!-- ── Financial Performance ───────────────────────────────── -->
 <div class="section-label">Financial Performance</div>
-<div class="kpi-grid" style="margin-bottom:1.25rem;">
-    <div class="kpi-tile">
+<div class="kpi-grid-4">
+    <div class="kpi-tile accent-blue">
         <div class="t-icon blue"><i class="fas fa-receipt"></i></div>
         <div class="t-label">Total Revenue</div>
         <div class="t-value blue">{{ format_currency(total_invoiced) }}</div>
+        <div class="t-sub">Invoiced (excl. voided)</div>
     </div>
-    <div class="kpi-tile">
+    <div class="kpi-tile accent-green">
         <div class="t-icon green"><i class="fas fa-wallet"></i></div>
-        <div class="t-label">Collected</div>
+        <div class="t-label">Collected <span style="font-weight:400;font-size:0.6rem;color:var(--gray-400);text-transform:none;letter-spacing:0;">USD equiv.</span></div>
         <div class="t-value green">{{ format_currency(total_collected) }}</div>
+        <div class="t-sub">
+            All payment methods
+            {%- set slsh_rows = payment_breakdown | selectattr('currency', 'equalto', 'SLSH') | list %}
+            {%- if slsh_rows %}
+            &bull; <span style="color:var(--amber-600);font-weight:600;">Incl. {{ "{:,.0f}".format(slsh_rows | sum(attribute='original_total')) }} SLSH</span>
+            {%- endif %}
+        </div>
     </div>
-    <div class="kpi-tile">
+    <div class="kpi-tile accent-red">
         <div class="t-icon red"><i class="fas fa-minus-circle"></i></div>
-        <div class="t-label">Expenses</div>
+        <div class="t-label">Total Expenses</div>
         <div class="t-value red">{{ format_currency(total_expenses) }}</div>
+        <div class="t-sub">
+            Paid {{ format_currency(paid_expenses) }} &bull; Pending {{ format_currency(pending_expenses) }}
+        </div>
     </div>
-    <div class="kpi-tile">
-        {% set pc = 'green' if (net_profit or 0) >= 0 else 'red' %}
-        <div class="t-icon {{ pc }}"><i class="fas fa-briefcase"></i></div>
+    <div class="kpi-tile accent-{{ 'green' if (net_profit or 0) >= 0 else 'red' }}">
+        <div class="t-icon {{ 'green' if (net_profit or 0) >= 0 else 'red' }}"><i class="fas fa-briefcase"></i></div>
         <div class="t-label">Net Income</div>
-        <div class="t-value {{ pc }}">{{ format_currency(net_profit or 0) }}</div>
+        <div class="t-value {{ 'green' if (net_profit or 0) >= 0 else 'red' }}">{{ format_currency(net_profit or 0) }}</div>
+        <div class="t-sub">Revenue &minus; Expenses</div>
     </div>
 </div>
 
-<!-- Inventory KPIs -->
+<!-- ── Operational Metrics ─────────────────────────────────── -->
+<div class="section-label">Operational Metrics</div>
+<div class="kpi-grid-5">
+    <div class="kpi-tile accent-blue">
+        <div class="t-icon blue"><i class="fas fa-shopping-cart"></i></div>
+        <div class="t-label">Transactions</div>
+        <div class="t-value">{{ total_sales }}</div>
+        <div class="t-sub">{{ total_items }} items sold</div>
+    </div>
+    <div class="kpi-tile accent-cyan">
+        <div class="t-icon cyan"><i class="fas fa-calculator"></i></div>
+        <div class="t-label">Avg. Order Value</div>
+        <div class="t-value cyan">{{ format_currency(avg_order_value) }}</div>
+        <div class="t-sub">Per transaction</div>
+    </div>
+    <div class="kpi-tile accent-orange">
+        <div class="t-icon orange"><i class="fas fa-tags"></i></div>
+        <div class="t-label">Cost of Goods</div>
+        <div class="t-value orange">{{ format_currency(cogs) }}</div>
+        <div class="t-sub">Product cost (COGS)</div>
+    </div>
+    <div class="kpi-tile accent-teal">
+        <div class="t-icon teal"><i class="fas fa-chart-bar"></i></div>
+        <div class="t-label">Gross Profit</div>
+        <div class="t-value teal">{{ format_currency(gross_profit) }}</div>
+        <div class="t-sub">Before expenses</div>
+    </div>
+    <div class="kpi-tile accent-blue">
+        <div class="t-icon blue"><i class="fas fa-exchange-alt"></i></div>
+        <div class="t-label">Net Revenue</div>
+        <div class="t-value blue">{{ format_currency(net_revenue) }}</div>
+        <div class="t-sub">Revenue &minus; Returns</div>
+    </div>
+</div>
+
+<!-- ── Returns & Voids ─────────────────────────────────────── -->
+<div class="section-label">Returns &amp; Adjustments</div>
+<div class="rv-strip">
+    <div class="rv-card">
+        <div class="rv-label"><i class="fas fa-undo" style="color:var(--amber-600);"></i> Returns</div>
+        <div class="rv-val amber">{{ return_count }}</div>
+        <div style="font-size:0.6875rem;color:var(--gray-400);">Transactions</div>
+    </div>
+    <div class="rv-card">
+        <div class="rv-label"><i class="fas fa-coins" style="color:var(--amber-600);"></i> Refund Value</div>
+        <div class="rv-val amber">{{ format_currency(return_value) }}</div>
+        <div style="font-size:0.6875rem;color:var(--gray-400);">Total refunded</div>
+    </div>
+    <div class="rv-card">
+        <div class="rv-label"><i class="fas fa-ban" style="color:var(--red-600);"></i> Voids</div>
+        <div class="rv-val red">{{ voided_count }}</div>
+        <div style="font-size:0.6875rem;color:var(--gray-400);">Voided sales</div>
+    </div>
+    <div class="rv-card">
+        <div class="rv-label"><i class="fas fa-times-circle" style="color:var(--red-600);"></i> Voided Value</div>
+        <div class="rv-val red">{{ format_currency(voided_value) }}</div>
+        <div style="font-size:0.6875rem;color:var(--gray-400);">Total voided</div>
+    </div>
+    <div class="rv-card">
+        <div class="rv-label"><i class="fas fa-exclamation-triangle" style="color:var(--amber-600);"></i> Low Stock</div>
+        <div class="rv-val {{ 'amber' if low_stock_count > 0 else '' }}">{{ low_stock_count }}</div>
+        <div style="font-size:0.6875rem;color:var(--gray-400);"><a href="{{ url_for('products.low_stock') }}" style="color:inherit;">View items</a></div>
+    </div>
+</div>
+
+<!-- ── Inventory Assets ────────────────────────────────────── -->
 <div class="section-label">Inventory Assets (Current Stock)</div>
-<div class="kpi-grid" style="margin-bottom:1.25rem;">
-    <div class="kpi-tile">
+<div class="kpi-grid-4" style="margin-bottom:1rem;">
+    <div class="kpi-tile accent-purple">
         <div class="t-icon purple"><i class="fas fa-tags"></i></div>
         <div class="t-label">Cost Value</div>
         <div class="t-value purple">{{ format_currency(inventory_cost) }}</div>
+        <div class="t-sub">What stock cost us</div>
     </div>
-    <div class="kpi-tile">
+    <div class="kpi-tile accent-blue">
         <div class="t-icon blue"><i class="fas fa-store"></i></div>
         <div class="t-label">Retail Value</div>
         <div class="t-value blue">{{ format_currency(inventory_retail) }}</div>
+        <div class="t-sub">At selling price</div>
     </div>
-    <div class="kpi-tile">
+    <div class="kpi-tile accent-teal">
         <div class="t-icon teal"><i class="fas fa-chart-line"></i></div>
-        <div class="t-label">Est. Profit</div>
+        <div class="t-label">Est. Margin</div>
         <div class="t-value teal">{{ format_currency(inventory_profit) }}</div>
+        <div class="t-sub">If all stock sold</div>
     </div>
-    <div class="kpi-tile">
+    <div class="kpi-tile accent-amber">
         <div class="t-icon amber"><i class="fas fa-boxes"></i></div>
         <div class="t-label">Units in Stock</div>
         <div class="t-value">{{ inventory_qty | int }}</div>
+        <div class="t-sub">Across all products</div>
     </div>
 </div>
 
-<!-- Charts -->
+<!-- ── Analytics Charts ────────────────────────────────────── -->
 <div class="section-label">Analytics</div>
 <div class="charts-grid">
+
     <!-- Revenue trend -->
     <div class="panel">
         <div class="panel-header">
-            <h5 class="panel-title"><i class="fas fa-chart-line"></i> Revenue Trend</h5>
+            <h5 class="panel-title"><i class="fas fa-chart-area"></i> Revenue Trend</h5>
         </div>
-        <div style="padding:1.25rem;min-height:280px;position:relative;">
+        <div style="padding:1.25rem;min-height:300px;position:relative;">
             <div class="chart-placeholder" id="salesLoader">
-                <div class="spinner-border spinner-border-sm"></div> Loading…
+                <div class="spinner-border spinner-border-sm"></div>
+                <span>Loading chart…</span>
             </div>
             <div id="noSalesData" style="display:none;" class="chart-placeholder">
-                <i class="fas fa-chart-bar" style="font-size:1.5rem;opacity:0.3;"></i> No data for selected period
+                <i class="fas fa-chart-bar" style="font-size:2rem;opacity:0.2;"></i>
+                <span>No data for selected period</span>
             </div>
             <canvas id="salesChart" style="display:none;"></canvas>
         </div>
     </div>
 
-    <!-- Right panel: payment + expense charts -->
-    <div style="display:flex;flex-direction:column;gap:1rem;">
-        <div class="panel">
+    <!-- Right panel -->
+    <div style="display:flex;flex-direction:column;gap:0.875rem;">
+        <div class="panel" style="flex:1;">
             <div class="panel-header">
-                <h5 class="panel-title"><i class="fas fa-pie-chart"></i> Payment Methods</h5>
+                <h5 class="panel-title"><i class="fas fa-circle-notch"></i> Payment Methods</h5>
             </div>
-            <div style="padding:1rem;min-height:160px;position:relative;">
-                <div class="chart-placeholder" id="paymentLoader" style="height:140px;">
+            <div style="padding:1rem;min-height:165px;position:relative;">
+                <div class="chart-placeholder" id="paymentLoader" style="height:145px;">
                     <div class="spinner-border spinner-border-sm"></div>
                 </div>
-                <canvas id="paymentChart" style="display:none;max-height:160px;"></canvas>
+                <canvas id="paymentChart" style="display:none;max-height:165px;"></canvas>
             </div>
         </div>
-        <div class="panel">
+        <div class="panel" style="flex:1;">
             <div class="panel-header">
                 <h5 class="panel-title"><i class="fas fa-tag" style="color:var(--red-600);"></i> Expense Breakdown</h5>
             </div>
-            <div style="padding:1rem;min-height:160px;position:relative;">
-                <div class="chart-placeholder" id="expenseLoader" style="height:140px;">
+            <div style="padding:1rem;min-height:165px;position:relative;">
+                <div class="chart-placeholder" id="expenseLoader" style="height:145px;">
                     <div class="spinner-border spinner-border-sm"></div>
                 </div>
-                <div id="noExpenseData" style="display:none;" class="chart-placeholder" style="height:140px;">No
-                    expenses</div>
-                <canvas id="expenseChart" style="display:none;max-height:160px;"></canvas>
+                <div id="noExpenseData" style="display:none;" class="chart-placeholder" style="height:145px;">
+                    <i class="fas fa-receipt" style="font-size:1.5rem;opacity:0.2;"></i>
+                    <span>No expense data</span>
+                </div>
+                <canvas id="expenseChart" style="display:none;max-height:165px;"></canvas>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Payment Breakdown by Method + Currency -->
+<!-- ── Payment Settlement ───────────────────────────────────── -->
 <div class="section-label">Payment Settlement</div>
-<div style="margin-bottom:1rem;">
-    <div class="panel">
-        <div class="panel-header">
-            <h5 class="panel-title"><i class="fas fa-exchange-alt"></i> Collections by Method &amp; Currency (USD Equivalent)</h5>
-        </div>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Method</th>
-                    <th style="text-align:center;">Currency</th>
-                    <th style="text-align:right;">Original Amount</th>
-                    <th style="text-align:right;">USD Equivalent</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in payment_breakdown %}
-                {% if row.usd_total != 0 %}
-                <tr>
-                    <td style="font-weight:500;">{{ row.method }}</td>
-                    <td style="text-align:center;">
-                        <span class="pill {{ 'pill-blue' if row.currency == 'USD' else 'pill-amber' }}">{{ row.currency }}</span>
-                    </td>
-                    <td style="text-align:right;">
-                        {% if row.currency == 'SLSH' %}
-                            {{ "{:,.0f}".format(row.original_total) }} SLSH
-                        {% else %}
-                            {{ format_currency(row.original_total) }}
-                        {% endif %}
-                    </td>
-                    <td style="text-align:right;font-weight:700;color:var(--green-600);">
-                        {{ format_currency(row.usd_total) }}
-                    </td>
-                </tr>
-                {% endif %}
-                {% else %}
-                <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--gray-400);">No payment data for this period</td></tr>
-                {% endfor %}
-            </tbody>
-            {% if payment_breakdown %}
-            <tfoot>
-                <tr style="font-weight:700;border-top:2px solid var(--border);">
-                    <td colspan="3" style="padding:0.5rem 0.75rem;">Total Collected (USD)</td>
-                    <td style="text-align:right;padding:0.5rem 0.75rem;color:var(--blue-600);">
-                        {{ format_currency(payment_breakdown | sum(attribute='usd_total')) }}
-                    </td>
-                </tr>
-            </tfoot>
-            {% endif %}
-        </table>
+<div class="panel" style="margin-bottom:1rem;">
+    <div class="panel-header">
+        <h5 class="panel-title"><i class="fas fa-exchange-alt"></i> Collections by Method &amp; Currency</h5>
+        <span style="font-size:0.75rem;color:var(--gray-400);">USD Equivalent</span>
     </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th style="text-align:center;">Currency</th>
+                <th style="text-align:right;">Original Amount</th>
+                <th style="text-align:right;">USD Equivalent</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in payment_breakdown %}
+            {% if row.usd_total != 0 %}
+            <tr>
+                <td style="font-weight:500;">{{ row.method }}</td>
+                <td style="text-align:center;">
+                    <span class="pill {{ 'pill-blue' if row.currency == 'USD' else 'pill-amber' }}">{{ row.currency }}</span>
+                </td>
+                <td style="text-align:right;">
+                    {% if row.currency == 'SLSH' %}
+                        {{ "{:,.0f}".format(row.original_total) }} SLSH
+                    {% else %}
+                        {{ format_currency(row.original_total) }}
+                    {% endif %}
+                </td>
+                <td style="text-align:right;font-weight:700;color:var(--green-600);">
+                    {{ format_currency(row.usd_total) }}
+                </td>
+            </tr>
+            {% endif %}
+            {% else %}
+            <tr>
+                <td colspan="4" style="text-align:center;padding:2rem;color:var(--gray-400);">
+                    <i class="fas fa-inbox" style="font-size:1.25rem;opacity:0.2;display:block;margin-bottom:0.4rem;"></i>
+                    No payment data for this period
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        {% if payment_breakdown %}
+        <tfoot>
+            <tr style="font-weight:700;border-top:2px solid var(--border);background:var(--gray-50);">
+                <td colspan="3" style="padding:0.625rem 0.75rem;color:var(--gray-700);">Total Collected (USD Equivalent)</td>
+                <td style="text-align:right;padding:0.625rem 0.75rem;color:var(--blue-600);font-size:1rem;">
+                    {{ format_currency(payment_breakdown | sum(attribute='usd_total')) }}
+                </td>
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
 </div>
 
-<!-- Data tables -->
+<!-- ── Breakdown Tables ────────────────────────────────────── -->
 <div class="section-label">Breakdown</div>
 <div class="tables-grid">
+
     <!-- Top Products -->
     <div class="panel">
         <div class="panel-header">
@@ -535,6 +699,7 @@
         <table class="data-table">
             <thead>
                 <tr>
+                    <th style="width:28px;">#</th>
                     <th>Product</th>
                     <th style="text-align:center;">Qty</th>
                     <th style="text-align:right;">Revenue</th>
@@ -543,15 +708,18 @@
             <tbody>
                 {% for p in top_products %}
                 <tr>
-                    <td style="font-weight:500;">{{ p.name if p.name is defined else p[0] }}</td>
-                    <td style="text-align:center;"><span class="pill pill-green">{{ p.total_sold if p.total_sold is
-                            defined else p[1] }}</span></td>
-                    <td style="text-align:right;font-weight:700;color:var(--blue-600);">{{
-                        format_currency(p.total_revenue if p.total_revenue is defined else p[2]) }}</td>
+                    <td><div class="rank-num">{{ loop.index }}</div></td>
+                    <td style="font-weight:500;font-size:0.8125rem;">{{ p.name if p.name is defined else p[0] }}</td>
+                    <td style="text-align:center;">
+                        <span class="pill pill-green">{{ p.total_sold if p.total_sold is defined else p[1] }}</span>
+                    </td>
+                    <td style="text-align:right;font-weight:700;color:var(--blue-600);font-size:0.8125rem;">
+                        {{ format_currency(p.total_revenue if p.total_revenue is defined else p[2]) }}
+                    </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="3" style="text-align:center;padding:2rem;color:var(--gray-400);">No product data</td>
+                    <td colspan="4" style="text-align:center;padding:2rem;color:var(--gray-400);">No product data</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -566,7 +734,7 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th style="width:32px;">#</th>
+                    <th style="width:28px;">#</th>
                     <th>Customer</th>
                     <th style="text-align:center;">Txns</th>
                     <th style="text-align:right;">Spent</th>
@@ -576,10 +744,18 @@
                 {% for c in top_customers %}
                 <tr>
                     <td style="color:var(--gray-400);font-size:0.75rem;">{{ loop.index }}</td>
-                    <td style="font-weight:500;">{{ c.full_name }}</td>
-                    <td style="text-align:center;"><span class="pill pill-green">{{ c.tx_count }}</span></td>
-                    <td style="text-align:right;font-weight:700;color:var(--blue-600);">{{
-                        format_currency(c.total_spent) }}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:0.375rem;">
+                            <div class="avatar-sm">{{ c.full_name[0] | upper }}</div>
+                            <span style="font-weight:500;font-size:0.8125rem;">{{ c.full_name }}</span>
+                        </div>
+                    </td>
+                    <td style="text-align:center;">
+                        <span class="pill pill-blue">{{ c.tx_count }}</span>
+                    </td>
+                    <td style="text-align:right;font-weight:700;color:var(--blue-600);font-size:0.8125rem;">
+                        {{ format_currency(c.total_spent) }}
+                    </td>
                 </tr>
                 {% else %}
                 <tr>
@@ -593,7 +769,7 @@
     <!-- Cashier Performance -->
     <div class="panel">
         <div class="panel-header">
-            <h5 class="panel-title"><i class="fas fa-users-cog"></i> By Cashier</h5>
+            <h5 class="panel-title"><i class="fas fa-users-cog"></i> Cashier Performance</h5>
         </div>
         <table class="data-table">
             <thead>
@@ -606,11 +782,18 @@
             <tbody>
                 {% for u in user_sales %}
                 <tr>
-                    <td style="font-weight:500;">{{ u.username if u.username is defined else u[0] }}</td>
-                    <td style="text-align:center;"><span class="pill pill-green">{{ u.count if u.count is defined else
-                            u[1] }}</span></td>
-                    <td style="text-align:right;font-weight:700;color:var(--green-600);">{{ format_currency(u.total if
-                        u.total is defined else u[2]) }}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:0.375rem;">
+                            <div class="avatar-sm">{{ (u.username if u.username is defined else u[0])[0] | upper }}</div>
+                            <span style="font-weight:500;font-size:0.8125rem;">{{ u.username if u.username is defined else u[0] }}</span>
+                        </div>
+                    </td>
+                    <td style="text-align:center;">
+                        <span class="pill pill-blue">{{ u.count if u.count is defined else u[1] }}</span>
+                    </td>
+                    <td style="text-align:right;font-weight:700;color:var(--green-600);font-size:0.8125rem;">
+                        {{ format_currency(u.total if u.total is defined else u[2]) }}
+                    </td>
                 </tr>
                 {% else %}
                 <tr>
@@ -620,12 +803,17 @@
             </tbody>
         </table>
     </div>
+
 </div>
 
-<!-- Recent Expenses -->
+<!-- ── Expenses in Period ───────────────────────────────────── -->
+<div class="section-label">Expenses in Period</div>
 <div class="panel" style="margin-bottom:1rem;">
     <div class="panel-header">
-        <h5 class="panel-title"><i class="fas fa-file-alt" style="color:var(--red-600);"></i> Expenses in Period</h5>
+        <h5 class="panel-title"><i class="fas fa-file-alt" style="color:var(--red-600);"></i> Expense Detail</h5>
+        <a href="{{ url_for('expenses.index') }}" style="font-size:0.75rem;color:var(--blue-600);text-decoration:none;font-weight:500;">
+            View all <i class="fas fa-arrow-right" style="font-size:0.65rem;"></i>
+        </a>
     </div>
     <table class="data-table">
         <thead>
@@ -640,35 +828,44 @@
         <tbody>
             {% for exp in recent_expenses %}
             <tr>
-                <td style="color:var(--gray-500);white-space:nowrap;">{{ exp.date.strftime('%d %b %Y') }}</td>
-                <td style="font-weight:500;">{{ exp.title }}</td>
-                <td><span class="pill cat-pill" data-color="{{ exp.category.color }}">{{ exp.category.name }}</span></td>
-                <td style="text-align:center;">
-                    {% if exp.status.value == 'Paid' %}<span class="pill pill-green">Paid</span>
-                    {% else %}<span class="pill pill-amber">Pending</span>{% endif %}
+                <td style="color:var(--gray-500);white-space:nowrap;font-size:0.8125rem;">{{ exp.date.strftime('%d %b %Y') }}</td>
+                <td style="font-weight:500;font-size:0.8125rem;">{{ exp.title }}</td>
+                <td>
+                    <span class="pill cat-pill" data-color="{{ exp.category.color }}">{{ exp.category.name }}</span>
                 </td>
-                <td style="text-align:right;font-weight:700;color:var(--red-600);">{{ format_currency(exp.amount) }}
+                <td style="text-align:center;">
+                    {% if exp.status.value == 'Paid' %}
+                    <span class="pill pill-green">Paid</span>
+                    {% else %}
+                    <span class="pill pill-amber">Pending</span>
+                    {% endif %}
+                </td>
+                <td style="text-align:right;font-weight:700;color:var(--red-600);font-size:0.8125rem;">
+                    {{ format_currency(exp.amount) }}
                 </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-400);">No expenses for this
-                    period</td>
+                <td colspan="5" style="text-align:center;padding:2.5rem;color:var(--gray-400);">
+                    <i class="fas fa-receipt" style="font-size:1.5rem;opacity:0.2;display:block;margin-bottom:0.4rem;"></i>
+                    No expenses for this period
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
 
+<!-- Toast -->
 <div class="toast-fixed">
-    <div id="reportsToast" class="toast align-items-center text-white bg-danger border-0" role="alert"
-        aria-live="assertive" aria-atomic="true">
+    <div id="reportsToast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="d-flex">
             <div class="toast-body" id="reportsToastBody">Error occurred</div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -701,35 +898,84 @@
         var t = document.getElementById('reportType').value;
         var start = document.getElementById('startDate');
         var end = document.getElementById('endDate');
-        if (t === 'custom') { start.removeAttribute('disabled'); end.removeAttribute('disabled'); }
-        else { start.setAttribute('disabled', 'disabled'); end.setAttribute('disabled', 'disabled'); }
+        if (t === 'custom') {
+            start.removeAttribute('disabled');
+            end.removeAttribute('disabled');
+        } else {
+            start.setAttribute('disabled', 'disabled');
+            end.setAttribute('disabled', 'disabled');
+        }
     }
 
-    var salesChart = null, paymentChart = null;
+    var salesChartObj = null, paymentChartObj = null, expenseChartObj = null;
 
     function renderSalesChart(labels, values) {
         var loader = document.getElementById('salesLoader');
         var noData = document.getElementById('noSalesData');
         var canvas = document.getElementById('salesChart');
         if (loader) loader.style.display = 'none';
-        var hasData = Array.isArray(values) && values.length > 0 && values.some(function (v) { return v > 0; });
-        if (!hasData) { if (noData) noData.style.display = 'flex'; return; }
+        var hasData = Array.isArray(values) && values.length > 0 && values.some(function(v) { return v > 0; });
+        if (!hasData) {
+            if (noData) noData.style.display = 'flex';
+            return;
+        }
         if (noData) noData.style.display = 'none';
         canvas.style.display = 'block';
         var ctx = canvas.getContext('2d');
-        if (salesChart) salesChart.destroy();
-        salesChart = new Chart(ctx, {
+        if (salesChartObj) salesChartObj.destroy();
+        salesChartObj = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [{ label: 'Revenue', data: values, borderColor: '#2563EB', backgroundColor: 'rgba(37,99,235,0.06)', borderWidth: 2, tension: 0.4, fill: true, pointRadius: 3, pointBackgroundColor: '#fff', pointBorderColor: '#2563EB', pointBorderWidth: 2, pointHoverRadius: 5 }]
+                datasets: [{
+                    label: 'Revenue',
+                    data: values,
+                    borderColor: '#2563EB',
+                    backgroundColor: 'rgba(37,99,235,0.07)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 2.5,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#2563EB',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 5
+                }]
             },
             options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, backgroundColor: '#fff', titleColor: '#0F172A', bodyColor: '#64748B', borderColor: '#E2E8F0', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function (c) { return window.CURRENCY_SYMBOL + c.parsed.y.toLocaleString(); } } } },
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: '#fff',
+                        titleColor: '#0F172A',
+                        bodyColor: '#64748B',
+                        borderColor: '#E2E8F0',
+                        borderWidth: 1,
+                        padding: 10,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(c) {
+                                return window.CURRENCY_SYMBOL + c.parsed.y.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                            }
+                        }
+                    }
+                },
                 scales: {
-                    y: { beginAtZero: true, grid: { color: '#F1F5F9', borderDash: [3, 3] }, ticks: { color: '#94A3B8', font: { size: 11 }, callback: function (v) { return window.CURRENCY_SYMBOL + v; } }, border: { display: false } },
-                    x: { grid: { display: false }, ticks: { color: '#94A3B8', font: { size: 11 } }, border: { display: false } }
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#F1F5F9', borderDash: [3, 3] },
+                        ticks: { color: '#94A3B8', font: { size: 11 }, callback: function(v) { return window.CURRENCY_SYMBOL + v; } },
+                        border: { display: false }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94A3B8', font: { size: 11 }, maxTicksLimit: 10, maxRotation: 0 },
+                        border: { display: false }
+                    }
                 }
             }
         });
@@ -739,14 +985,38 @@
         var loader = document.getElementById('paymentLoader');
         var canvas = document.getElementById('paymentChart');
         if (loader) loader.style.display = 'none';
-        if (!values || !values.length || values.every(function (v) { return v === 0; })) return;
+        if (!values || !values.length || values.every(function(v) { return v === 0; })) return;
         canvas.style.display = 'block';
-        var colors = labels.map(function (l) { l = String(l).toLowerCase(); if (l.includes('zaad')) return '#16A34A'; if (l.includes('dahab')) return '#D97706'; if (l.includes('credit')) return '#7C3AED'; if (l.includes('mobile')) return '#0891B2'; if (l.includes('card')) return '#2563EB'; return '#64748B'; });
-        if (paymentChart) paymentChart.destroy();
-        paymentChart = new Chart(canvas.getContext('2d'), {
+        var colors = labels.map(function(l) {
+            l = String(l).toLowerCase();
+            if (l.includes('zaad'))   return '#16A34A';
+            if (l.includes('dahab'))  return '#D97706';
+            if (l.includes('credit')) return '#7C3AED';
+            if (l.includes('mobile')) return '#0891B2';
+            if (l.includes('card'))   return '#2563EB';
+            if (l.includes('cash'))   return '#64748B';
+            return '#94A3B8';
+        });
+        if (paymentChartObj) paymentChartObj.destroy();
+        paymentChartObj = new Chart(canvas.getContext('2d'), {
             type: 'doughnut',
-            data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0, hoverOffset: 8 }] },
-            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 10, font: { size: 10 } } }, tooltip: { callbacks: { label: function (c) { return ' ' + c.label + ': ' + window.CURRENCY_SYMBOL + c.parsed.toLocaleString(); } } } } }
+            data: {
+                labels: labels,
+                datasets: [{ data: values, backgroundColor: colors, borderWidth: 0, hoverOffset: 8 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 10, font: { size: 10 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(c) { return ' ' + c.label + ': ' + window.CURRENCY_SYMBOL + c.parsed.toLocaleString(); }
+                        }
+                    }
+                }
+            }
         });
     }
 
@@ -755,29 +1025,47 @@
         var noData = document.getElementById('noExpenseData');
         var canvas = document.getElementById('expenseChart');
         if (loader) loader.style.display = 'none';
-        if (!values || !values.length || values.every(function (v) { return v === 0; })) { if (noData) noData.style.display = 'flex'; return; }
+        if (!values || !values.length || values.every(function(v) { return v === 0; })) {
+            if (noData) noData.style.display = 'flex';
+            return;
+        }
         if (noData) noData.style.display = 'none';
         canvas.style.display = 'block';
         var defaultColors = ['#2563EB', '#16A34A', '#D97706', '#DC2626', '#7C3AED', '#0891B2', '#64748B'];
         var chartColors = (colors && colors.length) ? colors : defaultColors;
-        if (window.expenseChartObj) window.expenseChartObj.destroy();
-        window.expenseChartObj = new Chart(canvas.getContext('2d'), {
+        if (expenseChartObj) expenseChartObj.destroy();
+        expenseChartObj = new Chart(canvas.getContext('2d'), {
             type: 'pie',
-            data: { labels: labels, datasets: [{ data: values, backgroundColor: chartColors, borderWidth: 0 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 10, font: { size: 10 } } } } }
+            data: {
+                labels: labels,
+                datasets: [{ data: values, backgroundColor: chartColors, borderWidth: 0 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 10, font: { size: 10 } } }
+                }
+            }
         });
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         try {
             var data = JSON.parse(document.getElementById('report-data').textContent);
             var dailySales = Array.isArray(data.dailySales) ? data.dailySales : [];
-            renderSalesChart(dailySales.map(function (d) { return d.date; }), dailySales.map(function (d) { return d.sales; }));
+            renderSalesChart(
+                dailySales.map(function(d) { return d.date; }),
+                dailySales.map(function(d) { return d.sales; })
+            );
             renderPaymentChart(data.paymentLabels || [], data.paymentValues || []);
             renderExpenseChart(data.expenseLabels, data.expenseValues, data.expenseColors);
             onReportTypeChange();
-        } catch (e) { console.error('Report init:', e); }
-        // Apply category pill colors from data attribute
+        } catch(e) {
+            console.error('Report init:', e);
+        }
+
+        // Apply expense category pill colors from data-color attribute
         document.querySelectorAll('.cat-pill[data-color]').forEach(function(el) {
             var c = el.dataset.color;
             el.style.background = c + '20';

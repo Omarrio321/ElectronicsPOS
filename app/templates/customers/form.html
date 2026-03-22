@@ -46,12 +46,16 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div class="breadcrumb-nav">
-        <a href="{{ url_for('customers.index') }}">Customers</a>
-        <i class="fas fa-chevron-right" style="font-size:0.5rem;"></i>
-        <span>{{ 'Edit' if customer else 'New Customer' }}</span>
-    </div>
+<div class="bc-nav">
+    <a href="{{ url_for('customers.index') }}"><i class="fas fa-users" style="font-size:0.7rem;"></i> Customers</a>
+    <i class="fas fa-chevron-right bc-sep"></i>
+    {% if customer %}
+    <a href="{{ url_for('customers.profile', customer_id=customer.id) }}">{{ customer.full_name }}</a>
+    <i class="fas fa-chevron-right bc-sep"></i>
+    <span class="bc-cur">Edit</span>
+    {% else %}
+    <span class="bc-cur">New Customer</span>
+    {% endif %}
 </div>
 <h1 style="font-size:1.375rem;font-weight:700;color:var(--gray-900);margin:0 0 1.25rem;letter-spacing:-0.01em;">
     <i class="fas fa-{{ 'user-edit' if customer else 'user-plus' }} me-2" style="color:var(--blue-600);font-size:1.1rem;"></i>

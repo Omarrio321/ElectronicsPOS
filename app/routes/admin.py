@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required, current_user
-from app.models import User, Role, SystemSetting, Sale, Product, Category, SaleItem
-from app import db
+from app.models import User, Role, SystemSetting, Sale, Product, Category, SaleItem, Payment
+from app import db, limiter
 from app.forms import UserForm, SystemSettingsForm
 from app.decorators import role_required
 from app.services.audit_service import AuditService
@@ -10,7 +10,11 @@ from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 import json
 import os
+import sys
 import uuid
+import signal
+import threading
+import time
 
 # Allowed file extensions for logo upload
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -27,17 +31,19 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 @role_required('Admin')
 def dashboard():
     
-    # Get dashboard statistics
+    # Get dashboard statistics — use payment data (cash collected) not invoice totals
     total_sales = Sale.query.count()
-    total_revenue = db.session.query(func.sum(Sale.grand_total)).scalar() or 0
     total_products = Product.query.count()
     low_stock_products = Product.query.filter(Product.quantity_in_stock <= Product.low_stock_threshold).count()
-    
-    # Get today's sales
+
+    # Revenue = sum of USD-equivalent payments (coalesce handles legacy NULL amount_in_usd)
+    usd_amt = func.coalesce(Payment.amount_in_usd, Payment.amount)
+    total_revenue = db.session.query(func.sum(usd_amt)).scalar() or 0
+
     today = datetime.utcnow().date()
     today_sales = Sale.query.filter(func.date(Sale.created_at) == today).count()
-    today_revenue = db.session.query(func.sum(Sale.grand_total)).filter(
-        func.date(Sale.created_at) == today
+    today_revenue = db.session.query(func.sum(usd_amt)).filter(
+        func.date(Payment.created_at) == today
     ).scalar() or 0
     
     # Get recent sales
@@ -158,7 +164,13 @@ def settings():
         'currency_symbol': ('$', 'Currency Symbol'),
         'exchange_rate_usd_slsh': ('1000', '1 USD = X Somaliland Shillings (SLSH)'),
         'receipt_header': ('Thank you for shopping with us!', 'Receipt Header'),
-        'receipt_footer': ('No returns without receipt.', 'Receipt Footer')
+        'receipt_footer': ('No returns without receipt.', 'Receipt Footer'),
+        # Barcode & label defaults
+        'barcode_prefix':     ('EP', 'Internal barcode prefix (e.g. EP)'),
+        'barcode_padding':    ('8', 'Numeric padding for generated barcodes (4–12 digits)'),
+        'label_show_price':   ('true', 'Show price on printed labels'),
+        'label_show_sku':     ('true', 'Show SKU on printed labels'),
+        'label_show_company': ('false', 'Show company name on printed labels'),
     }
     
     for key, (val, desc_text) in defaults.items():
@@ -209,25 +221,34 @@ def settings():
                 else:
                     flash('Invalid file type. Please upload PNG, JPG, JPEG, GIF, or WEBP.', 'danger')
         
+        # Checkbox-based boolean settings: value is 'true' if checked, 'false' if absent
+        BOOLEAN_SETTINGS = {'label_show_price', 'label_show_sku', 'label_show_company'}
+
         # Handle other settings — track old values for sensitive fields
         rate_change = None
         for setting in settings_list:
-            new_value = request.form.get(setting.key)
-            if new_value is not None:
-                if setting.value != new_value:
-                    if setting.key == 'exchange_rate_usd_slsh':
-                        # Validate: must be a positive number
-                        try:
-                            new_rate = float(new_value)
-                            if new_rate <= 0:
-                                flash('Exchange rate must be a positive number.', 'danger')
-                                return redirect(url_for('admin.settings'))
-                        except ValueError:
-                            flash('Exchange rate must be a valid number.', 'danger')
+            if setting.key in BOOLEAN_SETTINGS:
+                # Checkbox: present in POST means checked (value='true'), absent means unchecked
+                new_value = 'true' if request.form.get(setting.key) == 'true' else 'false'
+            else:
+                new_value = request.form.get(setting.key)
+                if new_value is None:
+                    continue
+
+            if setting.value != new_value:
+                if setting.key == 'exchange_rate_usd_slsh':
+                    # Validate: must be a positive number
+                    try:
+                        new_rate = float(new_value)
+                        if new_rate <= 0:
+                            flash('Exchange rate must be a positive number.', 'danger')
                             return redirect(url_for('admin.settings'))
-                        rate_change = {'old': setting.value, 'new': new_value}
-                    setting.value = new_value
-                    updated_keys.append(setting.key)
+                    except ValueError:
+                        flash('Exchange rate must be a valid number.', 'danger')
+                        return redirect(url_for('admin.settings'))
+                    rate_change = {'old': setting.value, 'new': new_value}
+                setting.value = new_value
+                updated_keys.append(setting.key)
 
         if updated_keys:
             db.session.commit()
@@ -249,8 +270,8 @@ def settings():
         return redirect(url_for('admin.settings'))
     
     if request.method == 'POST' and not form.validate():
-        print(f"DEBUG: Form validation failed. Errors: {form.errors}", flush=True)
-        flash(f'Error updating settings: {form.errors}', 'danger')
+        current_app.logger.warning(f"Settings form validation failed: {form.errors}")
+        flash('Error updating settings. Please check your input and try again.', 'danger')
     
     settings_dict = {s.key: s for s in settings_list}
     return render_template('admin/settings.html', settings=settings_list, settings_dict=settings_dict, form=form, current_logo=current_logo)
@@ -262,6 +283,56 @@ def logs():
     page = request.args.get('page', 1, type=int)
     audit_logs = AuditService.get_logs(page=page, per_page=50)
     return render_template('admin/logs.html', logs=audit_logs)
+
+@admin_bp.route('/api/shutdown', methods=['POST'])
+@login_required
+@role_required('Admin')
+@limiter.limit("1 per 30 seconds")
+def api_shutdown():
+    """
+    Gracefully stop the Waitress server.
+    Requires JSON body: { "confirm": true }
+    Only accessible to Admin users. Rate-limited to 1 call per 30 seconds.
+    """
+    data = request.get_json(silent=True) or {}
+
+    if not data.get('confirm'):
+        return jsonify({'status': 'error', 'message': 'Confirmation required.'}), 400
+
+    # Log who triggered the shutdown
+    ip = request.remote_addr or 'unknown'
+    AuditService.log_action(
+        action='SERVER_SHUTDOWN',
+        target_type='System',
+        details={
+            'triggered_by': current_user.username,
+            'ip_address': ip,
+            'timestamp': datetime.utcnow().isoformat(),
+        }
+    )
+    current_app.logger.warning(
+        f'[SHUTDOWN] Initiated by user "{current_user.username}" from {ip}'
+    )
+
+    def _delayed_shutdown():
+        """Wait for response to reach the client, then shut down."""
+        time.sleep(2)
+        # Access the live running module via __main__ (works when launched via
+        # `python server.py`).  Falls back to os._exit for any other launcher.
+        main_mod = sys.modules.get('__main__')
+        if main_mod is not None and hasattr(main_mod, 'request_shutdown'):
+            main_mod.request_shutdown()
+        else:
+            os._exit(0)
+
+    thread = threading.Thread(target=_delayed_shutdown, daemon=True, name='shutdown-trigger')
+    thread.start()
+
+    return jsonify({
+        'status': 'shutdown_initiated',
+        'message': 'Server is shutting down. All connections will be closed.',
+    })
+
 
 def get_sales_data():
     """Get sales data for the last 30 days - optimized with single query"""

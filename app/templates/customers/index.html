@@ -4,26 +4,6 @@
 
 {% block head %}
 <style>
-    :root {
-        --blue-600: #2563EB;
-        --blue-500: #3B82F6;
-        --blue-50:  #EFF6FF;
-        --blue-100: #DBEAFE;
-        --gray-50:  #F8FAFC;
-        --gray-100: #F1F5F9;
-        --gray-200: #E2E8F0;
-        --gray-400: #94A3B8;
-        --gray-500: #64748B;
-        --gray-700: #334155;
-        --gray-900: #0F172A;
-        --green-600: #16A34A;
-        --red-600:   #DC2626;
-        --red-50:    #FEF2F2;
-        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-        --border:    1px solid var(--gray-200);
-        --radius:    8px;
-    }
-
     body { background: var(--gray-50); }
 
     /* ── Page header ── */
@@ -46,7 +26,16 @@
         color: var(--gray-500);
         margin-top: 2px;
     }
-    .page-actions { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
+    .page-actions { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
+    @media (max-width: 600px) {
+        .page-header { flex-direction: column; }
+        .page-actions { width: 100%; }
+        .page-actions .btn-primary-solid,
+        .page-actions .btn-outline-soft { flex: 1 1 auto; justify-content: center; min-height: 40px; }
+        .ft-search-wrap { width: 100%; }
+        .seg-group { width: 100%; justify-content: stretch; }
+        .seg-btn { flex: 1; justify-content: center; }
+    }
 
     /* ── Buttons ── */
     .btn-primary-solid {
@@ -296,71 +285,6 @@
         flex-shrink: 0;
     }
 
-    /* ── Search / filter bar ── */
-    .filter-bar {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-    .filter-input-wrap {
-        position: relative;
-        flex: 1;
-        min-width: 160px;
-        max-width: 240px;
-    }
-    .filter-input-wrap i {
-        position: absolute;
-        left: 0.625rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--gray-400);
-        font-size: 0.75rem;
-        pointer-events: none;
-    }
-    .filter-input {
-        width: 100%;
-        border: var(--border);
-        border-radius: 6px;
-        padding: 0.375rem 0.625rem 0.375rem 1.75rem;
-        font-size: 0.8125rem;
-        color: var(--gray-900);
-        background: #fff;
-        outline: none;
-        transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    .filter-input:focus {
-        border-color: var(--blue-500);
-        box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
-    }
-    .filter-select {
-        border: var(--border);
-        border-radius: 6px;
-        padding: 0.375rem 1.75rem 0.375rem 0.625rem;
-        font-size: 0.8125rem;
-        color: var(--gray-700);
-        background: #fff;
-        outline: none;
-        transition: border-color 0.15s;
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 0.5rem center;
-        cursor: pointer;
-    }
-    .filter-select:focus { border-color: var(--blue-500); }
-    .btn-filter-go {
-        border: var(--border);
-        background: var(--gray-100);
-        color: var(--gray-600);
-        padding: 0.375rem 0.625rem;
-        border-radius: 6px;
-        font-size: 0.8125rem;
-        cursor: pointer;
-        transition: background 0.15s;
-    }
-    .btn-filter-go:hover { background: var(--gray-200); color: var(--gray-900); }
-
     /* ── Row action buttons ── */
     .row-actions { display: flex; gap: 0.25rem; justify-content: flex-end; }
     .act-btn {
@@ -461,10 +385,182 @@
         color: var(--gray-700);
     }
     .dropdown-menu-sm .dropdown-item:hover { background: var(--gray-100); }
+
+    /* ── Filter toolbar (integrated inside panel) ── */
+    .filter-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+        padding: 0.625rem 1.25rem;
+        background: var(--gray-50);
+        border-bottom: var(--border);
+        flex-wrap: wrap;
+    }
+    .ft-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+        flex-wrap: wrap;
+    }
+
+    /* Search input */
+    .ft-search-wrap {
+        position: relative;
+        width: 224px;
+    }
+    .ft-search-wrap .ft-search-icon {
+        position: absolute;
+        left: 0.625rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray-400);
+        font-size: 0.6875rem;
+        pointer-events: none;
+    }
+    .ft-search-wrap input {
+        width: 100%;
+        padding: 0.375rem 1.75rem 0.375rem 1.875rem;
+        border: 1px solid var(--gray-200);
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        color: var(--gray-900);
+        background: #fff;
+        outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .ft-search-wrap input::placeholder { color: var(--gray-400); }
+    .ft-search-wrap input:focus {
+        border-color: var(--blue-500);
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    .ft-search-wrap .ft-clear-x {
+        position: absolute;
+        right: 0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 16px; height: 16px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--gray-400);
+        font-size: 0.6rem;
+        text-decoration: none;
+        transition: background 0.12s, color 0.12s;
+    }
+    .ft-search-wrap .ft-clear-x:hover { background: var(--gray-200); color: var(--gray-600); }
+
+    /* Segmented control */
+    .seg-group {
+        display: inline-flex;
+        background: #E9EEF4;
+        border-radius: 8px;
+        padding: 3px;
+        gap: 2px;
+    }
+    .seg-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3125rem 0.8125rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--gray-500);
+        text-decoration: none;
+        white-space: nowrap;
+        transition: color 0.12s;
+        line-height: 1.4;
+        user-select: none;
+    }
+    .seg-btn:hover { color: var(--gray-800); text-decoration: none; }
+    .seg-btn.seg-active {
+        background: #fff;
+        color: var(--gray-900);
+        font-weight: 600;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .seg-btn.seg-active:hover { color: var(--gray-900); }
+    .seg-btn.seg-debt { color: #B45309; }
+    .seg-btn.seg-debt:hover { color: #92400E; }
+    .seg-btn.seg-debt.seg-active { color: var(--red-600); }
+
+    /* Count badges inside seg tabs */
+    .seg-ct {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 17px;
+        height: 17px;
+        padding: 0 4px;
+        border-radius: 9px;
+        font-size: 0.625rem;
+        font-weight: 700;
+        line-height: 1;
+        background: var(--gray-200);
+        color: var(--gray-600);
+    }
+    .seg-active .seg-ct {
+        background: var(--gray-100);
+        color: var(--gray-700);
+    }
+    .seg-ct-red {
+        background: #FEE2E2;
+        color: var(--red-600);
+    }
+    .seg-active .seg-ct-red {
+        background: #FECACA;
+        color: #B91C1C;
+    }
+
+    /* Toolbar right side */
+    .ft-right {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+    .ft-clear-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--gray-500);
+        text-decoration: none;
+        padding: 0.3125rem 0.625rem;
+        border-radius: 6px;
+        border: 1px solid var(--gray-200);
+        background: #fff;
+        transition: color 0.12s, border-color 0.12s, background 0.12s;
+        white-space: nowrap;
+    }
+    .ft-clear-btn:hover { color: var(--gray-800); border-color: var(--gray-300); background: var(--gray-50); text-decoration: none; }
+    .ft-search-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #fff;
+        background: var(--blue-600);
+        border: none;
+        padding: 0.3125rem 0.75rem;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.14s;
+        white-space: nowrap;
+    }
+    .ft-search-btn:hover { background: #1D4ED8; }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="bc-nav">
+    <i class="fas fa-users" style="font-size:0.7rem;color:var(--blue-600);"></i>
+    <span class="bc-cur">Customers</span>
+</div>
 
 <!-- ── Page Header ── -->
 <div class="page-header">
@@ -650,41 +746,89 @@
 
 <!-- ── Customer List (full-width, bottom) ── -->
 <div class="panel">
+    <!-- Panel header: title + result count -->
     <div class="panel-header">
-        <div style="display:flex;align-items:center;gap:0.75rem;">
+        <div style="display:flex;align-items:center;gap:0.625rem;">
             <h5 class="panel-title"><i class="fas fa-users"></i> All Customers</h5>
             {% if customers.total is defined %}
             <span style="font-size:0.6875rem;color:var(--gray-400);background:var(--gray-100);padding:0.125rem 0.5rem;border-radius:20px;font-weight:600;">
-                {{ customers.total }} total
+                {{ customers.total }}{% if search or status_filter %} found{% else %} total{% endif %}
             </span>
             {% endif %}
         </div>
-        <form method="GET" class="filter-bar">
-            <div class="filter-input-wrap">
-                <i class="fas fa-search"></i>
-                <input type="text" name="search" class="filter-input"
-                       placeholder="Search by name or phone…" value="{{ search }}">
-            </div>
-            <select name="status" class="filter-select">
-                <option value="">All Status</option>
-                <option value="Active"   {% if status_filter == 'Active' %}selected{% endif %}>Active</option>
-                <option value="Inactive" {% if status_filter == 'Inactive' %}selected{% endif %}>Inactive</option>
-                <option disabled>──────────</option>
-                <option value="Debtors"  {% if status_filter == 'Debtors' %}selected{% endif %} style="color:var(--red-600);">Owes Money</option>
-            </select>
-            <button type="submit" class="btn-filter-go" title="Apply filter">
-                <i class="fas fa-arrow-right"></i>
-            </button>
-        </form>
+        {% if search or status_filter %}
+        <a href="{{ url_for('customers.index') }}"
+           style="font-size:0.75rem;color:var(--gray-400);text-decoration:none;display:flex;align-items:center;gap:0.3rem;transition:color 0.12s;"
+           onmouseover="this.style.color='var(--gray-700)'" onmouseout="this.style.color='var(--gray-400)'">
+            <i class="fas fa-times" style="font-size:0.6rem;"></i> Clear filters
+        </a>
+        {% endif %}
     </div>
 
+    <!-- Integrated filter toolbar -->
+    <form method="GET" class="filter-toolbar">
+        {% if request.args.get('metric') %}
+        <input type="hidden" name="metric" value="{{ request.args.get('metric') }}">
+        {% endif %}
+
+        <div class="ft-left">
+            <!-- Search -->
+            <div class="ft-search-wrap">
+                <i class="fas fa-search ft-search-icon"></i>
+                <input type="text" name="search"
+                       placeholder="Search name or phone…"
+                       value="{{ search }}"
+                       autocomplete="off">
+                {% if search %}
+                <a href="{{ url_for('customers.index', status=status_filter) }}"
+                   class="ft-clear-x" title="Clear search">
+                    <i class="fas fa-times"></i>
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Segmented status control -->
+            <div class="seg-group">
+                <a href="{{ url_for('customers.index', search=search) }}"
+                   class="seg-btn {% if not status_filter %}seg-active{% endif %}">
+                    All
+                    {% if customers.total is defined and not search and not status_filter %}
+                    <span class="seg-ct">{{ customers.total }}</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for('customers.index', search=search, status='Active') }}"
+                   class="seg-btn {% if status_filter == 'Active' %}seg-active{% endif %}">
+                    Active
+                </a>
+                <a href="{{ url_for('customers.index', search=search, status='Inactive') }}"
+                   class="seg-btn {% if status_filter == 'Inactive' %}seg-active{% endif %}">
+                    Inactive
+                </a>
+                <a href="{{ url_for('customers.index', search=search, status='Debtors') }}"
+                   class="seg-btn seg-debt {% if status_filter == 'Debtors' %}seg-active{% endif %}">
+                    Owes Money
+                    {% if stats and stats.balance_due_count > 0 %}
+                    <span class="seg-ct seg-ct-red">{{ stats.balance_due_count }}</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+
+        <div class="ft-right">
+            <button type="submit" class="ft-search-btn">
+                <i class="fas fa-search" style="font-size:0.65rem;"></i> Search
+            </button>
+        </div>
+    </form>
+
+    <div class="table-responsive-cards">
     <table class="data-table">
         <thead>
             <tr>
                 <th>Customer</th>
-                <th>Phone</th>
+                <th class="mobile-hide">Phone</th>
                 <th style="text-align:right;">Balance</th>
-                <th style="text-align:center;">Status</th>
+                <th style="text-align:center;" class="mobile-hide">Status</th>
                 <th style="text-align:right;">Actions</th>
             </tr>
         </thead>
@@ -693,7 +837,7 @@
             {% set debt   = customer.get_current_debt() %}
             {% set credit = customer.get_available_credit() %}
             <tr {% if debt > 0 %}class="row-debt"{% endif %}>
-                <td>
+                <td data-label="Customer">
                     <div style="display:flex;align-items:center;gap:0.5rem;">
                         <div class="avatar-xs">{{ customer.full_name[0] | upper }}</div>
                         <a href="{{ url_for('customers.profile', customer_id=customer.id) }}"
@@ -702,10 +846,10 @@
                         </a>
                     </div>
                 </td>
-                <td style="color:var(--gray-500);">
+                <td data-label="Phone" class="mobile-hide" style="color:var(--gray-500);">
                     {% if customer.phone %}{{ customer.phone }}{% else %}—{% endif %}
                 </td>
-                <td style="text-align:right;">
+                <td data-label="Balance" style="text-align:right;">
                     {% if debt > 0 %}
                         <span class="debt-badge">{{ format_currency(debt) }}</span>
                     {% elif credit > 0 %}
@@ -714,14 +858,14 @@
                         <span style="color:var(--gray-400);font-size:0.75rem;">—</span>
                     {% endif %}
                 </td>
-                <td style="text-align:center;">
+                <td data-label="Status" class="mobile-hide" style="text-align:center;">
                     {% if customer.status.value == 'Active' %}
                         <span class="badge-status badge-active">Active</span>
                     {% else %}
                         <span class="badge-status badge-inactive">Inactive</span>
                     {% endif %}
                 </td>
-                <td>
+                <td class="td-actions">
                     <div class="row-actions">
                         <a href="{{ url_for('customers.profile', customer_id=customer.id) }}"
                            class="act-btn" title="View profile">
@@ -747,6 +891,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 
     {% if customers.pages > 1 %}
     <div class="pagination-bar">

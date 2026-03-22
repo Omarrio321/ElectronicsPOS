@@ -173,13 +173,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             }, 400);
         });
 
-        // Barcode scanning (Enter key)
+        // ── Barcode scanner detection via keystroke timing ──────────────────────
+        // Scanners emit all characters in <100 ms total; humans type at >100 ms/key.
+        // We track inter-key gaps: if several consecutive gaps are below SPEED_MS
+        // we treat the submission as scanner-originated and auto-add when exactly
+        // one product matches (exact barcode hit).
+        const scanTracker = { lastTime: 0, fastCount: 0, SPEED_MS: 50, MIN_LEN: 3 };
+
         searchInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                // For barcode, we trigger immediate search
+                clearTimeout(searchTimeout); // cancel pending debounced search
                 state.searchQuery = searchInput.value.trim();
-                loadProducts(true);
+                const isScanner = scanTracker.fastCount >= scanTracker.MIN_LEN;
+                scanTracker.fastCount = 0;
+                loadProducts(true, isScanner);
+            } else {
+                const now = Date.now();
+                const gap = now - scanTracker.lastTime;
+                scanTracker.lastTime = now;
+                scanTracker.fastCount = (gap < scanTracker.SPEED_MS) ? scanTracker.fastCount + 1 : 0;
             }
         });
     }
@@ -231,7 +244,7 @@ async function loadInitialData() {
     }
 }
 
-async function loadProducts(reset = false) {
+async function loadProducts(reset = false, autoAdd = false) {
     if (state.pagination.isLoading) return;
 
     if (reset) {
@@ -271,6 +284,20 @@ async function loadProducts(reset = false) {
         showToast("Error loading products");
     } finally {
         state.pagination.isLoading = false;
+
+        // Scanner auto-add: if the scan returned exactly one product, add it to
+        // the cart immediately and reset the search to show the full grid.
+        if (autoAdd && state.products.length === 1 && !state.pagination.hasMore) {
+            addToCart(state.products[0].id);
+            const searchEl = document.getElementById('productSearch');
+            const clearBtn = document.getElementById('clearSearch');
+            if (searchEl) searchEl.value = '';
+            if (clearBtn) clearBtn.style.display = 'none';
+            state.searchQuery = '';
+            await loadProducts(true, false);
+            return;
+        }
+
         renderProducts();
         updateLoadMoreButton();
     }
@@ -485,6 +512,12 @@ function updateTotals() {
     if (subtotalDisplay) subtotalDisplay.innerText = `$${sub.toFixed(2)}`;
     if (taxDisplay) taxDisplay.innerText = `$${tax.toFixed(2)}`;
     if (totalDisplay) totalDisplay.innerText = `$${total.toFixed(2)}`;
+
+    const totalSlshDisplay = document.getElementById('totalSlshDisplay');
+    if (totalSlshDisplay) {
+        const slsh = total * state.exchangeRate;
+        totalSlshDisplay.innerText = `SLSH ${Math.round(slsh).toLocaleString()}`;
+    }
 
     // Update checkout button state
     const checkoutBtn = document.getElementById('checkoutBtn');
@@ -868,6 +901,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if (icon) icon.className = 'fas fa-compress';
             btn.title = 'Exit Fullscreen (F)';
         }
+    }
+});
+
+// Global: redirect any printable keystroke to the product search box when no
+// text input currently has focus.  This lets a barcode scanner work even if
+// the cashier has clicked somewhere else on the POS screen — the first
+// character of a scan automatically refocuses the search input so the full
+// barcode (and trailing Enter) is captured correctly.
+document.addEventListener('keydown', (e) => {
+    // Only single printable characters; ignore Ctrl/Alt/Meta combos
+    if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
+    // Already in a text-entry element — don't redirect
+    const tag = e.target.tagName.toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return;
+    // Don't steal focus from an open Bootstrap modal
+    if (document.querySelector('.modal.show')) return;
+    const scanInput = document.getElementById('productSearch');
+    if (scanInput && document.activeElement !== scanInput) {
+        scanInput.focus();
+        // The character naturally flows into the now-focused input
     }
 });
 

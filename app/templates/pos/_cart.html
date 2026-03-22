@@ -1,5 +1,8 @@
 {# Cart Sidebar Partial - templates/pos/_cart.html #}
-<div class="pos-cart" role="region" aria-label="Cart">
+<div class="pos-cart" id="posCart" role="region" aria-label="Cart">
+
+    {# Drag handle visible on mobile only #}
+    <div class="cart-drag-handle" onclick="closeCartSheet()"></div>
 
     <div class="cart-header">
         <div>
@@ -20,7 +23,7 @@
     </div>
 
     {# Sale Type Toggle #}
-    <div style="padding:0.5rem 1rem;border-bottom:var(--border);background:#fff;">
+    <div style="padding:0.5rem 1rem;border-bottom:var(--border);background:var(--surface-1);">
         <div class="btn-group w-100" role="group" style="gap:4px;">
             <input type="radio" class="btn-check" name="saleType" id="saleTypeRetail" value="RETAIL" checked
                 onchange="updateSaleType()">
@@ -45,6 +48,7 @@
             <div class="row"><span>Subtotal</span><span id="subtotalDisplay">$0.00</span></div>
             <div class="row"><span>Tax</span><span id="taxDisplay">$0.00</span></div>
             <div class="row total"><span>Total</span><span id="totalDisplay">$0.00</span></div>
+            <div class="row slsh-total"><span>≈ SLSH</span><span id="totalSlshDisplay">SLSH 0</span></div>
         </div>
 
         <div style="display:flex;gap:0.5rem;">

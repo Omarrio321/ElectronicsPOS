@@ -9,7 +9,7 @@ from app.models import (
     LedgerEntryType
 )
 from app.utils import format_currency
-from app.services.currency_service import is_valid_payment_combination
+from app.services.currency_service import is_valid_payment_combination, get_current_exchange_rate, to_usd
 from decimal import Decimal
 from datetime import datetime
 
@@ -251,12 +251,17 @@ def process_return(sale_id):
 
         # --- HANDLE REFUND (if Return + Refund) ---
         if return_type == ReturnType.RETURN_AND_REFUND:
-            # Create a negative payment record for the refund
+            # Create a negative payment record for the refund with full currency tracking
+            current_rate = get_current_exchange_rate()
+            refund_usd = to_usd(refund_total, refund_currency, current_rate)
             refund_payment = Payment(
                 sale_id=sale.id,
                 customer_id=sale.customer_id,
-                amount=-refund_total,  # Negative = refund
+                amount=-refund_total,                  # Negative = refund, in refund_currency
                 payment_method=refund_method,
+                payment_currency=refund_currency,      # Record actual refund currency
+                exchange_rate_used=current_rate,
+                amount_in_usd=-refund_usd,             # USD-equivalent (negative = outgoing)
                 reference=f'Refund for {return_no}',
                 note=f'Return refund: {return_no}',
                 created_by=current_user.id,
@@ -449,13 +454,19 @@ def reverse_return(return_id):
             else:
                 sale.sale_status = SaleStatus.COMPLETED
 
-        # If there was a refund payment, reverse it
+        # If there was a refund payment, reverse it (positive = recovering the refund amount)
         if return_txn.return_type == ReturnType.RETURN_AND_REFUND:
+            rev_currency = return_txn.refund_currency or PaymentCurrency.USD
+            current_rate = get_current_exchange_rate()
+            rev_usd = to_usd(return_txn.refund_total, rev_currency, current_rate)
             reverse_payment = Payment(
                 sale_id=return_txn.sale_id,
                 customer_id=return_txn.customer_id,
-                amount=return_txn.refund_total,  # Positive = reversal of refund
+                amount=return_txn.refund_total,          # Positive = reversal of refund
                 payment_method=return_txn.refund_method or PaymentMethod.CASH,
+                payment_currency=rev_currency,
+                exchange_rate_used=current_rate,
+                amount_in_usd=rev_usd,
                 reference=f'Reversal of {return_txn.return_no}',
                 note=f'Return reversal: {reason}',
                 created_by=current_user.id,

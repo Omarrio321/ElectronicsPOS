@@ -2,7 +2,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, send_file
 from flask_login import login_required, current_user
 from app.models import db, Sale, SaleItem, Product, User, SystemSetting, PaymentMethod, PaymentCurrency, SaleStatus, Expense, ExpenseCategory, ExpenseStatus, Payment, Customer, InvoiceStatus, ReturnTransaction, ReturnStatus
-from sqlalchemy import func, and_, or_
+from sqlalchemy import func, and_, or_, case
 from datetime import datetime, timedelta
 from io import BytesIO
 import pdfkit
@@ -295,10 +295,25 @@ def recent_pdf():
     )
 
     try:
-        # Orientation Landscape for wider tables
         path_wkhtmltopdf = current_app.config.get('WKHTMLTOPDF_PATH')
         config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
-        pdf_bytes = pdfkit.from_string(html, False, options={'orientation': 'Landscape'}, configuration=config)
+        options = {
+            'page-size':               'A4',
+            'orientation':             'Landscape',
+            'margin-top':              '12mm',
+            'margin-bottom':           '12mm',
+            'margin-left':             '12mm',
+            'margin-right':            '12mm',
+            'encoding':                'UTF-8',
+            'no-outline':              None,
+            'enable-local-file-access': None,
+            'dpi':                     '96',
+            'zoom':                    '1',
+            'print-media-type':        None,
+            'disable-smart-shrinking': None,
+            'minimum-font-size':       '10',
+        }
+        pdf_bytes = pdfkit.from_string(html, False, options=options, configuration=config)
     except Exception as e:
         current_app.logger.exception("pdfkit failed to generate sales list PDF")
         flash("PDF generation failed: " + str(e), "danger")
@@ -505,14 +520,22 @@ def reports():
         cursor += timedelta(days=1)
 
     # Payment method + currency breakdown (Cash Basis, USD equivalent)
-    # Group by method + currency so the report distinguishes e.g. Cash-USD vs Cash-SLSH
+    # USD equiv per payment: use amount_in_usd if stored, else convert SLSH using
+    # the snapshotted exchange_rate_used, else treat as USD directly.
+    _usd_equiv = case(
+        (Payment.amount_in_usd.isnot(None), Payment.amount_in_usd),
+        (and_(
+            Payment.payment_currency == PaymentCurrency.SLSH,
+            Payment.exchange_rate_used.isnot(None),
+            Payment.exchange_rate_used > 0
+        ), Payment.amount / Payment.exchange_rate_used),
+        else_=Payment.amount
+    )
     pm_stats = db.session.query(
         Payment.payment_method,
         Payment.payment_currency,
         func.coalesce(func.sum(Payment.amount), 0).label('total_original'),
-        func.coalesce(func.sum(
-            func.coalesce(Payment.amount_in_usd, Payment.amount)
-        ), 0).label('total_usd')
+        func.coalesce(func.sum(_usd_equiv), 0).label('total_usd')
     ).filter(
         func.date(Payment.created_at) >= start_date,
         func.date(Payment.created_at) <= end_date
@@ -571,12 +594,10 @@ def reports():
     low_stock_count = Product.query.filter(Product.quantity_in_stock <= Product.low_stock_threshold).count()
 
     # --- CASH FLOW ANALYSIS ---
-    
-    # 1. Total Collected (Cash Basis - what we received)
-    total_collected = db.session.query(func.coalesce(func.sum(Payment.amount), 0)).filter(
-        func.date(Payment.created_at) >= start_date,
-        func.date(Payment.created_at) <= end_date
-    ).scalar() or 0
+
+    # 1. Total Collected (Cash Basis — USD equivalent)
+    # Derived from pm_breakdown so it always matches the breakdown table exactly.
+    total_collected = sum(row['usd_total'] for row in pm_breakdown)
 
     # 2. COGS (Cost of Goods Sold) - EXCLUDE VOIDED
     cogs = db.session.query(
@@ -979,17 +1000,97 @@ def reports_pdf():
         Sale.customer_id.isnot(None) 
     ).group_by(Customer.id).order_by(func.sum(Sale.grand_total).desc()).limit(10).all()
 
-    # 8. Avg Order Value implies total invoiced / count
+    # 8. Avg Order Value
     avg_order_value = float(total_revenue) / float(total_sales) if total_sales > 0 else 0
+
+    # 9. Payment breakdown — same case expression as reports() to guarantee consistency
+    _usd_equiv_pdf = case(
+        (Payment.amount_in_usd.isnot(None), Payment.amount_in_usd),
+        (and_(
+            Payment.payment_currency == PaymentCurrency.SLSH,
+            Payment.exchange_rate_used.isnot(None),
+            Payment.exchange_rate_used > 0
+        ), Payment.amount / Payment.exchange_rate_used),
+        else_=Payment.amount
+    )
+    pm_stats = db.session.query(
+        Payment.payment_method,
+        Payment.payment_currency,
+        func.coalesce(func.sum(Payment.amount), 0).label('total_original'),
+        func.coalesce(func.sum(_usd_equiv_pdf), 0).label('total_usd')
+    ).filter(
+        func.date(Payment.created_at) >= start_date,
+        func.date(Payment.created_at) <= end_date
+    ).group_by(Payment.payment_method, Payment.payment_currency).all()
+
+    payment_breakdown = []
+    for r in pm_stats:
+        try:
+            method_label = r.payment_method.value
+        except Exception:
+            method_label = str(r.payment_method) if r.payment_method else 'Unknown'
+        try:
+            currency_label = r.payment_currency.value if r.payment_currency else 'USD'
+        except Exception:
+            currency_label = 'USD'
+        payment_breakdown.append({
+            'method': method_label,
+            'currency': currency_label,
+            'original_total': float(r.total_original or 0),
+            'usd_total': float(r.total_usd or 0),
+        })
+
+    # 10. Returns & Voids metrics
+    voided_count = db.session.query(func.count(Sale.id)).filter(
+        func.date(Sale.created_at) >= start_date,
+        func.date(Sale.created_at) <= end_date,
+        Sale.sale_status == SaleStatus.VOIDED
+    ).scalar() or 0
+
+    voided_value = db.session.query(func.coalesce(func.sum(Sale.grand_total), 0)).filter(
+        func.date(Sale.created_at) >= start_date,
+        func.date(Sale.created_at) <= end_date,
+        Sale.sale_status == SaleStatus.VOIDED
+    ).scalar() or 0
+
+    return_count = db.session.query(func.count(ReturnTransaction.id)).filter(
+        func.date(ReturnTransaction.created_at) >= start_date,
+        func.date(ReturnTransaction.created_at) <= end_date,
+        ReturnTransaction.status == ReturnStatus.COMPLETED
+    ).scalar() or 0
+
+    return_value = db.session.query(
+        func.coalesce(func.sum(ReturnTransaction.refund_total), 0)
+    ).filter(
+        func.date(ReturnTransaction.created_at) >= start_date,
+        func.date(ReturnTransaction.created_at) <= end_date,
+        ReturnTransaction.status == ReturnStatus.COMPLETED
+    ).scalar() or 0
+
+    net_revenue = float(total_revenue) - float(return_value)
+
+    # 11. Margin percentages
+    gross_margin_pct = round(realized_gross_profit / realized_revenue * 100, 1) if realized_revenue > 0 else 0
+    net_margin_pct = round(net_profit / realized_revenue * 100, 1) if realized_revenue > 0 else 0
 
     # Get Company Info
     company_name = SystemSetting.get('company_name', 'Electronics POS')
     company_logo = SystemSetting.get('company_logo')
+    company_address = SystemSetting.get('company_address', '')
+    company_phone = SystemSetting.get('company_phone', '')
 
     period_expenses = Expense.query.filter(
         Expense.date >= start_date,
         Expense.date <= end_date
     ).order_by(Expense.date.desc()).all()
+
+    # Expense category summary (grouped)
+    from collections import defaultdict
+    exp_cat_map = defaultdict(float)
+    for exp in period_expenses:
+        cat_label = exp.category.name if exp.category else 'Uncategorized'
+        exp_cat_map[cat_label] += float(exp.amount)
+    expense_by_category = sorted(exp_cat_map.items(), key=lambda x: x[1], reverse=True)
 
     # Inventory Valuation
     stock_stats = db.session.query(
@@ -1009,6 +1110,35 @@ def reports_pdf():
 
     inventory_profit = float(inventory_retail) - float(inventory_cost)
 
+    # Inventory by category
+    cat_map = defaultdict(lambda: {'products': 0, 'units': 0, 'cost': 0.0, 'retail': 0.0})
+    all_products_stock = Product.query.filter(Product.quantity_in_stock > 0).all()
+    for p in all_products_stock:
+        cat_name = p.category.name if p.category else 'Uncategorized'
+        cat_map[cat_name]['products'] += 1
+        cat_map[cat_name]['units'] += p.quantity_in_stock
+        cat_map[cat_name]['cost'] += float(p.cost_price or 0) * p.quantity_in_stock
+        cat_map[cat_name]['retail'] += float(p.selling_price or 0) * p.quantity_in_stock
+    inventory_by_category = sorted(cat_map.items(), key=lambda x: x[1]['retail'], reverse=True)
+
+    # Total product count for inventory
+    total_products = Product.query.filter(Product.is_active == True).count()
+    low_stock_count = sum(1 for p in all_products_stock if p.is_low_stock)
+
+    # Normalize all Decimal / SQLAlchemy Row values to plain Python floats
+    # so Jinja2 template arithmetic never mixes float + Decimal types.
+    total_revenue   = float(total_revenue)
+    inventory_cost  = float(inventory_cost)
+    inventory_retail = float(inventory_retail)
+    inventory_profit = float(inventory_retail) - float(inventory_cost)
+
+    top_products_data = [(name, int(qty), float(rev)) for name, qty, rev in top_products]
+    user_sales_data   = [(uname, int(cnt), float(tot)) for uname, cnt, tot in user_sales]
+    top_customers_data = [
+        {'full_name': c.full_name, 'tx_count': int(c.tx_count), 'total_spent': float(c.total_spent or 0)}
+        for c in top_customers
+    ]
+
     html = render_template(
         'sales/reports_pdf.html',
         generated_at=datetime.now().strftime('%d %b %Y, %I:%M %p'),
@@ -1017,35 +1147,67 @@ def reports_pdf():
         report_type=report_type,
         company_name=company_name,
         company_logo=company_logo,
-        
+        company_address=company_address,
+        company_phone=company_phone,
+
         total_sales=total_sales,
         total_revenue=total_revenue,
-        cogs=realized_cogs,  # Pass realized cogs
-        gross_profit=realized_gross_profit, # Pass realized profit
+        total_items=int(total_items),
+        net_revenue=net_revenue,
+        cogs=realized_cogs,
+        gross_profit=realized_gross_profit,
+        gross_margin_pct=gross_margin_pct,
         avg_order_value=avg_order_value,
-        
+
         paid_expenses=float(paid_expenses),
         pending_expenses=float(pending_expenses),
         total_expenses=total_expenses,
         net_profit=net_profit,
-        
-        total_items=total_items,
-        # daily_sales=daily_sales, # Not used in PDF usually?
-        top_products=top_products,
-        user_sales=user_sales,
+        net_margin_pct=net_margin_pct,
+
+        return_count=return_count,
+        return_value=float(return_value),
+        voided_count=voided_count,
+        voided_value=float(voided_value),
+
+        payment_breakdown=payment_breakdown,
+        top_products=top_products_data,
+        user_sales=user_sales_data,
         period_expenses=period_expenses,
-        top_customers=top_customers,
-        inventory_qty=inventory_qty,
+        expense_by_category=expense_by_category,
+        top_customers=top_customers_data,
+
+        inventory_qty=int(inventory_qty),
         inventory_cost=inventory_cost,
         inventory_retail=inventory_retail,
         inventory_profit=inventory_profit,
+        inventory_by_category=inventory_by_category,
+        total_products=total_products,
+        low_stock_count=low_stock_count,
+
         format_currency=format_currency
     )
 
     try:
         path_wkhtmltopdf = current_app.config.get('WKHTMLTOPDF_PATH')
         config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
-        pdf_bytes = pdfkit.from_string(html, False, configuration=config)
+        options = {
+            'page-size':               'A4',
+            'orientation':             'Portrait',
+            'margin-top':              '12mm',
+            'margin-bottom':           '15mm',
+            'margin-left':             '12mm',
+            'margin-right':            '12mm',
+            'encoding':                'UTF-8',
+            'no-outline':              None,
+            'enable-local-file-access': None,
+            'dpi':                     '96',
+            'zoom':                    '1',
+            'print-media-type':        None,
+            'disable-smart-shrinking': None,
+            'minimum-font-size':       '10',
+        }
+        pdf_bytes = pdfkit.from_string(html, False, configuration=config, options=options)
     except Exception as e:
         current_app.logger.exception("pdfkit failed to generate reports PDF")
         flash("PDF generation failed: " + str(e), "danger")

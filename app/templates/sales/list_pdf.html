@@ -1,209 +1,355 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <title>Sales List</title>
+    <title>Sales Transaction Report</title>
     <style>
+        /* ── Base ── Verdana: wide sidebearings, no kern-pair dependency.
+           Confirmed fix for wkhtmltopdf GDI kern table mismatches on Windows.
+           font-kerning:none + font-feature-settings as secondary guard. */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            color: #333;
-            line-height: 1.4;
-            font-size: 12px;
-            margin: 0;
-            padding: 20px;
+            font-family: Verdana, Geneva, sans-serif;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #1e293b;
+            background: #fff;
+            -webkit-font-feature-settings: "kern" 0;
+            font-feature-settings: "kern" 0;
+            font-kerning: none;
         }
 
-        .header {
-            margin-bottom: 30px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-        }
-
-        .company-name {
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-
-        .report-title {
-            font-size: 18px;
-            margin-bottom: 5px;
-            color: #7f8c8d;
-        }
-
-        .meta-info {
-            font-size: 10px;
-            color: #95a5a6;
+        /* ── Cover Header ── */
+        .cover-header {
+            display: table;
+            width: 100%;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 16px;
             margin-bottom: 20px;
         }
+        .cover-header-logo {
+            display: table-cell;
+            vertical-align: middle;
+            width: 90px;
+        }
+        .cover-header-logo img {
+            max-height: 60px;
+            max-width: 80px;
+            object-fit: contain;
+        }
+        .cover-header-body {
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .cover-header-right {
+            display: table-cell;
+            vertical-align: bottom;
+            text-align: right;
+            white-space: nowrap;
+        }
+        .company-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e293b;
+            text-transform: uppercase;
+        }
+        .company-meta {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        .report-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #2563eb;
+            line-height: 1.2;
+        }
+        .report-sub {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 3px;
+        }
 
-        table {
+        /* ── Filter pill ── */
+        .filter-notice {
+            background: #eff6ff;
+            border-left: 3px solid #2563eb;
+            padding: 6px 12px;
+            font-size: 10px;
+            color: #1e40af;
+            margin-bottom: 16px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* ── Stats Row ── */
+        .stats-row {
+            display: table;
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: #f8fafc;
+            margin-bottom: 20px;
+        }
+        .stat-cell {
+            display: table-cell;
+            width: 25%;
+            text-align: center;
+            padding: 14px 8px;
+            border-right: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+        .stat-cell:last-child { border-right: none; }
+        .stat-number {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e3a5f;
+            display: block;
+            line-height: 1.15;
+        }
+        .stat-label {
+            font-size: 9px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-top: 4px;
+            display: block;
+        }
+        .stat-green .stat-number { color: #16a34a; }
+        .stat-red   .stat-number { color: #dc2626; }
+        .stat-blue  .stat-number { color: #2563eb; }
+
+        /* ── Data Table ── */
+        table.data-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            table-layout: fixed;
         }
-
-        th,
-        td {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-            text-align: left;
+        table.data-table thead tr {
+            background-color: #1e3a5f;
         }
-
-        th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-            color: #2c3e50;
+        table.data-table thead th {
+            color: #fff;
+            padding: 8px 7px;
+            font-size: 10px;
+            font-weight: 700;
             text-transform: uppercase;
-            font-size: 11px;
+            text-align: left;
+            overflow: hidden;
+            white-space: nowrap;
         }
+        table.data-table thead th.th-right  { text-align: right; }
+        table.data-table thead th.th-center { text-align: center; }
 
-        tr:nth-child(even) {
-            background-color: #fcfcfc;
+        table.data-table tbody tr:nth-child(even) { background: #f8fafc; }
+        table.data-table tbody tr:hover { background: #eff6ff; }
+        table.data-table tbody td {
+            padding: 7px 7px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+            font-size: 10px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
         }
+        table.data-table tbody .td-right  { text-align: right; }
+        table.data-table tbody .td-center { text-align: center; }
 
-        .text-right {
-            text-align: right;
+        /* Totals row */
+        .totals-row td {
+            background: #1e3a5f !important;
+            color: #fff !important;
+            font-weight: 700;
+            padding: 8px 7px;
+            border-bottom: none !important;
         }
+        .totals-row .td-right { text-align: right; }
 
-        .text-center {
-            text-align: center;
-        }
-
+        /* ── Badges ── */
         .badge {
             display: inline-block;
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
-            color: #fff;
+            padding: 2px 7px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            white-space: nowrap;
         }
+        .badge-cash     { background: #e2e8f0; color: #334155; }
+        .badge-card     { background: #dbeafe; color: #1e40af; }
+        .badge-edahab   { background: #fef9c3; color: #92400e; }
+        .badge-zaad     { background: #d1fae5; color: #065f46; }
+        .badge-credit   { background: #ede9fe; color: #5b21b6; }
+        .badge-mobile   { background: #dcfce7; color: #166534; }
+        .badge-split    { background: #fce7f3; color: #9d174d; }
+        .badge-other    { background: #f1f5f9; color: #475569; }
 
-        .badge-success {
-            background-color: #28a745;
-        }
+        .status-completed        { background: #d1fae5; color: #065f46; }
+        .status-partial          { background: #fef9c3; color: #78350f; }
+        .status-voided           { background: #fee2e2; color: #991b1b; }
+        .status-returned         { background: #ede9fe; color: #5b21b6; }
+        .status-default          { background: #f1f5f9; color: #475569; }
 
-        .badge-secondary {
-            background-color: #6c757d;
-        }
-
-        .badge-info {
-            background-color: #17a2b8;
-        }
-
-        .badge-warning {
-            background-color: #ffc107;
-            color: #333;
-        }
-
-        .badge-dark {
-            background-color: #343a40;
-        }
-
-        .footer {
-            margin-top: 40px;
+        /* ── Footer ── */
+        .doc-footer {
+            margin-top: 30px;
             padding-top: 10px;
-            border-top: 1px solid #eee;
-            font-size: 10px;
-            color: #999;
-            text-align: center;
+            border-top: 1px solid #e2e8f0;
+            display: table;
+            width: 100%;
+            font-size: 9px;
+            color: #94a3b8;
         }
+        .doc-footer-left  { display: table-cell; text-align: left; }
+        .doc-footer-right { display: table-cell; text-align: right; }
     </style>
 </head>
-
 <body>
-    <div class="header">
-        <div class="company-name">{{ company_name }}</div>
-        <div class="report-title">Sales Transaction List</div>
-        <div class="meta-info">
-            Generated on: {{ generated_at }}
+
+    <!-- ══ HEADER ══ -->
+    <div class="cover-header">
+        <div class="cover-header-logo">
+            {% if company_logo %}
+            <img src="{{ url_for('static', filename=company_logo, _external=True) }}" alt="{{ company_name }}">
+            {% endif %}
+        </div>
+        <div class="cover-header-body">
+            <div class="company-name">{{ company_name }}</div>
+            {% if company_address or company_phone %}
+            <div class="company-meta">
+                {% if company_address %}{{ company_address }}{% endif %}
+                {% if company_address and company_phone %} &bull; {% endif %}
+                {% if company_phone %}{{ company_phone }}{% endif %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="cover-header-right">
+            <div class="report-title">Sales Report</div>
+            <div class="report-sub">Generated: {{ generated_at }}</div>
             {% if start_date or end_date %}
-            | Period: {{ start_date if start_date else 'Beginning' }} to {{ end_date if end_date else 'Now' }}
+            <div class="report-sub">Period: {{ start_date if start_date else 'Beginning' }} &ndash; {{ end_date if end_date else 'Present' }}</div>
             {% endif %}
             {% if user_filter %}
-            | Cashier: {{ user_filter }}
+            <div class="report-sub">Cashier: <strong>{{ user_filter }}</strong></div>
             {% endif %}
         </div>
     </div>
 
-    <table>
+    {% if start_date or end_date or user_filter %}
+    <div class="filter-notice">
+        <strong>Filters Applied:</strong>
+        {% if start_date or end_date %}
+        Date Range: {{ start_date if start_date else 'Beginning' }} &ndash; {{ end_date if end_date else 'Present' }}
+        {% endif %}
+        {% if user_filter %}&nbsp;&bull;&nbsp; Cashier: {{ user_filter }}{% endif %}
+    </div>
+    {% endif %}
+
+    <!-- ══ STATS ══ -->
+    <div class="stats-row">
+        <div class="stat-cell">
+            <span class="stat-number">{{ sales | length }}</span>
+            <span class="stat-label">Transactions</span>
+        </div>
+        <div class="stat-cell stat-green">
+            <span class="stat-number">{{ format_currency(total_grand) }}</span>
+            <span class="stat-label">Total Revenue</span>
+        </div>
+        <div class="stat-cell stat-red">
+            <span class="stat-number">{{ format_currency(total_discount) }}</span>
+            <span class="stat-label">Total Discounts</span>
+        </div>
+        <div class="stat-cell stat-blue">
+            <span class="stat-number">{{ format_currency(total_tax) }}</span>
+            <span class="stat-label">Total Tax</span>
+        </div>
+    </div>
+
+    <!-- ══ SALES TABLE ══ -->
+    <table class="data-table">
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Date</th>
-                <th>Cashier</th>
-                <th>Payment</th>
-                <th>Status</th>
-                <th class="text-right">Subtotal</th>
-                <th class="text-right">Tax</th>
-                <th class="text-right">Disc.</th>
-                <th class="text-right">Total</th>
+                <th style="width:5%">#</th>
+                <th style="width:13%">Date</th>
+                <th style="width:14%">Invoice</th>
+                <th style="width:13%">Cashier</th>
+                <th style="width:12%">Payment</th>
+                <th style="width:10%">Status</th>
+                <th class="th-right" style="width:11%">Subtotal</th>
+                <th class="th-right" style="width:8%">Tax</th>
+                <th class="th-right" style="width:8%">Disc.</th>
+                <th class="th-right" style="width:11%">Total</th>
             </tr>
         </thead>
         <tbody>
             {% for sale in sales %}
             <tr>
-                <td>{{ sale.id }}</td>
-                <td>{{ sale.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ loop.index }}</td>
+                <td>{{ sale.created_at.strftime('%d %b %Y') }}<br>
+                    <span style="color:#94a3b8;font-size:9px;">{{ sale.created_at.strftime('%H:%M') }}</span>
+                </td>
+                <td style="font-weight:600;color:#1e3a5f;">
+                    {{ sale.invoice_no if sale.invoice_no else ('#' ~ sale.id) }}
+                </td>
                 <td>{{ sale.user.username }}</td>
                 <td>
                     {% if sale.payments|length > 1 %}
-                    <span class="badge badge-info">Split</span>
+                    <span class="badge badge-split">Split</span>
                     {% else %}
                     {% set method = sale.payment_method %}
-                    {% set method_str = method.value if method.value is defined else method|string %}
-
-                    {# Fallback logic #}
-                    {% if not method_str and sale.payments %}
-                    {% set p_method = sale.payments[0].payment_method %}
-                    {% set method_str = p_method.value if p_method.value is defined else p_method|string %}
+                    {% set ms = method.value if method and method.value is defined else (method|string if method else '') %}
+                    {% if not ms and sale.payments %}
+                        {% set p0 = sale.payments[0].payment_method %}
+                        {% set ms = p0.value if p0 and p0.value is defined else (p0|string if p0 else '') %}
                     {% endif %}
-
-                    {% if method_str == 'Cash' or method_str == 'CASH' %}
-                    <span class="badge badge-secondary">Cash</span>
-                    {% elif method_str == 'Card' or method_str == 'CARD' %}
-                    <span class="badge badge-info">Card</span>
-                    {% elif method_str in ['E-Dahab', 'E_DAHAB'] %}
-                    <span class="badge" style="background-color: #f59e0b; color: white;">E-Dahab</span>
-                    {% elif method_str in ['Zaad', 'ZAAD'] %}
-                    <span class="badge" style="background-color: #10b981; color: white;">Zaad</span>
-                    {% elif method_str in ['Store Credit', 'STORE_CREDIT'] or not method_str %}
-                    <span class="badge" style="background-color: #6f42c1; color: white;">Credit</span>
-                    {% elif method_str in ['Mobile Money', 'MOBILE_MONEY'] %}
-                    <span class="badge badge-success">Mobile</span>
-                    {% else %}
-                    <span class="badge badge-dark">{{ method_str }}</span>
+                    {% if ms in ['Cash','CASH'] %}<span class="badge badge-cash">Cash</span>
+                    {% elif ms in ['Card','CARD'] %}<span class="badge badge-card">Card</span>
+                    {% elif ms in ['E-Dahab','E_DAHAB'] %}<span class="badge badge-edahab">E-Dahab</span>
+                    {% elif ms in ['Zaad','ZAAD'] %}<span class="badge badge-zaad">Zaad</span>
+                    {% elif ms in ['Store Credit','STORE_CREDIT'] %}<span class="badge badge-credit">Credit</span>
+                    {% elif ms in ['Mobile Money','MOBILE_MONEY'] %}<span class="badge badge-mobile">Mobile</span>
+                    {% else %}<span class="badge badge-other">{{ ms if ms else 'N/A' }}</span>
                     {% endif %}
                     {% endif %}
                 </td>
                 <td>
-                    <span
-                        class="badge {{ 'badge-success' if sale.sale_status == SaleStatus.COMPLETED else 'badge-warning' }}">
-                        {{ sale.sale_status.value }}
-                    </span>
+                    {% set sv = sale.sale_status.value if sale.sale_status else 'Completed' %}
+                    {% if sv in ['Completed','COMPLETED'] %}<span class="badge status-completed">{{ sv }}</span>
+                    {% elif 'Partial' in sv %}<span class="badge status-partial">{{ sv }}</span>
+                    {% elif 'Void' in sv or 'VOID' in sv %}<span class="badge status-voided">Voided</span>
+                    {% elif 'Return' in sv or 'Refund' in sv %}<span class="badge status-returned">{{ sv }}</span>
+                    {% else %}<span class="badge status-default">{{ sv }}</span>
+                    {% endif %}
                 </td>
-                <td class="text-right">{{ format_currency(sale.subtotal) }}</td>
-                <td class="text-right">{{ format_currency(sale.tax_amount) }}</td>
-                <td class="text-right">{{ format_currency(sale.discount) }}</td>
-                <td class="text-right" style="font-weight:bold;">{{ format_currency(sale.grand_total) }}</td>
+                <td class="td-right">{{ format_currency(sale.subtotal) }}</td>
+                <td class="td-right">{{ format_currency(sale.tax_amount) }}</td>
+                <td class="td-right">{{ format_currency(sale.discount) }}</td>
+                <td class="td-right" style="font-weight:700;">{{ format_currency(sale.grand_total) }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="10" class="td-center" style="padding:30px;color:#94a3b8;">
+                    No sales transactions found for the selected period.
+                </td>
             </tr>
             {% endfor %}
-            <!-- Summary Row -->
-            <tr style="background-color: #eee; font-weight: bold;">
-                <td colspan="5" class="text-right">TOTALS</td>
-                <td class="text-right">{{ format_currency(total_subtotal) }}</td>
-                <td class="text-right">{{ format_currency(total_tax) }}</td>
-                <td class="text-right">{{ format_currency(total_discount) }}</td>
-                <td class="text-right">{{ format_currency(total_grand) }}</td>
-            </tr>
         </tbody>
+        {% if sales %}
+        <tfoot>
+            <tr class="totals-row">
+                <td colspan="6" class="td-right">TOTALS ({{ sales | length }} transactions)</td>
+                <td class="td-right">{{ format_currency(total_subtotal) }}</td>
+                <td class="td-right">{{ format_currency(total_tax) }}</td>
+                <td class="td-right">{{ format_currency(total_discount) }}</td>
+                <td class="td-right">{{ format_currency(total_grand) }}</td>
+            </tr>
+        </tfoot>
+        {% endif %}
     </table>
 
-    <div class="footer">
-        Confidential Report - Internal Use Only
+    <!-- ══ FOOTER ══ -->
+    <div class="doc-footer">
+        <div class="doc-footer-left">{{ company_name }} &mdash; Confidential &bull; Internal Use Only</div>
+        <div class="doc-footer-right">Exported {{ generated_at }}</div>
     </div>
-</body>
 
+</body>
 </html>

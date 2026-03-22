@@ -1,4 +1,38 @@
 {# Checkout Modal Partial - templates/pos/_modal.html #}
+<style>
+    /* Mobile tabs for checkout modal */
+    .checkout-tabs { display:none; }
+    @media (max-width: 767px) {
+        .checkout-tabs {
+            display:flex;
+            border-bottom:var(--border);
+            background:#fff;
+        }
+        .checkout-tab-btn {
+            flex:1; padding:0.75rem; font-size:0.8125rem; font-weight:600;
+            border:none; background:none; color:var(--gray-500); cursor:pointer;
+            border-bottom:2px solid transparent; transition:all 0.15s;
+        }
+        .checkout-tab-btn.active { color:var(--blue-600); border-bottom-color:var(--blue-600); }
+        .checkout-tab-btn i { font-size:0.75rem; margin-right:0.375rem; }
+        .checkout-panel-mobile-hide { display:none !important; }
+        /* Full-screen on mobile */
+        #checkoutModal .modal-dialog { margin:0; max-width:100%; height:100%; }
+        #checkoutModal .modal-content { height:100vh; border-radius:0; }
+        #checkoutModal .modal-body { overflow-y:auto; }
+        #checkoutModal .summary-panel,
+        #checkoutModal .payment-panel { max-height:none !important; overflow-y:visible !important; }
+    }
+    /* Customer search dropdown fix */
+    .customer-search-wrap { position:relative; }
+    #customerSearchResults {
+        position:absolute !important;
+        top:100% !important;
+        left:0 !important;
+        width:100% !important;
+        z-index:9999 !important;
+    }
+</style>
 <div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="checkoutModalLabel" aria-hidden="true"
     data-bs-backdrop="true" data-bs-keyboard="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -9,11 +43,20 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <!-- Mobile tabs (hidden on desktop) -->
+            <div class="checkout-tabs" id="checkoutTabs">
+                <button class="checkout-tab-btn active" id="tabBtnOrder" onclick="switchCheckoutTab('order')">
+                    <i class="fas fa-shopping-cart"></i>Order
+                </button>
+                <button class="checkout-tab-btn" id="tabBtnPayment" onclick="switchCheckoutTab('payment')">
+                    <i class="fas fa-credit-card"></i>Payment
+                </button>
+            </div>
             <div class="modal-body p-0">
                 <div class="row g-0" style="min-height:500px;">
 
                     {# Left: Order Summary #}
-                    <div class="col-md-4 summary-panel">
+                    <div class="col-md-4 summary-panel" id="checkoutPanelOrder">
                         <div class="p-3" style="border-bottom:var(--border);">
                             <div style="font-size:0.6875rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--gray-400);margin-bottom:0.75rem;">
                                 <i class="fas fa-shopping-cart me-1"></i>Order Summary
@@ -22,19 +65,21 @@
                             {# Customer Selection #}
                             <div style="margin-bottom:0.875rem;">
                                 <label class="form-label" style="font-size:0.75rem;color:var(--gray-500);font-weight:600;margin-bottom:0.25rem;">Customer</label>
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text" style="border-right:none;"><i class="fas fa-user" style="font-size:0.75rem;color:var(--gray-400);"></i></span>
-                                    <input type="text" class="form-control" style="border-left:none;padding-left:0;" id="customerSearch"
-                                        placeholder="Walk-in Customer" autocomplete="off">
-                                    <button class="btn btn-light" type="button" id="clearCustomerBtn"
-                                        onclick="clearSelectedCustomer()" style="display:none;border:var(--border);">
-                                        <i class="fas fa-times" style="font-size:0.75rem;"></i>
-                                    </button>
-                                </div>
-                                <input type="hidden" id="selectedCustomerId" value="">
-                                <div id="customerSearchResults"
-                                    class="position-absolute bg-white border rounded shadow-sm"
-                                    style="display:none;z-index:1100;max-height:200px;overflow-y:auto;width:90%;">
+                                <div class="customer-search-wrap">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text" style="border-right:none;"><i class="fas fa-user" style="font-size:0.75rem;color:var(--gray-400);"></i></span>
+                                        <input type="text" class="form-control" style="border-left:none;padding-left:0;" id="customerSearch"
+                                            placeholder="Walk-in Customer" autocomplete="off">
+                                        <button class="btn btn-light" type="button" id="clearCustomerBtn"
+                                            onclick="clearSelectedCustomer()" style="display:none;border:var(--border);">
+                                            <i class="fas fa-times" style="font-size:0.75rem;"></i>
+                                        </button>
+                                    </div>
+                                    <input type="hidden" id="selectedCustomerId" value="">
+                                    <div id="customerSearchResults"
+                                        class="bg-white border rounded shadow-sm"
+                                        style="display:none;max-height:200px;overflow-y:auto;">
+                                    </div>
                                 </div>
                                 <div id="customerInfo" class="mt-2 p-2 rounded border" style="display:none;background:var(--blue-50);border-color:var(--blue-100)!important;">
                                     <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -72,18 +117,19 @@
                                 <span style="color:var(--gray-500);">Discount</span>
                                 <span id="modalDiscountDisplay" style="color:var(--green-600);">-$0.00</span>
                             </div>
-                            <div style="display:flex;justify-content:space-between;align-items:center;border-top:var(--border);padding-top:0.5rem;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;border-top:var(--border);padding-top:0.5rem;margin-bottom:0.125rem;">
                                 <span style="font-weight:700;font-size:0.8125rem;text-transform:uppercase;color:var(--gray-500);">Total</span>
-                                <div style="text-align:right;">
-                                    <span id="modalGrandTotal" style="font-weight:800;font-size:1.375rem;color:var(--blue-600);">$0.00</span>
-                                    <div id="modalGrandTotalSLSH" style="font-size:0.7rem;color:var(--gray-400);"></div>
-                                </div>
+                                <span id="modalGrandTotal" style="font-weight:800;font-size:1.375rem;color:var(--blue-600);">$0.00</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span style="font-weight:700;font-size:0.8125rem;text-transform:uppercase;color:var(--blue-400);">≈ SLSH</span>
+                                <span id="modalGrandTotalSLSH" style="font-weight:700;font-size:1.125rem;color:var(--blue-500);"></span>
                             </div>
                         </div>
                     </div>
 
                     {# Right: Payment #}
-                    <div class="col-md-8 payment-panel p-4" style="overflow-y:auto;max-height:80vh;">
+                    <div class="col-md-8 payment-panel p-4" id="checkoutPanelPayment" style="overflow-y:auto;max-height:80vh;">
 
                         {# Exchange Rate Banner #}
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding:0.5rem 0.75rem;background:var(--blue-50);border:1px solid var(--blue-100);border-radius:6px;font-size:0.8rem;">
@@ -256,3 +302,39 @@
         </div>
     </div>
 </div>
+<script>
+    function switchCheckoutTab(tab) {
+        var isMobile = window.innerWidth < 768;
+        if (!isMobile) return;
+        var orderPanel   = document.getElementById('checkoutPanelOrder');
+        var paymentPanel = document.getElementById('checkoutPanelPayment');
+        var btnOrder     = document.getElementById('tabBtnOrder');
+        var btnPayment   = document.getElementById('tabBtnPayment');
+        if (tab === 'order') {
+            orderPanel.classList.remove('checkout-panel-mobile-hide');
+            paymentPanel.classList.add('checkout-panel-mobile-hide');
+            btnOrder.classList.add('active');
+            btnPayment.classList.remove('active');
+        } else {
+            paymentPanel.classList.remove('checkout-panel-mobile-hide');
+            orderPanel.classList.add('checkout-panel-mobile-hide');
+            btnPayment.classList.add('active');
+            btnOrder.classList.remove('active');
+        }
+    }
+
+    // When modal opens on mobile, default to Order tab
+    document.addEventListener('DOMContentLoaded', function () {
+        var modal = document.getElementById('checkoutModal');
+        if (!modal) return;
+        modal.addEventListener('show.bs.modal', function () {
+            if (window.innerWidth < 768) {
+                switchCheckoutTab('order');
+            } else {
+                // Desktop: ensure both panels visible
+                document.getElementById('checkoutPanelOrder').classList.remove('checkout-panel-mobile-hide');
+                document.getElementById('checkoutPanelPayment').classList.remove('checkout-panel-mobile-hide');
+            }
+        });
+    });
+</script>

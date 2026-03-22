@@ -1,218 +1,372 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <title>Expenses Report</title>
+    <title>Expenses Report &mdash; {{ current_period }}</title>
     <style>
+        /* ── Base ── Verdana: wide sidebearings, no kern-pair dependency.
+           Confirmed fix for wkhtmltopdf GDI kern table mismatch on Windows.
+           font-kerning:none + font-feature-settings as secondary guard. */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            color: #333;
-            line-height: 1.4;
-            font-size: 12px;
-            margin: 0;
-            padding: 20px;
+            font-family: Verdana, Geneva, sans-serif;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #1e293b;
+            background: #fff;
+            -webkit-font-feature-settings: "kern" 0;
+            font-feature-settings: "kern" 0;
+            font-kerning: none;
         }
 
-        .header {
-            margin-bottom: 30px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-        }
-
-        .company-name {
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-
-        .report-title {
-            font-size: 18px;
-            margin-bottom: 5px;
-            color: #7f8c8d;
-        }
-
-        .meta-info {
-            font-size: 10px;
-            color: #95a5a6;
-            margin-bottom: 20px;
-        }
-
-        .section-title {
-            background-color: #2c3e50;
-            color: #fff;
-            padding: 5px 10px;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        /* Stats Grid */
-        .stats-grid {
+        /* ── Cover Header ── */
+        .cover-header {
+            display: table;
             width: 100%;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 16px;
             margin-bottom: 20px;
         }
-
-        .stats-grid td {
-            width: 33.33%;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-            text-align: center;
+        .cover-header-logo {
+            display: table-cell;
+            vertical-align: middle;
+            width: 90px;
         }
-
-        .stat-value {
-            font-size: 18px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 5px;
+        .cover-header-logo img {
+            max-height: 60px;
+            max-width: 80px;
+            object-fit: contain;
         }
-
-        .stat-label {
-            font-size: 10px;
-            color: #7f8c8d;
+        .cover-header-body {
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .cover-header-right {
+            display: table-cell;
+            vertical-align: bottom;
+            text-align: right;
+            white-space: nowrap;
+        }
+        .company-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e293b;
             text-transform: uppercase;
         }
+        .company-meta {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        .report-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2563eb;
+            line-height: 1.2;
+        }
+        .report-sub {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 3px;
+        }
+        .period-badge {
+            display: inline-block;
+            background: #eff6ff;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
 
-        /* Data Table */
+        /* ── Section title ── */
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #1e3a5f;
+            text-transform: uppercase;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 6px 10px 5px;
+            margin-bottom: 12px;
+            margin-top: 20px;
+            background: #f8fafc;
+            border-left: 4px solid #2563eb;
+        }
+
+        /* ── KPI cards ── */
+        .kpi-row {
+            display: table;
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            background: #fff;
+        }
+        .kpi-cell {
+            display: table-cell;
+            width: 33.33%;
+            text-align: center;
+            padding: 14px 8px;
+            border-right: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+        .kpi-cell:last-child { border-right: none; }
+        .kpi-label {
+            font-size: 9px;
+            color: #64748b;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .kpi-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e3a5f;
+            display: block;
+            line-height: 1.1;
+        }
+        .kpi-total  .kpi-value { color: #1e3a5f; }
+        .kpi-paid   .kpi-value { color: #16a34a; }
+        .kpi-pend   .kpi-value { color: #d97706; }
+
+        /* ── Two-column layout for category breakdown ── */
+        .two-col {
+            display: table;
+            width: 100%;
+            margin-bottom: 4px;
+        }
+        .two-col-left {
+            display: table-cell;
+            width: 56%;
+            vertical-align: top;
+            padding-right: 12px;
+        }
+        .two-col-right {
+            display: table-cell;
+            width: 44%;
+            vertical-align: top;
+        }
+
+        /* ── Data table ── */
         table.data-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            table-layout: fixed;
         }
-
-        table.data-table th,
-        table.data-table td {
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
-            text-align: left;
-        }
-
-        table.data-table th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-            color: #2c3e50;
-            font-size: 11px;
-        }
-
-        table.data-table tr:nth-child(even) {
-            background-color: #fcfcfc;
-        }
-
-        .text-right {
-            text-align: right;
-        }
-
-        .text-center {
-            text-align: center;
-        }
-
-        .footer {
-            margin-top: 40px;
-            padding-top: 10px;
-            border-top: 1px solid #eee;
+        table.data-table thead tr { background-color: #1e3a5f; }
+        table.data-table thead th {
+            color: #fff;
+            padding: 7px 6px;
             font-size: 10px;
-            color: #999;
-            text-align: center;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-align: left;
+            overflow: hidden;
+            white-space: nowrap;
         }
+        table.data-table thead th.th-right  { text-align: right; }
+        table.data-table thead th.th-center { text-align: center; }
+        table.data-table tbody tr:nth-child(even) { background: #f8fafc; }
+        table.data-table tbody td {
+            padding: 7px 6px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+        table.data-table tbody .td-right  { text-align: right; }
+        table.data-table tbody .td-center { text-align: center; }
 
-        /* Badges for PDF */
+        /* Totals footer row */
+        .totals-row td {
+            background: #1e3a5f !important;
+            color: #fff !important;
+            font-weight: 700;
+            padding: 7px 6px;
+            border-bottom: none !important;
+        }
+        .totals-row .td-right { text-align: right; }
+
+        /* ── Status badges ── */
         .badge {
             display: inline-block;
-            padding: 2px 5px;
-            font-size: 10px;
-            font-weight: bold;
-            border-radius: 3px;
-            color: #fff;
+            padding: 2px 7px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
         }
+        .badge-paid    { background: #d1fae5; color: #065f46; }
+        .badge-pending { background: #fef9c3; color: #78350f; }
 
-        .badge-paid {
-            background-color: #28a745;
+        /* ── Doc footer ── */
+        .doc-footer {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+            display: table;
+            width: 100%;
+            font-size: 9px;
+            color: #94a3b8;
         }
-
-        .badge-pending {
-            background-color: #ffc107;
-            color: #000;
-        }
+        .doc-footer-left  { display: table-cell; text-align: left; }
+        .doc-footer-right { display: table-cell; text-align: right; }
     </style>
 </head>
-
 <body>
-    <div class="header">
-        <div class="company-name">{{ company_name }}</div>
-        <div class="report-title">Expenses Report</div>
-        <div class="meta-info">
-            Generated on: {{ generated_at }}<br>
-            Period: {{ current_period }}
+
+    <!-- ══ HEADER ══ -->
+    <div class="cover-header">
+        <div class="cover-header-logo">
+            {% if company_logo %}
+            <img src="{{ url_for('static', filename=company_logo, _external=True) }}" alt="{{ company_name }}">
+            {% endif %}
+        </div>
+        <div class="cover-header-body">
+            <div class="company-name">{{ company_name }}</div>
+            {% if company_address or company_phone %}
+            <div class="company-meta">
+                {% if company_address %}{{ company_address }}{% endif %}
+                {% if company_address and company_phone %} &bull; {% endif %}
+                {% if company_phone %}{{ company_phone }}{% endif %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="cover-header-right">
+            <div class="report-title">Expenses Report</div>
+            <div class="report-sub">Generated: {{ generated_at }}</div>
+            <div class="period-badge">{{ current_period }}</div>
+            {% if start_date and end_date %}
+            <div class="report-sub" style="margin-top:4px;">{{ start_date.strftime('%d %b %Y') }} &ndash; {{ end_date.strftime('%d %b %Y') }}</div>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Executive Summary -->
-    <div class="section-title">Executive Summary</div>
-    <table class="stats-grid">
-        <tr>
-            <td>
-                <div class="stat-value">{{ format_currency(total_expenses) }}</div>
-                <div class="stat-label">Total Expenses</div>
-            </td>
-            <td>
-                <div class="stat-value" style="color: #28a745;">{{ format_currency(total_paid) }}</div>
-                <div class="stat-label">Total Paid</div>
-            </td>
-            <td>
-                <div class="stat-value" style="color: #ffc107;">{{ format_currency(total_pending) }}</div>
-                <div class="stat-label">Pending</div>
-            </td>
-        </tr>
-    </table>
+    <!-- ══ EXECUTIVE SUMMARY ══ -->
+    <div class="kpi-row">
+        <div class="kpi-cell kpi-total">
+            <span class="kpi-label">Total Expenses</span>
+            <span class="kpi-value">{{ format_currency(total_expenses) }}</span>
+        </div>
+        <div class="kpi-cell kpi-paid">
+            <span class="kpi-label">Total Paid</span>
+            <span class="kpi-value">{{ format_currency(total_paid) }}</span>
+        </div>
+        <div class="kpi-cell kpi-pend">
+            <span class="kpi-label">Pending / Unpaid</span>
+            <span class="kpi-value">{{ format_currency(total_pending) }}</span>
+        </div>
+    </div>
 
-    <!-- Expenses Table -->
-    <div class="section-title">Detailed Expenses</div>
+    <!-- ══ CATEGORY BREAKDOWN (two-column) ══ -->
+    {% set categories_seen = [] %}
+    {% set cat_data = {} %}
+    {% for expense in expenses %}
+        {% set cname = expense.category.name %}
+        {% if cname not in categories_seen %}
+            {% if categories_seen.append(cname) %}{% endif %}
+        {% endif %}
+    {% endfor %}
+
+    {% if categories_seen | length > 1 %}
+    <div class="section-title" style="margin-top:0;">Category Breakdown</div>
+    <table class="data-table" style="margin-bottom:20px;">
+        <thead>
+            <tr>
+                <th style="width:40%">Category</th>
+                <th class="th-right" style="width:20%">Paid</th>
+                <th class="th-right" style="width:20%">Pending</th>
+                <th class="th-right" style="width:20%">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cname in categories_seen %}
+            {% set cat_expenses = expenses | selectattr('category.name', 'equalto', cname) | list %}
+            {% set cat_paid = namespace(v=0) %}
+            {% set cat_pend = namespace(v=0) %}
+            {% for e in cat_expenses %}
+                {% if e.status.name == 'PAID' %}{% set cat_paid.v = cat_paid.v + e.amount %}
+                {% else %}{% set cat_pend.v = cat_pend.v + e.amount %}{% endif %}
+            {% endfor %}
+            <tr>
+                <td style="font-weight:600;">{{ cname }}</td>
+                <td class="td-right" style="color:#16a34a;font-weight:700;">{{ format_currency(cat_paid.v) }}</td>
+                <td class="td-right" style="color:#d97706;font-weight:700;">{{ format_currency(cat_pend.v) }}</td>
+                <td class="td-right" style="font-weight:700;">{{ format_currency(cat_paid.v + cat_pend.v) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="totals-row">
+                <td>TOTAL</td>
+                <td class="td-right" style="color:#86efac;">{{ format_currency(total_paid) }}</td>
+                <td class="td-right" style="color:#fde68a;">{{ format_currency(total_pending) }}</td>
+                <td class="td-right">{{ format_currency(total_expenses) }}</td>
+            </tr>
+        </tfoot>
+    </table>
+    {% endif %}
+
+    <!-- ══ DETAILED EXPENSES ══ -->
+    <div class="section-title" style="margin-top:0;">Detailed Expenses</div>
     <table class="data-table">
         <thead>
             <tr>
-                <th>Date</th>
-                <th>Title</th>
-                <th>Category</th>
-                <th>Type</th>
-                <th class="text-right">Amount</th>
-                <th class="text-center">Status</th>
+                <th style="width:10%">Date</th>
+                <th style="width:26%">Title</th>
+                <th style="width:16%">Category</th>
+                <th style="width:13%">Type</th>
+                <th style="width:13%" class="th-right">Amount</th>
+                <th style="width:10%" class="th-center">Status</th>
+                <th style="width:12%">Notes</th>
             </tr>
         </thead>
         <tbody>
             {% for expense in expenses %}
             <tr>
-                <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
-                <td>
-                    <strong>{{ expense.title }}</strong><br>
-                    {% if expense.notes %}<span style="color: #999; font-size: 10px;">{{ expense.notes }}</span>{% endif
-                    %}
-                </td>
-                <td>{{ expense.category.name }}</td>
-                <td>{{ expense.expense_type.value }}</td>
-                <td class="text-right"><strong>{{ format_currency(expense.amount) }}</strong></td>
-                <td class="text-center">
+                <td style="color:#64748b;">{{ expense.date.strftime('%d %b %Y') }}</td>
+                <td style="font-weight:600;">{{ expense.title }}</td>
+                <td style="color:#475569;">{{ expense.category.name }}</td>
+                <td style="color:#475569;">{{ expense.expense_type.value if expense.expense_type else '—' }}</td>
+                <td class="td-right" style="font-weight:700;color:#dc2626;">{{ format_currency(expense.amount) }}</td>
+                <td class="td-center">
                     {% if expense.status.name == 'PAID' %}
-                    <span class="badge badge-paid">PAID</span>
+                    <span class="badge badge-paid">Paid</span>
                     {% else %}
-                    <span class="badge badge-pending">PENDING</span>
+                    <span class="badge badge-pending">Pending</span>
                     {% endif %}
                 </td>
+                <td style="font-size:9px;color:#94a3b8;">{{ expense.notes or '' }}</td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="6" class="text-center" style="padding: 20px; color: #999;">No expenses found for this
-                    period.</td>
+                <td colspan="7" class="td-center" style="padding:24px;color:#94a3b8;">
+                    No expenses found for this period.
+                </td>
             </tr>
             {% endfor %}
         </tbody>
+        {% if expenses %}
+        <tfoot>
+            <tr class="totals-row">
+                <td colspan="4">TOTALS &mdash; {{ expenses | length }} expense{{ 's' if expenses | length != 1 }}</td>
+                <td class="td-right">{{ format_currency(total_expenses) }}</td>
+                <td class="td-center" style="font-size:9px;color:#86efac;">Paid: {{ format_currency(total_paid) }}</td>
+                <td style="font-size:9px;color:#fde68a;">Pending: {{ format_currency(total_pending) }}</td>
+            </tr>
+        </tfoot>
+        {% endif %}
     </table>
 
-    <div class="footer">
-        Confidential Report - Internal Use Only
+    <!-- ══ FOOTER ══ -->
+    <div class="doc-footer">
+        <div class="doc-footer-left">{{ company_name }} &mdash; Confidential &bull; Internal Use Only</div>
+        <div class="doc-footer-right">Exported {{ generated_at }}</div>
     </div>
-</body>
 
+</body>
 </html>

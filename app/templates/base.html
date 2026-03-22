@@ -12,12 +12,253 @@
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     {% block head %}{% endblock %}
+    <style>
+        /* ── Notification animations ───────────────────────── */
+        @keyframes bell-ring {
+            0%,100% { transform: rotate(0deg) scale(1); }
+            15%  { transform: rotate(-22deg) scale(1.05); }
+            30%  { transform: rotate(22deg)  scale(1.05); }
+            45%  { transform: rotate(-14deg); }
+            60%  { transform: rotate(14deg); }
+            75%  { transform: rotate(-7deg); }
+            90%  { transform: rotate(7deg); }
+        }
+        @keyframes badge-pop {
+            0%   { transform: scale(0); opacity: 0; }
+            65%  { transform: scale(1.25); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+        @keyframes pulse-glow {
+            0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.5); }
+            60%     { box-shadow: 0 0 0 7px rgba(220,38,38,0); }
+        }
+        @keyframes notif-slide-in {
+            from { opacity:0; transform: translateY(6px); }
+            to   { opacity:1; transform: translateY(0); }
+        }
+
+        /* ── Bell button ───────────────────────────────────── */
+        .notif-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            padding: 0.5rem 0.625rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--gray-600);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            background: none;
+            transition: background 0.12s, color 0.12s;
+            text-align: left;
+        }
+        .notif-btn:hover { background: var(--gray-100); color: var(--gray-900); }
+        .notif-btn.is-open { background: var(--blue-50); color: var(--blue-600); }
+        .notif-btn:hover .notif-icon i,
+        .notif-btn.is-open .notif-icon i { animation: bell-ring 0.65s ease; }
+
+        .notif-icon {
+            position: relative;
+            width: 22px; height: 22px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .notif-icon i { font-size: 0.9375rem; transition: color 0.15s; }
+
+        .notif-dot {
+            display: none;
+            position: absolute;
+            top: -5px; right: -8px;
+            min-width: 16px; height: 16px;
+            line-height: 14px;
+            padding: 0 3.5px;
+            background: #DC2626;
+            color: #fff;
+            border-radius: 10px;
+            font-size: 0.5rem;
+            font-weight: 800;
+            text-align: center;
+            border: 2px solid #fff;
+            pointer-events: none;
+        }
+        .notif-dot.has-count {
+            display: inline-block;
+            animation: badge-pop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards,
+                       pulse-glow 2.4s ease 0.5s infinite;
+        }
+
+        /* ── Notification panel ────────────────────────────── */
+        #notifPanel {
+            display: none;
+            position: fixed;
+            right: 0; top: 0; bottom: 0;
+            width: 370px;
+            max-width: 100vw;
+            z-index: 491;
+            background: #fff;
+            box-shadow: -6px 0 40px rgba(15,23,42,0.13);
+            flex-direction: column;
+            overflow: hidden;
+            transform: translateX(100%);
+            transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+        }
+        #notifPanel.open { transform: translateX(0); }
+        @media (max-width: 480px) {
+            #notifPanel { width: 100vw; }
+        }
+
+        .np-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem 0.875rem;
+            border-bottom: 1px solid #E2E8F0;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #1E40AF 0%, #2563EB 100%);
+        }
+        .np-header-left { display: flex; align-items: center; gap: 0.625rem; }
+        .np-header-icon {
+            width: 34px; height: 34px;
+            border-radius: 9px;
+            background: rgba(255,255,255,0.15);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .np-header-icon i { color: #fff; font-size: 0.9375rem; }
+        .np-title { font-size: 1rem; font-weight: 700; color: #fff; }
+        .np-count-chip {
+            display: none;
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            border-radius: 20px;
+            padding: 1px 8px;
+            font-size: 0.6875rem;
+            font-weight: 700;
+        }
+        .np-close-btn {
+            width: 28px; height: 28px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 7px;
+            cursor: pointer;
+            color: #fff;
+            font-size: 0.75rem;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.12s;
+        }
+        .np-close-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .np-tabs {
+            display: flex;
+            gap: 0;
+            padding: 0 1.25rem;
+            border-bottom: 1px solid #E2E8F0;
+            flex-shrink: 0;
+            background: #F8FAFC;
+        }
+        .np-tab {
+            padding: 0.625rem 0.875rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #94A3B8;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: color 0.12s, border-color 0.12s;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            white-space: nowrap;
+        }
+        .np-tab.active { color: #2563EB; border-bottom-color: #2563EB; }
+        .np-tab:hover:not(.active) { color: #475569; }
+
+        #notifList { flex: 1; overflow-y: auto; padding: 0.75rem; }
+
+        /* Notification item cards */
+        .ni {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.75rem 0.875rem;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid transparent;
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            animation: notif-slide-in 0.2s ease both;
+        }
+        .ni:hover { transform: translateX(3px); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .ni.ni-danger  { background: #FEF2F2; border-left-color: #DC2626; }
+        .ni.ni-warning { background: #FFFBEB; border-left-color: #D97706; }
+        .ni.ni-info    { background: #EFF6FF; border-left-color: #2563EB; }
+        .ni-icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.8125rem;
+        }
+        .ni.ni-danger  .ni-icon { background: #FEE2E2; color: #DC2626; }
+        .ni.ni-warning .ni-icon { background: #FEF3C7; color: #D97706; }
+        .ni.ni-info    .ni-icon { background: #DBEAFE; color: #2563EB; }
+        .ni-body { flex: 1; min-width: 0; }
+        .ni-title { font-size: 0.8125rem; font-weight: 600; color: #0F172A; margin-bottom: 2px; line-height: 1.3; }
+        .ni-sub   { font-size: 0.75rem; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ni-time  {
+            font-size: 0.5625rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.05em; border-radius: 20px; padding: 2px 7px;
+            white-space: nowrap; flex-shrink: 0; align-self: flex-start;
+        }
+        .ni.ni-danger  .ni-time { background: #FEE2E2; color: #DC2626; }
+        .ni.ni-warning .ni-time { background: #FEF3C7; color: #92400E; }
+        .ni.ni-info    .ni-time { background: #DBEAFE; color: #1D4ED8; }
+
+        /* Group label */
+        .ni-group {
+            font-size: 0.625rem;
+            font-weight: 800;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: #94A3B8;
+            padding: 0.5rem 0.25rem 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .ni-group::after { content:''; flex:1; height:1px; background:#E2E8F0; }
+
+        .np-footer {
+            border-top: 1px solid #E2E8F0;
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            background: #F8FAFC;
+        }
+        .np-footer-time { font-size: 0.6875rem; color: #94A3B8; }
+        .np-refresh-btn {
+            font-size: 0.75rem; color: #2563EB; background: none;
+            border: none; cursor: pointer; font-weight: 600; padding: 0;
+            display: flex; align-items: center; gap: 4px;
+            transition: opacity 0.12s;
+        }
+        .np-refresh-btn:hover { opacity: 0.75; }
+        .np-mark-read-btn {
+            font-size: 0.75rem; color: #64748B; background: none;
+            border: none; cursor: pointer; font-weight: 500; padding: 0;
+        }
+        .np-mark-read-btn:hover { color: #0F172A; }
+    </style>
 </head>
 <body>
 
     <!-- Mobile top bar -->
-    <nav class="d-md-none topbar-mobile" style="background:#fff;border-bottom:1px solid var(--gray-200);padding:0.625rem 1rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;">
-        <button class="btn btn-light btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-expanded="false" style="border:var(--border);">
+    <nav class="d-md-none topbar-mobile" style="background:#fff;border-bottom:1px solid var(--gray-200);padding:0.5rem 0.875rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;">
+        <button class="btn btn-light btn-sm" type="button" id="mobileMenuToggle" onclick="toggleMobileSidebar()" aria-label="Open menu" style="border:var(--border);min-height:38px;min-width:38px;padding:0;display:flex;align-items:center;justify-content:center;">
             <i class="fas fa-bars"></i>
         </button>
         {% if company_logo %}
@@ -27,15 +268,27 @@
         {% else %}
         <span style="font-weight:700;font-size:0.9375rem;color:var(--gray-900);">{{ company_name }}</span>
         {% endif %}
-        <div style="width:32px;"></div>
+        {% if current_user.is_authenticated %}
+        <button class="btn btn-light btn-sm" style="border:var(--border);min-height:38px;min-width:38px;padding:0;display:flex;align-items:center;justify-content:center;position:relative;" onclick="toggleNotifPanel()" aria-label="Notifications">
+            <i class="fas fa-bell" style="font-size:0.875rem;"></i>
+            <span id="topbarNotifDot" style="display:none;position:absolute;top:4px;right:4px;width:8px;height:8px;background:#DC2626;border-radius:50%;border:2px solid #fff;"></span>
+        </button>
+        {% else %}
+        <div style="width:38px;"></div>
+        {% endif %}
     </nav>
+
+    <!-- Sidebar backdrop overlay (mobile) -->
+    {% if current_user.is_authenticated %}
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+    {% endif %}
 
     <div class="container-fluid p-0">
         <div class="row g-0" style="min-height:100vh;">
 
             {% if current_user.is_authenticated %}
             <!-- ── Sidebar ── -->
-            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse" id="sidebarMenu">
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar" id="sidebarMenu">
                 <div class="d-flex flex-column h-100" style="padding:0.75rem;">
 
                     <!-- Brand -->
@@ -82,10 +335,17 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ 'active' if request.endpoint and 'products' in request.endpoint }}" href="{{ url_for('products.index') }}" title="Inventory">
+                            <a class="nav-link {{ 'active' if request.endpoint and 'products' in request.endpoint and 'label' not in request.endpoint }}" href="{{ url_for('products.index') }}" title="Inventory">
                                 <i class="fas fa-box"></i><span class="nav-label">Inventory</span>
                             </a>
                         </li>
+                        {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint and 'label' in request.endpoint }}" href="{{ url_for('products.batch_print_labels') }}" title="Print Labels">
+                                <i class="fas fa-tags"></i><span class="nav-label">Print Labels</span>
+                            </a>
+                        </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a class="nav-link {{ 'active' if request.endpoint and 'customers' in request.endpoint }}" href="{{ url_for('customers.index') }}" title="Customers">
                                 <i class="fas fa-users"></i><span class="nav-label">Customers</span>
@@ -125,6 +385,17 @@
                         </li>
                         {% endif %}
                     </ul>
+
+                    <!-- Notification Bell -->
+                    <div style="border-top:var(--border);padding:0.375rem 0 0;">
+                        <button id="notifBellBtn" class="notif-btn" onclick="toggleNotifPanel()" title="Notifications">
+                            <span class="notif-icon">
+                                <i class="fas fa-bell" id="notifBellIcon"></i>
+                                <span class="notif-dot" id="notifBadge"></span>
+                            </span>
+                            <span class="nav-label">Notifications</span>
+                        </button>
+                    </div>
 
                     <!-- User section -->
                     <div class="mt-auto" style="border-top:var(--border);padding-top:0.75rem;margin-top:0.75rem;">
@@ -184,9 +455,198 @@
 
     {% block modals %}{% endblock %}
 
+    {% if current_user.is_authenticated %}
+    <!-- ── Bottom Navigation Bar (mobile only) ── -->
+    <nav class="bottom-nav d-md-none" aria-label="Main navigation">
+        <a href="{{ url_for('main.dashboard') }}"
+           class="bottom-nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}"
+           aria-label="Dashboard">
+            <i class="fas fa-home"></i>
+            <span class="bn-label">Home</span>
+        </a>
+        <a href="{{ url_for('pos.index') }}"
+           class="bottom-nav-item {% if request.endpoint and 'pos' in request.endpoint %}active{% endif %}"
+           aria-label="POS Terminal">
+            <i class="fas fa-cash-register"></i>
+            <span class="bn-label">POS</span>
+        </a>
+        <a href="{{ url_for('sales.index') }}"
+           class="bottom-nav-item {% if request.endpoint and 'sales' in request.endpoint and 'report' not in request.endpoint %}active{% endif %}"
+           aria-label="Sales">
+            <i class="fas fa-receipt"></i>
+            <span class="bn-label">Sales</span>
+        </a>
+        <a href="{{ url_for('products.index') }}"
+           class="bottom-nav-item {% if request.endpoint and 'products' in request.endpoint and 'label' not in request.endpoint %}active{% endif %}"
+           aria-label="Inventory">
+            <i class="fas fa-box"></i>
+            <span class="bn-label">Items</span>
+        </a>
+        <button type="button" class="bottom-nav-item {% if request.endpoint and ('customers' in request.endpoint or 'expenses' in request.endpoint or 'reports' in request.endpoint or 'admin' in request.endpoint or 'label' in request.endpoint) %}active{% endif %}"
+           id="bottomNavMoreBtn" onclick="toggleBottomNavMore()" aria-label="More">
+            <i class="fas fa-ellipsis-h"></i>
+            <span class="bn-label">More</span>
+        </button>
+    </nav>
+
+    <!-- Bottom nav "More" menu -->
+    <div class="bottom-nav-more-menu" id="bottomNavMoreMenu">
+        <a href="{{ url_for('customers.index') }}"
+           class="{{ 'active' if request.endpoint and 'customers' in request.endpoint }}">
+            <i class="fas fa-users"></i> Customers
+        </a>
+        {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
+        <a href="{{ url_for('products.batch_print_labels') }}"
+           class="{{ 'active' if request.endpoint and 'label' in request.endpoint }}">
+            <i class="fas fa-tags"></i> Print Labels
+        </a>
+        <a href="{{ url_for('expenses.index') }}"
+           class="{{ 'active' if request.endpoint and 'expenses' in request.endpoint }}">
+            <i class="fas fa-file-invoice-dollar"></i> Expenses
+        </a>
+        <a href="{{ url_for('sales.reports') }}"
+           class="{{ 'active' if request.endpoint and 'reports' in request.endpoint }}">
+            <i class="fas fa-chart-line"></i> Reports
+        </a>
+        {% endif %}
+        {% if current_user.has_role('Admin') %}
+        <div class="menu-divider"></div>
+        <a href="{{ url_for('admin.users') }}"
+           class="{{ 'active' if request.endpoint and 'admin' in request.endpoint and 'settings' not in request.endpoint and 'logs' not in request.endpoint }}">
+            <i class="fas fa-users-cog"></i> Users
+        </a>
+        <a href="{{ url_for('admin.settings') }}"
+           class="{{ 'active' if request.endpoint and 'settings' in request.endpoint }}">
+            <i class="fas fa-cog"></i> Settings
+        </a>
+        {% endif %}
+        <div class="menu-divider"></div>
+        <button onclick="toggleDarkMode()">
+            <i class="fas fa-moon" id="bottomNavDmIcon"></i>
+            <span id="bottomNavDmLabel">Dark Mode</span>
+        </button>
+        <a href="{{ url_for('auth.logout') }}" style="color:var(--red-600);">
+            <i class="fas fa-sign-out-alt" style="color:var(--red-600);"></i> Logout
+        </a>
+    </div>
+    <div class="bottom-nav-more-menu-backdrop" id="bottomNavMoreBackdrop" onclick="closeBottomNavMore()"></div>
+    {% endif %}
+
+    {% if current_user.is_authenticated %}
+    <!-- ── Notification Panel ── -->
+    <div id="notifBackdrop" onclick="closeNotifPanel()"
+        style="display:none;position:fixed;inset:0;z-index:490;background:rgba(15,23,42,0.3);backdrop-filter:blur(3px);"></div>
+
+    <div id="notifPanel">
+        <!-- Header (gradient blue) -->
+        <div class="np-header">
+            <div class="np-header-left">
+                <div class="np-header-icon"><i class="fas fa-bell"></i></div>
+                <div>
+                    <div class="np-title">Notifications</div>
+                </div>
+                <span class="np-count-chip" id="notifPanelCount"></span>
+            </div>
+            <button class="np-close-btn" onclick="closeNotifPanel()" title="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="np-tabs">
+            <button class="np-tab active" onclick="filterNotifs('all', this)">All</button>
+            <button class="np-tab" onclick="filterNotifs('danger,warning', this)">Alerts</button>
+            <button class="np-tab" onclick="filterNotifs('info', this)">Activity</button>
+        </div>
+
+        <!-- List body -->
+        <div id="notifList">
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:0.625rem;color:#94A3B8;">
+                <div class="spinner-border spinner-border-sm" style="color:#BFDBFE;"></div>
+                <span style="font-size:0.8125rem;">Loading notifications…</span>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="np-footer">
+            <span class="np-footer-time" id="notifLastUpdated"></span>
+            <div style="display:flex;gap:0.875rem;align-items:center;">
+                <button class="np-mark-read-btn" onclick="markAllRead()">Mark all read</button>
+                <button class="np-refresh-btn" onclick="loadNotifications()">
+                    <i class="fas fa-sync-alt" id="notifRefreshIcon"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script>
         window.CURRENCY_SYMBOL = "{{ currency_symbol }}";
+
+        // ── Mobile Sidebar Drawer ───────────────────────────────────
+        function toggleMobileSidebar() {
+            var sidebar  = document.getElementById('sidebarMenu');
+            var backdrop = document.getElementById('sidebarBackdrop');
+            if (!sidebar) return;
+            var isOpen = sidebar.classList.contains('mobile-open');
+            isOpen ? closeMobileSidebar() : openMobileSidebar();
+        }
+        function openMobileSidebar() {
+            var sidebar  = document.getElementById('sidebarMenu');
+            var backdrop = document.getElementById('sidebarBackdrop');
+            if (!sidebar) return;
+            sidebar.classList.add('mobile-open');
+            if (backdrop) backdrop.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeMobileSidebar() {
+            var sidebar  = document.getElementById('sidebarMenu');
+            var backdrop = document.getElementById('sidebarBackdrop');
+            if (!sidebar) return;
+            sidebar.classList.remove('mobile-open');
+            if (backdrop) backdrop.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeMobileSidebar();
+                closeBottomNavMore();
+            }
+        });
+        // Close mobile sidebar when a nav link is tapped
+        document.addEventListener('DOMContentLoaded', function() {
+            var sidebar = document.getElementById('sidebarMenu');
+            if (sidebar) {
+                sidebar.querySelectorAll('.nav-link').forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        if (window.innerWidth < 768) closeMobileSidebar();
+                    });
+                });
+            }
+        });
+
+        // ── Bottom Nav More Menu ────────────────────────────────────
+        function toggleBottomNavMore() {
+            var menu     = document.getElementById('bottomNavMoreMenu');
+            var backdrop = document.getElementById('bottomNavMoreBackdrop');
+            if (!menu) return;
+            var isOpen = menu.classList.contains('open');
+            if (isOpen) {
+                menu.classList.remove('open');
+                if (backdrop) backdrop.style.display = 'none';
+            } else {
+                menu.classList.add('open');
+                if (backdrop) backdrop.style.display = 'block';
+            }
+        }
+        function closeBottomNavMore() {
+            var menu     = document.getElementById('bottomNavMoreMenu');
+            var backdrop = document.getElementById('bottomNavMoreBackdrop');
+            if (menu) menu.classList.remove('open');
+            if (backdrop) backdrop.style.display = 'none';
+        }
 
         // Dark mode toggle
         function toggleDarkMode() {
@@ -195,11 +655,16 @@
             updateDarkModeIcon();
         }
         function updateDarkModeIcon() {
-            var icon = document.getElementById('darkModeIcon');
-            if (!icon) return;
             var isDark = document.documentElement.classList.contains('dark-mode');
-            icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
-            icon.style.color = isDark ? 'var(--amber-600)' : '';
+            var icon = document.getElementById('darkModeIcon');
+            if (icon) {
+                icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+                icon.style.color = isDark ? 'var(--amber-600)' : '';
+            }
+            var bnIcon  = document.getElementById('bottomNavDmIcon');
+            var bnLabel = document.getElementById('bottomNavDmLabel');
+            if (bnIcon)  bnIcon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+            if (bnLabel) bnLabel.textContent = isDark ? 'Light Mode' : 'Dark Mode';
         }
         document.addEventListener('DOMContentLoaded', updateDarkModeIcon);
 
@@ -213,5 +678,189 @@
     </script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block scripts %}{% endblock %}
+
+    {% if current_user.is_authenticated %}
+    <script>
+        // ── Notification System ──────────────────────────────────────
+        var _notifOpen   = false;
+        var _notifItems  = [];
+        var _notifFilter = 'all';
+        var _notifRead   = false;
+
+        // Group config: id → { label, order }
+        var _groups = {
+            out_of_stock:    { label: 'Inventory',  order: 0 },
+            low_stock:       { label: 'Inventory',  order: 0 },
+            unpaid_invoices: { label: 'Financial',  order: 1 },
+            pending_expenses:{ label: 'Financial',  order: 1 },
+            recent_voids:    { label: 'Activity',   order: 2 },
+            recent_returns:  { label: 'Activity',   order: 2 }
+        };
+
+        function toggleNotifPanel() {
+            _notifOpen ? closeNotifPanel() : openNotifPanel();
+        }
+
+        function openNotifPanel() {
+            var panel    = document.getElementById('notifPanel');
+            var backdrop = document.getElementById('notifBackdrop');
+            if (!panel) return;
+            panel.style.display = 'flex';
+            backdrop.style.display = 'block';
+            requestAnimationFrame(function() { panel.classList.add('open'); });
+            document.getElementById('notifBellBtn').classList.add('is-open');
+            _notifOpen = true;
+            loadNotifications();
+        }
+
+        function closeNotifPanel() {
+            var panel    = document.getElementById('notifPanel');
+            var backdrop = document.getElementById('notifBackdrop');
+            if (!panel) return;
+            panel.classList.remove('open');
+            document.getElementById('notifBellBtn').classList.remove('is-open');
+            setTimeout(function() {
+                panel.style.display = 'none';
+                backdrop.style.display = 'none';
+            }, 290);
+            _notifOpen = false;
+        }
+
+        function loadNotifications() {
+            var icon = document.getElementById('notifRefreshIcon');
+            if (icon) icon.style.animation = 'spin 0.7s linear infinite';
+
+            fetch('/api/notifications', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    _notifItems = data.notifications || [];
+                    updateBadge(_notifRead ? 0 : _notifItems.length);
+                    renderNotifications(_notifItems);
+                    var ts = document.getElementById('notifLastUpdated');
+                    if (ts) {
+                        var now = new Date();
+                        ts.textContent = 'Updated at ' + now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+                    }
+                    if (icon) icon.style.animation = '';
+                })
+                .catch(function() {
+                    if (icon) icon.style.animation = '';
+                    document.getElementById('notifList').innerHTML =
+                        '<div style="text-align:center;padding:3rem 1.5rem;color:#94A3B8;">' +
+                        '<i class="fas fa-exclamation-circle" style="font-size:2rem;opacity:0.25;display:block;margin-bottom:0.75rem;"></i>' +
+                        '<div style="font-size:0.875rem;font-weight:600;color:#64748B;">Could not load notifications</div>' +
+                        '<div style="font-size:0.75rem;margin-top:4px;">Check your connection and try again.</div>' +
+                        '</div>';
+                });
+        }
+
+        function updateBadge(count) {
+            var badge    = document.getElementById('notifBadge');
+            var chip     = document.getElementById('notifPanelCount');
+            var topDot   = document.getElementById('topbarNotifDot');
+            if (!badge) return;
+            if (count > 0 && !_notifRead) {
+                var label = count > 99 ? '99+' : count;
+                badge.textContent = label;
+                badge.classList.add('has-count');
+                if (chip)   { chip.textContent = count + ' alert' + (count > 1 ? 's' : ''); chip.style.display = 'inline'; }
+                if (topDot) topDot.style.display = 'block';
+                document.getElementById('notifBellIcon').style.color = '#EF4444';
+            } else {
+                badge.classList.remove('has-count');
+                if (chip)   chip.style.display = 'none';
+                if (topDot) topDot.style.display = 'none';
+                document.getElementById('notifBellIcon').style.color = '';
+            }
+        }
+
+        function filterNotifs(filter, tabEl) {
+            _notifFilter = filter;
+            document.querySelectorAll('.np-tab').forEach(function(t) { t.classList.remove('active'); });
+            tabEl.classList.add('active');
+            renderNotifications(_notifItems);
+        }
+
+        function markAllRead() {
+            _notifRead = true;
+            updateBadge(0);
+        }
+
+        function renderNotifications(items) {
+            var list = document.getElementById('notifList');
+            if (!list) return;
+
+            // Filter
+            var filters = _notifFilter === 'all' ? null : _notifFilter.split(',');
+            var visible = filters
+                ? items.filter(function(n) { return filters.indexOf(n.severity) !== -1; })
+                : items;
+
+            if (visible.length === 0) {
+                list.innerHTML =
+                    '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:240px;gap:0.75rem;padding:1rem;">' +
+                    '<div style="width:60px;height:60px;border-radius:50%;background:#F0FDF4;display:flex;align-items:center;justify-content:center;">' +
+                    '<i class="fas fa-check-circle" style="font-size:1.75rem;color:#16A34A;"></i></div>' +
+                    '<div style="font-size:1rem;font-weight:700;color:#0F172A;">All caught up!</div>' +
+                    '<div style="font-size:0.8125rem;color:#94A3B8;text-align:center;line-height:1.5;">No alerts right now.<br>You\'re all set.</div>' +
+                    '</div>';
+                return;
+            }
+
+            // Group items
+            var grouped = {};
+            visible.forEach(function(n) {
+                var g = (_groups[n.id] || { label: 'Other', order: 99 });
+                if (!grouped[g.label]) grouped[g.label] = { order: g.order, items: [] };
+                grouped[g.label].items.push(n);
+            });
+
+            // Sort groups by order
+            var groupKeys = Object.keys(grouped).sort(function(a, b) {
+                return grouped[a].order - grouped[b].order;
+            });
+
+            var html = '';
+            var delay = 0;
+            groupKeys.forEach(function(gName) {
+                html += '<div class="ni-group">' + gName + '</div>';
+                grouped[gName].items.forEach(function(n) {
+                    var cls = 'ni-' + n.severity;
+                    html +=
+                        '<a href="' + (n.link || '#') + '" class="ni ' + cls + '" style="animation-delay:' + delay + 'ms">' +
+                        '<div class="ni-icon"><i class="' + n.icon + '"></i></div>' +
+                        '<div class="ni-body">' +
+                        '<div class="ni-title">' + n.title + '</div>' +
+                        '<div class="ni-sub">' + n.body + '</div>' +
+                        '</div>' +
+                        '<span class="ni-time">' + n.time + '</span>' +
+                        '</a>';
+                    delay += 35;
+                });
+            });
+
+            list.innerHTML = html;
+        }
+
+        // Load badge on every page load (silent)
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/notifications', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    _notifItems = data.notifications || [];
+                    updateBadge(_notifItems.length);
+                })
+                .catch(function() {});
+        });
+
+        // Auto-refresh every 3 min when panel is open
+        setInterval(function() { if (_notifOpen) loadNotifications(); }, 180000);
+
+        // Spin keyframe for refresh icon
+        var _spinStyle = document.createElement('style');
+        _spinStyle.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+        document.head.appendChild(_spinStyle);
+    </script>
+    {% endif %}
 </body>
 </html>

@@ -231,11 +231,17 @@ def checkout():
             if product.quantity_in_stock < item['quantity']:
                 return jsonify({'success': False, 'message': f'Insufficient stock for {product.name}.'}), 400
             
-            # Use wholesale price if applicable
+            # Use wholesale price if applicable; always use DB price — never trust frontend price
             if sale_type == SaleType.WHOLESALE and product.wholesale_price and product.allow_wholesale:
+                min_qty = product.min_wholesale_qty or 1
+                if item['quantity'] < min_qty:
+                    return jsonify({
+                        'success': False,
+                        'message': f'{product.name} requires a minimum of {min_qty} units for wholesale pricing.'
+                    }), 400
                 price = product.wholesale_price
             else:
-                price = Decimal(str(item['price']))
+                price = product.selling_price
             
             subtotal += price * item['quantity']
             product_map[product.id] = {'product': product, 'price': price}

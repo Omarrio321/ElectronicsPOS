@@ -156,6 +156,22 @@
         .btn-print { background: #2563eb; color: white; }
         .btn-back  { background: white; color: #374151; border: 1px solid #d1d5db; }
 
+        /* ── MOBILE ── */
+        @media (max-width: 600px) {
+            body { padding: 12px 8px 100px; }
+            .inv-header { padding: 20px 18px; flex-direction: column; gap: 12px; }
+            .inv-title-block { text-align: left; }
+            .inv-title-block .word { font-size: 32px; }
+            .inv-body { padding: 20px 18px; }
+            .meta-flex { flex-direction: column; gap: 16px; }
+            .inv-meta-box { flex: none; }
+            .inv-footer-row { flex-direction: column; gap: 16px; }
+            .totals-col { flex: none; width: 100%; }
+            .status-banner { padding: 10px 18px; flex-direction: column; gap: 4px; }
+            .actions-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 10px 16px; background: #fff; border-top: 1px solid #e5e7eb; display: flex; gap: 8px; z-index: 100; }
+            .actions-bar .btn { flex: 1; justify-content: center; }
+        }
+
         /* ── PRINT ── */
         @media print {
             @page { size: A4; margin: 0; }
@@ -340,11 +356,17 @@
 </div>
 
 <div class="actions-bar">
-    <a href="{{ url_for('sales.index') }}" class="btn btn-back">
-        <i class="fas fa-arrow-left"></i> Back
+    {% if request.args.get('ref') %}
+    <a href="{{ url_for('customers.profile', customer_id=request.args.get('ref')) }}" class="btn btn-back">
+        <i class="fas fa-arrow-left"></i> Back to Customer
     </a>
+    {% else %}
+    <a href="{{ url_for('sales.index') }}" class="btn btn-back">
+        <i class="fas fa-arrow-left"></i> Back to Sales
+    </a>
+    {% endif %}
     <button onclick="window.print()" class="btn btn-print">
-        <i class="fas fa-print"></i> Print Invoice
+        <i class="fas fa-print"></i> Print / Save as PDF
     </button>
 </div>
 
@@ -360,7 +382,10 @@
                 margin: 2
             });
         }
-        setTimeout(function () { window.print(); }, 600);
+        // Only auto-print on desktop; on mobile, user taps "Print / Save as PDF"
+        if (window.innerWidth > 768) {
+            setTimeout(function () { window.print(); }, 600);
+        }
     };
 </script>
 </body>

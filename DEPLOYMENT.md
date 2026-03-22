@@ -50,22 +50,37 @@ pytest -m integration
 
 ---
 
-## Production Deployment (Gunicorn)
+## Production Deployment
 
-### Start Application
-```bash
-# Development
-python run.py
-
-# Production (Linux)
-gunicorn --workers 4 --bind 0.0.0.0:5000 "app:create_app('production')"
-
-# Production (Windows - use waitress instead)
-pip install waitress
-waitress-serve --port=5000 --call "app:create_app"
+### Windows (Local Shop PC) — RECOMMENDED
+```batch
+REM Double-click start_pos.bat, OR run manually:
+set FLASK_ENV=production
+waitress-serve --port=5000 --threads=4 --call "app:create_app"
 ```
 
-### Nginx Reverse Proxy (Recommended)
+For LAN access from phones/tablets on the same network:
+```batch
+waitress-serve --port=5000 --host=0.0.0.0 --threads=4 --call "app:create_app"
+```
+Then access from any device: `http://YOUR_PC_IP:5000` (find IP with `ipconfig`)
+
+**Note:** `gunicorn` does NOT run on Windows. Use `waitress` only on Windows.
+
+### Linux / VPS Deployment
+```bash
+# Production (Linux)
+export FLASK_ENV=production
+gunicorn --workers 4 --bind 0.0.0.0:5000 "app:create_app()"
+```
+
+### Development (localhost only)
+```bash
+python run.py
+# Binds to 127.0.0.1:5000 only
+```
+
+### Nginx Reverse Proxy (Linux VPS only)
 ```nginx
 server {
     listen 80;
@@ -84,6 +99,22 @@ server {
     }
 }
 ```
+
+### Automated Startup (Windows Task Scheduler)
+1. Open Task Scheduler (`taskschd.msc`)
+2. Create Basic Task → "Start Electronics POS"
+3. Trigger: "When I log on"
+4. Action: Start Program → `C:\path\to\electronics_pos\start_pos.bat`
+5. Check "Run with highest privileges"
+
+### Automated Daily Backup (Windows Task Scheduler)
+1. Create Basic Task → "POS Database Backup"
+2. Trigger: Daily at 11:00 PM
+3. Action: Start Program → `C:\path\to\electronics_pos\backup_db.bat`
+4. Add argument: `/silent` (optional — the script pauses at the end for manual use)
+
+**Backup files are saved to:** `electronics_pos\backups\`
+**Restore:** Double-click `restore_db.bat` and follow prompts
 
 ---
 

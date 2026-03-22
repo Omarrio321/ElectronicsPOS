@@ -41,11 +41,13 @@
 {% endblock %}
 
 {% block content %}
+<div class="bc-nav">
+    <a href="{{ url_for('expenses.index') }}"><i class="fas fa-file-invoice-dollar" style="font-size:0.7rem;"></i> Expenses</a>
+    <i class="fas fa-chevron-right bc-sep"></i>
+    <span class="bc-cur">{{ title }}</span>
+</div>
 <div class="form-page">
     <div class="page-header">
-        <a href="{{ url_for('expenses.index') }}" style="color:var(--gray-400);text-decoration:none;font-size:0.8125rem;display:flex;align-items:center;gap:0.25rem;">
-            <i class="fas fa-chevron-left" style="font-size:0.625rem;"></i> Expenses
-        </a>
         <h1>{{ title }}</h1>
     </div>
 

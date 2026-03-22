@@ -4,8 +4,7 @@
 
 {% block head %}
 <style>
-    .breadcrumb-nav { font-size:0.8125rem; color:var(--gray-400); display:flex; align-items:center; gap:0.375rem; margin-bottom:0.5rem; }
-    .breadcrumb-nav a { color:var(--blue-600); text-decoration:none; }
+    /* breadcrumb: global .bc-nav */
     .page-header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap; }
     .page-header h1 { font-size:1.375rem; font-weight:700; color:var(--gray-900); margin:0; letter-spacing:-0.01em; }
     .page-meta { font-size:0.8125rem; color:var(--gray-500); margin-top:4px; }
@@ -78,13 +77,25 @@
 {% endblock %}
 
 {% block content %}
-<div class="breadcrumb-nav">
-    <a href="{{ url_for('sales.index') }}">Sales</a>
-    <i class="fas fa-chevron-right" style="font-size:0.5rem;"></i>
-    <a href="{{ url_for('sales.detail', sale_id=sale.id) }}">{{ sale.invoice_no or ('Sale #' ~ sale.id) }}</a>
-    <i class="fas fa-chevron-right" style="font-size:0.5rem;"></i>
-    <span>Return Items</span>
+{% if request.args.get('ref') and sale.customer %}
+<div class="bc-nav">
+    <a href="{{ url_for('customers.index') }}"><i class="fas fa-users" style="font-size:0.7rem;"></i> Customers</a>
+    <i class="fas fa-chevron-right bc-sep"></i>
+    <a href="{{ url_for('customers.profile', customer_id=sale.customer.id) }}">{{ sale.customer.full_name }}</a>
+    <i class="fas fa-chevron-right bc-sep"></i>
+    <a href="{{ url_for('sales.detail', sale_id=sale.id, ref=request.args.get('ref')) }}">{{ sale.invoice_no or ('Sale #' ~ sale.id) }}</a>
+    <i class="fas fa-chevron-right bc-sep"></i>
+    <span class="bc-cur">Return Items</span>
 </div>
+{% else %}
+<div class="bc-nav">
+    <a href="{{ url_for('sales.index') }}"><i class="fas fa-receipt" style="font-size:0.7rem;"></i> Sales</a>
+    <i class="fas fa-chevron-right bc-sep"></i>
+    <a href="{{ url_for('sales.detail', sale_id=sale.id) }}">{{ sale.invoice_no or ('Sale #' ~ sale.id) }}</a>
+    <i class="fas fa-chevron-right bc-sep"></i>
+    <span class="bc-cur">Return Items</span>
+</div>
+{% endif %}
 
 <div class="page-header">
     <div>

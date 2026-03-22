@@ -1,276 +1,344 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Return Receipt - {{ return_txn.return_no }}</title>
+    <title>Return Receipt &mdash; {{ return_txn.return_no }}</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        /* ── Thermal Receipt Layout (80mm / 320px) ─────────────────────── */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Courier New', monospace;
-            max-width: 320px;
-            margin: 0 auto;
-            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
             font-size: 12px;
             color: #000;
+            background: #fff;
+            max-width: 320px;
+            margin: 0 auto;
+            padding: 12px 10px;
         }
 
-        .header {
+        /* ── Actions bar (hidden on print) ── */
+        .action-bar {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 18px;
+        }
+        .btn-print {
+            padding: 8px 22px;
+            font-size: 13px;
+            cursor: pointer;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+        }
+        .btn-close {
+            padding: 8px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            background: #64748b;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+        }
+
+        /* ── Header ── */
+        .receipt-header {
             text-align: center;
-            margin-bottom: 15px;
-            border-bottom: 2px dashed #000;
             padding-bottom: 10px;
+            border-bottom: 2px dashed #000;
+            margin-bottom: 10px;
         }
-
-        .header h1 {
-            font-size: 14px;
-            margin-bottom: 3px;
-        }
-
-        .header .store-name {
-            font-size: 16px;
+        .store-name {
+            font-size: 15px;
             font-weight: bold;
+            letter-spacing: 1px;
         }
-
+        .store-meta {
+            font-size: 10px;
+            color: #555;
+            margin-top: 2px;
+        }
         .return-badge {
-            display: inline-block;
-            border: 2px solid #dc3545;
-            color: #dc3545;
-            padding: 2px 12px;
+            display: block;
+            border: 2px solid #000;
+            color: #000;
+            padding: 3px 0;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 13px;
             letter-spacing: 2px;
-            margin: 5px 0;
+            margin: 8px 0 0;
+            text-align: center;
+            text-transform: uppercase;
         }
 
+        /* ── Info rows ── */
+        .info-block {
+            margin: 8px 0;
+            border-bottom: 1px dashed #000;
+            padding-bottom: 8px;
+        }
         .info-row {
             display: flex;
             justify-content: space-between;
-            margin: 2px 0;
+            margin: 3px 0;
+            font-size: 11px;
         }
+        .info-row .lbl { font-weight: bold; white-space: nowrap; margin-right: 6px; }
+        .info-row .val { text-align: right; word-break: break-all; }
 
-        .info-row .label {
-            font-weight: bold;
-        }
-
-        .section {
-            margin: 10px 0;
-        }
-
-        .section-title {
-            font-weight: bold;
+        /* ── Section title ── */
+        .sect-title {
             text-align: center;
-            margin: 8px 0 5px;
+            font-weight: bold;
+            font-size: 11px;
+            padding: 4px 0;
             border-top: 1px dashed #000;
             border-bottom: 1px dashed #000;
-            padding: 3px 0;
+            margin: 8px 0 5px;
+            letter-spacing: 1px;
         }
 
+        /* ── Items table ── */
         .items-table {
             width: 100%;
             border-collapse: collapse;
         }
-
         .items-table th {
             text-align: left;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 3px 2px;
             border-bottom: 1px solid #000;
-            padding: 3px 0;
-            font-size: 11px;
         }
-
         .items-table td {
-            padding: 4px 0;
             font-size: 11px;
+            padding: 4px 2px;
             vertical-align: top;
         }
-
-        .items-table .qty {
-            text-align: center;
-            width: 30px;
+        .items-table .col-qty   { text-align: center; width: 28px; }
+        .items-table .col-price { text-align: right; width: 64px; }
+        .items-table .col-total { text-align: right; width: 72px; }
+        .items-table .item-desc {
+            font-size: 10px;
+            color: #444;
+            padding-left: 2px;
         }
 
-        .items-table .price {
-            text-align: right;
-            width: 70px;
-        }
-
-        .totals {
+        /* ── Totals ── */
+        .totals-block {
             border-top: 1px dashed #000;
             margin-top: 8px;
-            padding-top: 5px;
+            padding-top: 6px;
         }
-
-        .totals .total-row {
+        .total-row {
             display: flex;
             justify-content: space-between;
-            margin: 2px 0;
+            font-size: 11px;
+            margin: 3px 0;
         }
-
-        .totals .grand-total {
-            font-size: 16px;
+        .total-row.grand {
+            font-size: 14px;
             font-weight: bold;
             border-top: 2px solid #000;
             border-bottom: 2px solid #000;
             padding: 5px 0;
             margin-top: 5px;
         }
+        .refund-via {
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
 
-        .footer {
+        /* ── Reason box ── */
+        .reason-box {
+            border: 1px solid #000;
+            padding: 5px 6px;
+            font-size: 11px;
+            margin: 4px 0;
+            line-height: 1.4;
+        }
+
+        /* ── REVERSED banner ── */
+        .reversed-banner {
             text-align: center;
-            margin-top: 15px;
+            border: 2px solid #000;
+            padding: 6px;
+            font-weight: bold;
+            font-size: 12px;
+            margin: 10px 0;
+            background: #f5f5f5;
+        }
+
+        /* ── Footer ── */
+        .receipt-footer {
+            text-align: center;
+            margin-top: 14px;
             border-top: 2px dashed #000;
             padding-top: 10px;
             font-size: 11px;
+            line-height: 1.5;
+        }
+        .receipt-footer .printed-at {
+            font-size: 9px;
+            color: #555;
+            margin-top: 4px;
         }
 
-        .reason-box {
-            border: 1px solid #000;
-            padding: 5px;
-            margin: 5px 0;
-            font-size: 11px;
-        }
-
+        /* ── Print overrides ── */
         @media print {
-            body {
-                margin: 0;
-                padding: 5px;
-            }
-
-            .no-print {
-                display: none !important;
-            }
+            body { margin: 0; padding: 5px; max-width: none; }
+            .action-bar { display: none !important; }
         }
     </style>
 </head>
-
 <body>
-    <!-- Print Button (hidden on print) -->
-    <div class="no-print" style="text-align:center;margin-bottom:15px;">
-        <button onclick="window.print()"
-            style="padding:8px 24px;font-size:14px;cursor:pointer;background:#dc3545;color:#fff;border:none;border-radius:4px;">
-            🖨️ Print Receipt
-        </button>
-        <button onclick="window.close()"
-            style="padding:8px 16px;font-size:14px;cursor:pointer;margin-left:8px;background:#6c757d;color:#fff;border:none;border-radius:4px;">
-            ✕ Close
-        </button>
+
+    <!-- Print / Close Buttons -->
+    <div class="action-bar">
+        <button class="btn-print" onclick="window.print()">Print Receipt</button>
+        <button class="btn-close" onclick="window.close()">Close</button>
     </div>
 
-    <!-- Header -->
-    <div class="header">
+    <!-- ══ HEADER ══ -->
+    <div class="receipt-header">
         <div class="store-name">{{ receipt_header }}</div>
-        <div class="return-badge">RETURN RECEIPT</div>
+        {% if company_address %}
+        <div class="store-meta">{{ company_address }}</div>
+        {% endif %}
+        {% if company_phone %}
+        <div class="store-meta">Tel: {{ company_phone }}</div>
+        {% endif %}
+        <span class="return-badge">Return / Refund Receipt</span>
     </div>
 
-    <!-- Return Info -->
-    <div class="section">
+    <!-- ══ RETURN INFO ══ -->
+    <div class="info-block">
         <div class="info-row">
-            <span class="label">Return #:</span>
-            <span>{{ return_txn.return_no }}</span>
+            <span class="lbl">Return #:</span>
+            <span class="val">{{ return_txn.return_no }}</span>
         </div>
         <div class="info-row">
-            <span class="label">Date:</span>
-            <span>{{ return_txn.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+            <span class="lbl">Date:</span>
+            <span class="val">{{ return_txn.created_at.strftime('%d %b %Y, %H:%M') }}</span>
         </div>
         <div class="info-row">
-            <span class="label">Orig. Invoice:</span>
-            <span>{{ sale.invoice_no }}</span>
+            <span class="lbl">Orig. Invoice:</span>
+            <span class="val">{{ sale.invoice_no if sale.invoice_no else ('#' ~ sale.id) }}</span>
         </div>
         <div class="info-row">
-            <span class="label">Processed By:</span>
-            <span>{{ return_txn.processed_by_user.username }}</span>
+            <span class="lbl">Sale Date:</span>
+            <span class="val">{{ sale.created_at.strftime('%d %b %Y') }}</span>
+        </div>
+        <div class="info-row">
+            <span class="lbl">Processed By:</span>
+            <span class="val">{{ return_txn.processed_by_user.username }}</span>
         </div>
         {% if return_txn.customer %}
         <div class="info-row">
-            <span class="label">Customer:</span>
-            <span>{{ return_txn.customer.full_name }}</span>
+            <span class="lbl">Customer:</span>
+            <span class="val">{{ return_txn.customer.full_name }}</span>
+        </div>
+        {% if return_txn.customer.phone %}
+        <div class="info-row">
+            <span class="lbl">Phone:</span>
+            <span class="val">{{ return_txn.customer.phone }}</span>
         </div>
         {% endif %}
+        {% endif %}
         <div class="info-row">
-            <span class="label">Type:</span>
-            <span>{{ return_txn.return_type.value }}</span>
+            <span class="lbl">Return Type:</span>
+            <span class="val">{{ return_txn.return_type.value }}</span>
         </div>
     </div>
 
-    <!-- Returned Items -->
-    <div class="section-title">RETURNED ITEMS</div>
+    <!-- ══ RETURNED ITEMS ══ -->
+    <div class="sect-title">Returned Items</div>
     <table class="items-table">
         <thead>
             <tr>
-                <th>Item</th>
-                <th class="qty">Qty</th>
-                <th class="price">Price</th>
-                <th class="price">Total</th>
+                <th>Description</th>
+                <th class="col-qty">Qty</th>
+                <th class="col-price">Price</th>
+                <th class="col-total">Total</th>
             </tr>
         </thead>
         <tbody>
             {% for item in return_txn.items %}
             <tr>
-                <td>{{ item.product.name }}</td>
-                <td class="qty">{{ item.quantity_returned }}</td>
-                <td class="price">{{ format_currency(item.unit_price_at_sale) }}</td>
-                <td class="price">{{ format_currency(item.total_price) }}</td>
+                <td>
+                    {{ item.product.name }}
+                    {% if item.product.sku %}
+                    <div class="item-desc">SKU: {{ item.product.sku }}</div>
+                    {% endif %}
+                </td>
+                <td class="col-qty">{{ item.quantity_returned }}</td>
+                <td class="col-price">{{ format_currency(item.unit_price_at_sale) }}</td>
+                <td class="col-total">{{ format_currency(item.total_price) }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
-    <!-- Totals -->
-    <div class="totals">
+    <!-- ══ TOTALS ══ -->
+    <div class="totals-block">
         <div class="total-row">
             <span>Subtotal:</span>
             <span>{{ format_currency(return_txn.subtotal) }}</span>
         </div>
+        {% if return_txn.discount_amount and return_txn.discount_amount > 0 %}
         <div class="total-row">
             <span>Discount:</span>
             <span>-{{ format_currency(return_txn.discount_amount) }}</span>
         </div>
+        {% endif %}
+        {% if return_txn.tax_amount and return_txn.tax_amount > 0 %}
         <div class="total-row">
             <span>Tax:</span>
             <span>{{ format_currency(return_txn.tax_amount) }}</span>
         </div>
-        <div class="total-row grand-total">
+        {% endif %}
+        <div class="total-row grand">
             <span>REFUND TOTAL:</span>
             <span>{{ format_currency(return_txn.refund_total) }}</span>
         </div>
         {% if return_txn.refund_method %}
-        <div class="total-row" style="margin-top:5px;">
+        <div class="refund-via">
             <span>Refund Via:</span>
             <span>
                 {{ return_txn.refund_method.value }}
-                {% if return_txn.refund_currency %}({{ return_txn.refund_currency.value }}){% endif %}
+                {% if return_txn.refund_currency %}&nbsp;({{ return_txn.refund_currency.value }}){% endif %}
             </span>
         </div>
         {% endif %}
     </div>
 
-    <!-- Reason -->
-    <div class="section">
-        <div class="section-title">REASON</div>
-        <div class="reason-box">{{ return_txn.reason }}</div>
-        {% if return_txn.notes %}
-        <div class="reason-box">Notes: {{ return_txn.notes }}</div>
-        {% endif %}
-    </div>
+    <!-- ══ REASON ══ -->
+    <div class="sect-title">Return Reason</div>
+    <div class="reason-box">{{ return_txn.reason }}</div>
+    {% if return_txn.notes %}
+    <div class="reason-box" style="margin-top:4px;"><strong>Notes:</strong> {{ return_txn.notes }}</div>
+    {% endif %}
 
-    <!-- Status -->
+    <!-- ══ REVERSED BANNER ══ -->
     {% if return_txn.status.value == 'Reversed' %}
-    <div style="text-align:center;margin:10px 0;border:2px solid #000;padding:5px;font-weight:bold;font-size:14px;">
-        ⚠️ THIS RETURN HAS BEEN REVERSED
+    <div class="reversed-banner">
+        ** THIS RETURN HAS BEEN REVERSED **<br>
+        <span style="font-size:10px;font-weight:normal;">This refund is no longer valid.</span>
     </div>
     {% endif %}
 
-    <!-- Footer -->
-    <div class="footer">
-        <p>{{ receipt_footer }}</p>
-        <p style="margin-top:5px;font-size:10px;">Printed: {{ return_txn.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+    <!-- ══ FOOTER ══ -->
+    <div class="receipt-footer">
+        <div>{{ receipt_footer }}</div>
+        <div class="printed-at">Printed: {{ return_txn.created_at.strftime('%d %b %Y %H:%M') }}</div>
     </div>
-</body>
 
+</body>
 </html>

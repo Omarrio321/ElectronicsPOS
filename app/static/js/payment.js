@@ -169,7 +169,7 @@ function updateModalTotals() {
 
     // Show SLSH equivalent of total
     const slshEl = document.getElementById('modalGrandTotalSLSH');
-    if (slshEl) slshEl.innerText = `≈ ${Math.round(total * rate).toLocaleString()} SLSH`;
+    if (slshEl) slshEl.innerText = `SLSH ${Math.round(total * rate).toLocaleString()}`;
 
     // Show exchange rate
     const rateEl = document.getElementById('exchangeRateDisplay');

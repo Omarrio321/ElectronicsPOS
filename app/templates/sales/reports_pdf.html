@@ -1,321 +1,1021 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <title>Business Performance Report</title>
+    <title>Business Performance Report — {{ company_name }}</title>
     <style>
+        /* ── Reset & Base ──────────────────────────────────────────────────
+           Arial on Windows only. NO letter-spacing — font kern tables govern.
+           font-kerning: none disables the bad QtWebKit GDI kern table.
+           ─────────────────────────────────────────────────────────────────*/
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: Arial, sans-serif;
-            color: #333;
-            line-height: 1.5;
+            font-family: Verdana, Geneva, sans-serif;
             font-size: 11px;
-            margin: 0;
-            padding: 20px;
+            line-height: 1.6;
+            color: #1e293b;
+            background: #ffffff;
+            -webkit-font-feature-settings: "kern" 0;
+            font-feature-settings: "kern" 0;
+            font-kerning: none;
         }
 
-        .header {
-            margin-bottom: 25px;
-            border-bottom: 2px solid #34495e;
-            padding-bottom: 10px;
-        }
-
-        .header-logo {
-            max-height: 60px;
-            max-width: 180px;
-            margin-bottom: 10px;
-        }
-
-        .company-name {
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-
-        .report-title {
-            font-size: 16px;
-            color: #7f8c8d;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .meta-info {
-            font-size: 10px;
-            color: #95a5a6;
-            margin-top: 5px;
-        }
-
-        .section-title {
-            background-color: #f1f3f4;
-            color: #2c3e50;
-            padding: 6px 10px;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            font-size: 12px;
-            font-weight: bold;
-            border-left: 4px solid #3498db;
-        }
-
-        .summary-table {
+        /* ── Document Header ──────────────────────────────────────────── */
+        .doc-header {
+            display: table;
             width: 100%;
-            margin-bottom: 20px;
-            border-collapse: collapse;
+            border-bottom: 3px solid #1e3a5f;
+            padding-bottom: 14px;
+            margin-bottom: 0;
         }
-
-        .summary-table td {
-            width: 25%;
-            padding: 12px;
-            background-color: #fff;
-            border: 1px solid #eee;
-            text-align: center;
+        .doc-header-logo {
+            display: table-cell;
+            vertical-align: middle;
+            width: 80px;
         }
-
-        .stat-label {
-            font-size: 9px;
-            color: #7f8c8d;
+        .doc-header-logo img {
+            max-height: 54px;
+            max-width: 72px;
+            object-fit: contain;
+        }
+        .doc-header-company {
+            display: table-cell;
+            vertical-align: middle;
+            padding-left: 10px;
+        }
+        .company-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e3a5f;
             text-transform: uppercase;
+        }
+        .company-meta {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        .doc-header-title {
+            display: table-cell;
+            vertical-align: bottom;
+            text-align: right;
+            white-space: nowrap;
+        }
+        .report-title-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2563eb;
+            text-transform: uppercase;
+            line-height: 1.1;
+        }
+        .report-period {
+            font-size: 10.5px;
+            color: #475569;
+            margin-top: 3px;
+        }
+        .period-badge {
+            display: inline-block;
+            background: #eff6ff;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+            padding: 2px 9px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .report-meta {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 3px;
+        }
+
+        /* ── Confidential Banner ─────────────────────────────────────── */
+        .confidential-bar {
+            background: #fef3c7;
+            border: 1px solid #fde68a;
+            color: #92400e;
+            font-size: 10px;
+            font-weight: 700;
+            text-align: center;
+            padding: 3px 0;
+            margin-top: 0;
+            margin-bottom: 18px;
+            text-transform: uppercase;
+        }
+
+        /* ── Section Heading ─────────────────────────────────────────── */
+        .section-heading {
+            display: table;
+            width: 100%;
+            margin-top: 22px;
+            margin-bottom: 12px;
+            border-bottom: 1.5px solid #e2e8f0;
+            padding-bottom: 5px;
+        }
+        .section-heading-left {
+            display: table-cell;
+            vertical-align: bottom;
+        }
+        .section-number {
+            font-size: 10px;
+            font-weight: 700;
+            color: #2563eb;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 1px;
+        }
+        .section-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #1e3a5f;
+            text-transform: uppercase;
+        }
+        .section-heading-right {
+            display: table-cell;
+            vertical-align: bottom;
+            text-align: right;
+            font-size: 10px;
+            color: #94a3b8;
+        }
+        .section-divider-line {
+            border: none;
+            border-top: 1.5px solid #2563eb;
+            width: 32px;
+            margin-top: 4px;
+            margin-bottom: 0;
+        }
+
+        /* ── KPI Grid (4-up) ─────────────────────────────────────────── */
+        .kpi-grid {
+            display: table;
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            background: #ffffff;
+        }
+        .kpi-tile {
+            display: table-cell;
+            width: 25%;
+            text-align: center;
+            padding: 13px 8px 11px;
+            border-right: 1px solid #e2e8f0;
+            vertical-align: top;
+            position: relative;
+        }
+        .kpi-tile:last-child { border-right: none; }
+        .kpi-tile-accent {
+            display: block;
+            height: 3px;
+            border-radius: 2px;
+            margin: 0 auto 9px;
+            width: 28px;
+        }
+        .accent-blue   { background: #2563eb; }
+        .accent-green  { background: #16a34a; }
+        .accent-slate  { background: #64748b; }
+        .accent-amber  { background: #d97706; }
+        .accent-red    { background: #dc2626; }
+        .accent-indigo { background: #4f46e5; }
+        .accent-teal   { background: #0d9488; }
+        .accent-navy   { background: #1e3a5f; }
+        .kpi-label {
+            font-size: 10px;
+            color: #64748b;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+        .kpi-value {
+            font-size: 16px;
+            font-weight: 700;
+            display: block;
+            line-height: 1.2;
+        }
+        .kpi-sub {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 3px;
+            display: block;
+        }
+        .color-blue   { color: #2563eb; }
+        .color-green  { color: #16a34a; }
+        .color-red    { color: #dc2626; }
+        .color-amber  { color: #d97706; }
+        .color-slate  { color: #475569; }
+        .color-navy   { color: #1e3a5f; }
+        .color-indigo { color: #4f46e5; }
+        .color-teal   { color: #0d9488; }
+
+        /* ── Profit Bridge (Waterfall) ────────────────────────────────── */
+        .bridge-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-bottom: 6px;
+        }
+        .bridge-table td {
+            padding: 8px 12px;
+            font-size: 11px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+        .bridge-label { color: #475569; }
+        .bridge-value { text-align: right; font-weight: 700; white-space: nowrap; }
+        .bridge-row-total td { background: #1e3a5f; color: #ffffff; font-weight: 700; }
+        .bridge-row-sub   td { background: #f8fafc; }
+        .bridge-row-net td  { background: #eff6ff; }
+        .bridge-row-net .bridge-value { color: #1e40af; font-size: 13px; }
+        .profit-pos { color: #15803d; }
+        .profit-neg { color: #b91c1c; }
+        .bridge-indent { padding-left: 22px !important; }
+        .bridge-marker {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+
+        /* ── Returns & Voids Strip ───────────────────────────────────── */
+        .rv-strip {
+            display: table;
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            margin-bottom: 14px;
+            background: #fafafa;
+        }
+        .rv-cell {
+            display: table-cell;
+            width: 25%;
+            text-align: center;
+            padding: 10px 8px;
+            border-right: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+        .rv-cell:last-child { border-right: none; }
+        .rv-label {
+            font-size: 10px;
+            color: #64748b;
+            font-weight: 700;
+            text-transform: uppercase;
+            display: block;
             margin-bottom: 4px;
         }
-
-        .stat-value {
-            font-size: 16px;
-            font-weight: bold;
-            color: #2c3e50;
+        .rv-value {
+            font-size: 14px;
+            font-weight: 700;
+            display: block;
         }
-
-        .profit-pos {
-            color: #27ae60;
-        }
-
-        .profit-neg {
-            color: #e74c3c;
-        }
-
-        table.data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
-        }
-
-        table.data-table th {
-            background-color: #f8f9fa;
-            border-bottom: 2px solid #dee2e6;
-            padding: 8px;
-            text-align: left;
-            font-size: 10px;
-            color: #7f8c8d;
+        .rv-badge {
+            display: inline-block;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 8px;
+            margin-top: 3px;
             text-transform: uppercase;
         }
+        .badge-orange { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+        .badge-red    { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
 
-        table.data-table td {
-            padding: 8px;
-            border-bottom: 1px solid #eee;
+        /* ── Data Tables ─────────────────────────────────────────────── */
+        table.data-tbl {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        table.data-tbl thead tr {
+            background: #1e3a5f;
+        }
+        table.data-tbl thead th {
+            color: #ffffff;
+            padding: 7px 8px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-align: left;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        table.data-tbl thead th.th-r  { text-align: right; }
+        table.data-tbl thead th.th-c  { text-align: center; }
+        table.data-tbl tbody tr:nth-child(even) { background: #f8fafc; }
+        table.data-tbl tbody td {
+            padding: 6px 7px;
+            border-bottom: 1px solid #e8edf2;
+            font-size: 10px;
+            vertical-align: middle;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        table.data-tbl tbody .td-r  { text-align: right; }
+        table.data-tbl tbody .td-c  { text-align: center; }
+        table.data-tbl tfoot tr {
+            background: #1e3a5f;
+        }
+        table.data-tbl tfoot td {
+            color: #ffffff;
+            padding: 7px 8px;
+            font-size: 10px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        table.data-tbl tfoot .td-r { text-align: right; }
+
+        /* Rank pill */
+        .rank { color: #94a3b8; font-weight: 700; font-size: 10px; }
+
+        /* Revenue bar (set via JS from data-bar) */
+        .bar-wrap {
+            background: #e2e8f0;
+            border-radius: 2px;
+            height: 6px;
+            width: 70px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+        .bar-fill {
+            height: 6px;
+            border-radius: 2px;
+            background: #2563eb;
+            display: block;
+            width: 0;
         }
 
-        .text-right {
-            text-align: right;
+        /* Status badges */
+        .badge-paid    { color: #15803d; font-weight: 700; }
+        .badge-pending { color: #b45309; font-weight: 700; }
+
+        /* Payment method tag */
+        .pm-tag {
+            display: inline-block;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        .pm-tag-slsh {
+            background: #fdf4ff;
+            color: #7e22ce;
+            border-color: #e9d5ff;
         }
 
-        .text-center {
+        /* ── Two-column layout ────────────────────────────────────────── */
+        .two-col { display: table; width: 100%; table-layout: fixed; }
+        .col-left  { display: table-cell; width: 58%; vertical-align: top; padding-right: 10px; }
+        .col-right { display: table-cell; width: 42%; vertical-align: top; }
+
+        /* ── Expense Category Chips ────────────────────────────────────── */
+        .cat-chips {
+            display: table;
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            margin-bottom: 14px;
+            background: #fafafa;
+        }
+        .cat-chip-row { display: table-row; }
+        .cat-chip-cell {
+            display: table-cell;
+            padding: 8px 12px;
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+            font-size: 10.5px;
+        }
+        .cat-chip-name { font-weight: 700; color: #1e3a5f; display: block; }
+        .cat-chip-amt  { color: #dc2626; font-weight: 700; }
+
+        /* ── Inventory Summary Row ─────────────────────────────────────── */
+        .inv-summary {
+            display: table;
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            margin-bottom: 14px;
+            background: #f0f9ff;
+        }
+        .inv-cell {
+            display: table-cell;
             text-align: center;
+            padding: 11px 8px;
+            border-right: 1px solid #e2e8f0;
+            vertical-align: middle;
         }
+        .inv-cell:last-child { border-right: none; }
+        .inv-label { font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 4px; }
+        .inv-value { font-size: 13px; font-weight: 700; color: #1e3a5f; display: block; }
 
-        .fw-bold {
-            font-weight: bold;
-        }
-
-        .footer {
-            margin-top: 30px;
-            padding-top: 10px;
-            border-top: 1px solid #eee;
+        /* ── Note / Formula Line ─────────────────────────────────────── */
+        .footnote {
             font-size: 9px;
-            color: #bdc3c7;
-            text-align: center;
+            color: #94a3b8;
+            font-style: italic;
+            margin-top: 5px;
+            margin-bottom: 12px;
+        }
+
+        /* ── Page Break ──────────────────────────────────────────────── */
+        .page-break { page-break-before: always; }
+
+        /* ── Document Footer ─────────────────────────────────────────── */
+        .doc-footer {
+            margin-top: 30px;
+            padding-top: 8px;
+            border-top: 1px solid #e2e8f0;
+            display: table;
+            width: 100%;
+            font-size: 9px;
+            color: #94a3b8;
+        }
+        .doc-footer-left  { display: table-cell; text-align: left; }
+        .doc-footer-right { display: table-cell; text-align: right; }
+
+        /* ── Subsection Label ────────────────────────────────────────── */
+        .sub-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #2563eb;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e2e8f0;
         }
     </style>
 </head>
-
 <body>
-    <div class="header">
+
+<!-- ════════════════════════════════════════════════════
+     DOCUMENT HEADER
+     ════════════════════════════════════════════════════ -->
+<div class="doc-header">
+    <div class="doc-header-logo">
         {% if company_logo %}
-        <img src="{{ url_for('static', filename=company_logo, _external=True) }}" alt="{{ company_name }}"
-            class="header-logo">
+        <img src="{{ url_for('static', filename=company_logo, _external=True) }}" alt="{{ company_name }}">
         {% endif %}
+    </div>
+    <div class="doc-header-company">
         <div class="company-name">{{ company_name }}</div>
-        <div class="report-title">Business Performance Report</div>
-        <div class="meta-info">
-            Generated: {{ generated_at }} |
-            Period: {{ start_date }} to {{ end_date }} |
-            Type: {{ report_type|capitalize }}
+        <div class="company-meta">
+            {% if company_address %}{{ company_address }}{% endif %}
+            {% if company_address and company_phone %} &bull; {% endif %}
+            {% if company_phone %}{{ company_phone }}{% endif %}
         </div>
     </div>
+    <div class="doc-header-title">
+        <div class="report-title-text">Business Performance Report</div>
+        <div class="report-period">
+            {{ start_date.strftime('%d %b %Y') }} &ndash; {{ end_date.strftime('%d %b %Y') }}
+            &nbsp;&bull;&nbsp; {{ report_type|capitalize }} View
+        </div>
+        <div class="period-badge">{{ start_date.strftime('%d %b') }} &ndash; {{ end_date.strftime('%d %b %Y') }}</div>
+        <div class="report-meta">Generated: {{ generated_at }}</div>
+    </div>
+</div>
 
-    <div class="section-title">Executive Summary</div>
-    <table class="summary-table">
-        <tr>
-            <td>
-                <div class="stat-label">Transactions</div>
-                <div class="stat-value">{{ total_sales }}</div>
-            </td>
-            <td>
-                <div class="stat-label">Total Revenue</div>
-                <div class="stat-value" style="color: #27ae60;">{{ format_currency(total_revenue) }}</div>
-            </td>
-            <td>
-                <div class="stat-label">COGS</div>
-                <div class="stat-value" style="color: #7f8c8d;">{{ format_currency(cogs) }}</div>
-            </td>
-            <td>
-                <div class="stat-label">Realized Profit</div>
-                <div class="stat-value" style="color: #3498db;">{{ format_currency(gross_profit) }}</div>
-            </td>
+<div class="confidential-bar">Confidential &bull; Internal Use Only &bull; {{ company_name }}</div>
+
+<!-- ════════════════════════════════════════════════════
+     SECTION 1 — EXECUTIVE SUMMARY
+     ════════════════════════════════════════════════════ -->
+<div class="section-heading">
+    <div class="section-heading-left">
+        <span class="section-number">Section 01</span>
+        <span class="section-label">Executive Summary</span>
+        <hr class="section-divider-line">
+    </div>
+    <div class="section-heading-right">
+        Period: {{ start_date.strftime('%d %b %Y') }} &ndash; {{ end_date.strftime('%d %b %Y') }}
+    </div>
+</div>
+
+<!-- KPI Row 1: Volume metrics -->
+<div class="kpi-grid">
+    <div class="kpi-tile">
+        <span class="kpi-tile-accent accent-navy"></span>
+        <span class="kpi-label">Total Transactions</span>
+        <span class="kpi-value color-navy">{{ total_sales }}</span>
+        <span class="kpi-sub">Sales invoices</span>
+    </div>
+    <div class="kpi-tile">
+        <span class="kpi-tile-accent accent-blue"></span>
+        <span class="kpi-label">Total Revenue</span>
+        <span class="kpi-value color-blue">{{ format_currency(total_revenue) }}</span>
+        <span class="kpi-sub">Gross invoiced</span>
+    </div>
+    <div class="kpi-tile">
+        <span class="kpi-tile-accent accent-teal"></span>
+        <span class="kpi-label">Items Sold</span>
+        <span class="kpi-value color-teal">{{ total_items }}</span>
+        <span class="kpi-sub">Units across all sales</span>
+    </div>
+    <div class="kpi-tile">
+        <span class="kpi-tile-accent accent-indigo"></span>
+        <span class="kpi-label">Net Revenue</span>
+        <span class="kpi-value color-indigo">{{ format_currency(net_revenue) }}</span>
+        <span class="kpi-sub">After returns</span>
+    </div>
+</div>
+
+<!-- KPI Row 2: Profitability metrics -->
+<div class="kpi-grid">
+    <div class="kpi-tile">
+        <span class="kpi-tile-accent accent-slate"></span>
+        <span class="kpi-label">Cost of Goods Sold</span>
+        <span class="kpi-value color-slate">{{ format_currency(cogs) }}</span>
+        <span class="kpi-sub">Direct product cost</span>
+    </div>
+    <div class="kpi-tile">
+        <span class="kpi-tile-accent accent-green"></span>
+        <span class="kpi-label">Gross Profit</span>
+        <span class="kpi-value color-green">{{ format_currency(gross_profit) }}</span>
+        <span class="kpi-sub">Margin: {{ gross_margin_pct }}%</span>
+    </div>
+    <div class="kpi-tile">
+        <span class="kpi-tile-accent accent-red"></span>
+        <span class="kpi-label">Total Expenses</span>
+        <span class="kpi-value color-red">{{ format_currency(total_expenses) }}</span>
+        <span class="kpi-sub">Paid + Pending</span>
+    </div>
+    <div class="kpi-tile">
+        <span class="kpi-tile-accent {% if net_profit >= 0 %}accent-green{% else %}accent-red{% endif %}"></span>
+        <span class="kpi-label">Net Profit</span>
+        <span class="kpi-value {% if net_profit >= 0 %}color-green{% else %}color-red{% endif %}">{{ format_currency(net_profit) }}</span>
+        <span class="kpi-sub">Margin: {{ net_margin_pct }}%</span>
+    </div>
+</div>
+
+<!-- Profit Bridge (Waterfall) -->
+<table class="bridge-table" style="margin-top:10px;margin-bottom:4px;">
+    <col style="width:55%;"><col style="width:22%;"><col style="width:23%;">
+    <tbody>
+        <tr class="bridge-row-total">
+            <td class="bridge-label"><span class="bridge-marker" style="background:#60a5fa;"></span>Total Revenue (Invoiced)</td>
+            <td class="bridge-value">{{ format_currency(total_revenue) }}</td>
+            <td class="bridge-value">100%</td>
+        </tr>
+        <tr class="bridge-row-sub">
+            <td class="bridge-label bridge-indent"><span class="bridge-marker" style="background:#94a3b8;"></span>Less: Cost of Goods Sold (COGS)</td>
+            <td class="bridge-value" style="color:#dc2626;">&minus; {{ format_currency(cogs) }}</td>
+            <td class="bridge-value" style="color:#64748b;">{{ "%.1f"|format(cogs / total_revenue * 100 if total_revenue > 0 else 0) }}%</td>
         </tr>
         <tr>
-            <td>
-                <div class="stat-label">Paid Expenses</div>
-                <div class="stat-value" style="color: #e74c3c;">{{ format_currency(paid_expenses) }}</div>
+            <td class="bridge-label bridge-indent"><span class="bridge-marker" style="background:#16a34a;"></span>Gross Profit</td>
+            <td class="bridge-value" style="color:#16a34a;">{{ format_currency(gross_profit) }}</td>
+            <td class="bridge-value" style="color:#16a34a;">{{ gross_margin_pct }}%</td>
+        </tr>
+        <tr class="bridge-row-sub">
+            <td class="bridge-label bridge-indent"><span class="bridge-marker" style="background:#dc2626;"></span>Less: Paid Expenses</td>
+            <td class="bridge-value" style="color:#dc2626;">&minus; {{ format_currency(paid_expenses) }}</td>
+            <td class="bridge-value" style="color:#64748b;">{{ "%.1f"|format(paid_expenses / total_revenue * 100 if total_revenue > 0 else 0) }}%</td>
+        </tr>
+        <tr class="bridge-row-net">
+            <td class="bridge-label"><strong><span class="bridge-marker" style="background:#2563eb;"></span>Net Profit (Bottom Line)</strong></td>
+            <td class="bridge-value {% if net_profit >= 0 %}profit-pos{% else %}profit-neg{% endif %}">
+                {{ format_currency(net_profit) }}
             </td>
-            <td>
-                <div class="stat-label">Pending Expenses</div>
-                <div class="stat-value" style="color: #f39c12;">{{ format_currency(pending_expenses) }}</div>
-            </td>
-            <td>
-                <div class="stat-label">Net Profit</div>
-                <div class="stat-value {{ 'profit-pos' if net_profit >= 0 else 'profit-neg' }}">
-                    {{ format_currency(net_profit) }}
-                </div>
-            </td>
-            <td>
-                <div class="stat-label">Avg Order Value</div>
-                <div class="stat-value">{{ format_currency(avg_order_value) }}</div>
+            <td class="bridge-value {% if net_profit >= 0 %}profit-pos{% else %}profit-neg{% endif %}">
+                {{ net_margin_pct }}%
             </td>
         </tr>
-    </table>
-    <p style="font-size: 9px; color: #7f8c8d; margin-top: -10px; margin-bottom: 15px;">
-        <em>Realized Profit = Revenue (Paid Sales Only) - COGS. Net Profit = Realized Profit - Paid Expenses.</em>
-    </p>
+    </tbody>
+</table>
+<p class="footnote">* COGS and Gross Profit are calculated on paid invoices only (cash basis). Net Profit = Gross Profit &minus; Paid Expenses. Pending expenses excluded from net.</p>
 
-    <div style="width: 100%;">
-        <div style="width: 32%; float: left;">
-            <div class="section-title">Top Products</div>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th class="text-center">Qty</th>
-                        <th class="text-right">Revenue</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p in top_products %}
-                    <tr>
-                        <td>{{ p[0] }}</td>
-                        <td class="text-center">{{ p[1] }}</td>
-                        <td class="text-right">{{ format_currency(p[2]) }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+<!-- ════════════════════════════════════════════════════
+     SECTION 2 — SALES OVERVIEW
+     ════════════════════════════════════════════════════ -->
+<div class="section-heading">
+    <div class="section-heading-left">
+        <span class="section-number">Section 02</span>
+        <span class="section-label">Sales Overview</span>
+        <hr class="section-divider-line">
+    </div>
+    <div class="section-heading-right">Avg. Order Value: {{ format_currency(avg_order_value) }}</div>
+</div>
 
-        <div style="width: 32%; float: left; margin-left: 2%;">
-            <div class="section-title">Top Customers</div>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th style="width: 5%;">#</th>
-                        <th>Customer</th>
-                        <th class="text-center">Txns</th>
-                        <th class="text-right">Spent</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for c in top_customers %}
-                    <tr>
-                        <td style="color: #7f8c8d;">{{ loop.index }}</td>
-                        <td>{{ c.full_name }}</td>
-                        <td class="text-center">{{ c.tx_count }}</td>
-                        <td class="text-right">{{ format_currency(c.total_spent) }}</td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="4" class="text-center">No data</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+<!-- Returns & Voids strip -->
+<div class="rv-strip">
+    <div class="rv-cell">
+        <span class="rv-label">Return Transactions</span>
+        <span class="rv-value color-amber">{{ return_count }}</span>
+        <span class="rv-badge badge-orange">Returns</span>
+    </div>
+    <div class="rv-cell">
+        <span class="rv-label">Return Value</span>
+        <span class="rv-value color-amber">{{ format_currency(return_value) }}</span>
+        <span class="rv-badge badge-orange">Refunded</span>
+    </div>
+    <div class="rv-cell">
+        <span class="rv-label">Voided Transactions</span>
+        <span class="rv-value color-red">{{ voided_count }}</span>
+        <span class="rv-badge badge-red">Voided</span>
+    </div>
+    <div class="rv-cell">
+        <span class="rv-label">Voided Value</span>
+        <span class="rv-value color-red">{{ format_currency(voided_value) }}</span>
+        <span class="rv-badge badge-red">Lost Revenue</span>
+    </div>
+</div>
 
-        <div style="width: 32%; float: right;">
-            <div class="section-title">Cashier Performance</div>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Cashier</th>
-                        <th class="text-center">Sales</th>
-                        <th class="text-right">Revenue</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for u in user_sales %}
-                    <tr>
-                        <td>{{ u[0] }}</td>
-                        <td class="text-center">{{ u[1] }}</td>
-                        <td class="text-right">{{ format_currency(u[2]) }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div style="clear: both;"></div>
+<!-- Payment Method Breakdown -->
+{% if payment_breakdown %}
+<div class="sub-label">Payment Method Breakdown</div>
+<table class="data-tbl" style="margin-bottom:10px;">
+    <col style="width:30%;"><col style="width:18%;"><col style="width:26%;"><col style="width:26%;">
+    <thead>
+        <tr>
+            <th>Payment Method</th>
+            <th class="th-c">Currency</th>
+            <th class="th-r">Original Amount</th>
+            <th class="th-r">USD Equivalent</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% set pm_total = namespace(usd=0) %}
+        {% for pb in payment_breakdown %}
+        {% set pm_total.usd = pm_total.usd + pb.usd_total %}
+        <tr>
+            <td><span class="pm-tag {% if pb.currency == 'SLSH' %}pm-tag-slsh{% endif %}">{{ pb.method }}</span></td>
+            <td class="td-c" style="color:#64748b;">{{ pb.currency }}</td>
+            <td class="td-r">{% if pb.currency == 'SLSH' %}{{ "{:,.0f}".format(pb.original_total) }} SLSH{% else %}{{ format_currency(pb.original_total) }}{% endif %}</td>
+            <td class="td-r" style="font-weight:700;color:#1e3a5f;">{{ format_currency(pb.usd_total) }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="3">Total Collections (USD Equivalent)</td>
+            <td class="td-r">{{ format_currency(pm_total.usd) }}</td>
+        </tr>
+    </tfoot>
+</table>
+{% endif %}
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 2
+     ════════════════════════════════════════════════════ -->
+<div class="page-break"></div>
+
+<!-- ════════════════════════════════════════════════════
+     SECTION 3 — PRODUCT PERFORMANCE
+     ════════════════════════════════════════════════════ -->
+<div class="section-heading">
+    <div class="section-heading-left">
+        <span class="section-number">Section 03</span>
+        <span class="section-label">Product Performance</span>
+        <hr class="section-divider-line">
+    </div>
+    <div class="section-heading-right">Top 10 products by revenue &bull; {{ start_date.strftime('%d %b') }} &ndash; {{ end_date.strftime('%d %b %Y') }}</div>
+</div>
+
+{% set max_rev = namespace(val=0) %}
+{% for p in top_products %}{% if p[2] > max_rev.val %}{% set max_rev.val = p[2] %}{% endif %}{% endfor %}
+
+<table class="data-tbl">
+    <col style="width:5%;"><col style="width:32%;"><col style="width:11%;"><col style="width:20%;"><col style="width:11%;"><col style="width:21%;">
+    <thead>
+        <tr>
+            <th class="th-c">#</th>
+            <th>Product Name</th>
+            <th class="th-c">Units Sold</th>
+            <th class="th-r">Revenue</th>
+            <th class="th-r">% of Total</th>
+            <th class="th-c">Revenue Share</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in top_products %}
+        {% set pct = (p[2] / total_revenue * 100) if total_revenue > 0 else 0 %}
+        {% set bar_pct = (p[2] / max_rev.val * 100) if max_rev.val > 0 else 0 %}
+        <tr>
+            <td class="td-c rank">{{ loop.index }}</td>
+            <td style="font-weight:600;">{{ p[0] }}</td>
+            <td class="td-c">{{ p[1] }}</td>
+            <td class="td-r" style="font-weight:700;color:#1e3a5f;">{{ format_currency(p[2]) }}</td>
+            <td class="td-r" style="color:#2563eb;">{{ "%.1f"|format(pct) }}%</td>
+            <td class="td-c">
+                <span class="bar-wrap">
+                    <span class="bar-fill" data-bar="{{ "%.0f"|format(bar_pct) }}"></span>
+                </span>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="td-c" style="color:#94a3b8;padding:14px;">No product sales data for this period.</td></tr>
+        {% endfor %}
+    </tbody>
+    {% if top_products %}
+    <tfoot>
+        <tr>
+            <td colspan="3">Total (Top 10 Products)</td>
+            <td class="td-r">{{ format_currency(top_products | sum(attribute=2)) }}</td>
+            <td class="td-r">{{ "%.1f"|format(top_products | sum(attribute=2) / total_revenue * 100 if total_revenue > 0 else 0) }}%</td>
+            <td></td>
+        </tr>
+    </tfoot>
+    {% endif %}
+</table>
+
+<!-- ════════════════════════════════════════════════════
+     SECTION 4 — CUSTOMER & STAFF ANALYTICS
+     ════════════════════════════════════════════════════ -->
+<div class="section-heading" style="margin-top:24px;">
+    <div class="section-heading-left">
+        <span class="section-number">Section 04</span>
+        <span class="section-label">Customer &amp; Staff Analytics</span>
+        <hr class="section-divider-line">
+    </div>
+    <div class="section-heading-right">Top customers and cashier performance</div>
+</div>
+
+<div class="two-col">
+    <!-- Top Customers -->
+    <div class="col-left">
+        <div class="sub-label">Top 10 Customers by Spend</div>
+        <table class="data-tbl">
+            <col style="width:6%;"><col style="width:40%;"><col style="width:14%;"><col style="width:22%;"><col style="width:18%;">
+            <thead>
+                <tr>
+                    <th class="th-c">#</th>
+                    <th>Customer</th>
+                    <th class="th-c">Txns</th>
+                    <th class="th-r">Total Spent</th>
+                    <th class="th-r">% Rev</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in top_customers %}
+                {% set cpct = (c.total_spent / total_revenue * 100) if total_revenue and c.total_spent else 0 %}
+                <tr>
+                    <td class="td-c rank">{{ loop.index }}</td>
+                    <td style="font-weight:600;">{{ c.full_name }}</td>
+                    <td class="td-c">{{ c.tx_count }}</td>
+                    <td class="td-r" style="font-weight:700;color:#1e3a5f;">{{ format_currency(c.total_spent) }}</td>
+                    <td class="td-r" style="color:#2563eb;">{{ "%.1f"|format(cpct) }}%</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="td-c" style="color:#94a3b8;padding:10px;">No customer data.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
-    <div class="section-title">Expense Details</div>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Title</th>
-                <th>Category</th>
-                <th class="text-center">Status</th>
-                <th class="text-right">Amount</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for exp in period_expenses %}
-            <tr>
-                <td>{{ exp.date.strftime('%Y-%m-%d') }}</td>
-                <td>{{ exp.title }}</td>
-                <td>{{ exp.category.name }}</td>
-                <td class="text-center">
-                    {% if exp.status.value == 'Paid' %}
-                    <span style="color: #27ae60; font-weight: bold;">Paid</span>
-                    {% else %}
-                    <span style="color: #f39c12; font-weight: bold;">Pending</span>
-                    {% endif %}
-                </td>
-                <td class="text-right fw-bold" style="color: #c0392b;">{{ format_currency(exp.amount) }}</td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="5" class="text-center">No expenses recorded for this period.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-        {% if period_expenses %}
-        <tfoot>
-            <tr style="background-color: #f8f9fa; font-weight: bold;">
-                <td colspan="3">TOTALS</td>
-                <td class="text-center" style="color: #27ae60;">Paid: {{ format_currency(paid_expenses) }}</td>
-                <td class="text-right" style="color: #f39c12;">Pending: {{ format_currency(pending_expenses) }}</td>
-            </tr>
-        </tfoot>
-        {% endif %}
-    </table>
-
-    <div class="footer">
-        {{ company_name }} - Confidential Report
+    <!-- Cashier Performance -->
+    <div class="col-right">
+        <div class="sub-label">Cashier Performance</div>
+        <table class="data-tbl">
+            <col style="width:38%;"><col style="width:18%;"><col style="width:26%;"><col style="width:18%;">
+            <thead>
+                <tr>
+                    <th>Cashier</th>
+                    <th class="th-c">Sales</th>
+                    <th class="th-r">Revenue</th>
+                    <th class="th-r">% Rev</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in user_sales %}
+                {% set upct = (u[2] / total_revenue * 100) if total_revenue and u[2] else 0 %}
+                <tr>
+                    <td style="font-weight:600;">{{ u[0] }}</td>
+                    <td class="td-c">{{ u[1] }}</td>
+                    <td class="td-r" style="font-weight:700;color:#1e3a5f;">{{ format_currency(u[2]) }}</td>
+                    <td class="td-r" style="color:#2563eb;">{{ "%.1f"|format(upct) }}%</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="td-c" style="color:#94a3b8;padding:10px;">No data.</td></tr>
+                {% endfor %}
+            </tbody>
+            {% if user_sales %}
+            <tfoot>
+                <tr>
+                    <td>Total</td>
+                    <td class="td-c">{{ user_sales | sum(attribute=1) }}</td>
+                    <td class="td-r">{{ format_currency(total_revenue) }}</td>
+                    <td class="td-r">100%</td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
     </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 3
+     ════════════════════════════════════════════════════ -->
+<div class="page-break"></div>
+
+<!-- ════════════════════════════════════════════════════
+     SECTION 5 — EXPENSE ANALYSIS
+     ════════════════════════════════════════════════════ -->
+<div class="section-heading">
+    <div class="section-heading-left">
+        <span class="section-number">Section 05</span>
+        <span class="section-label">Expense Analysis</span>
+        <hr class="section-divider-line">
+    </div>
+    <div class="section-heading-right">Total: {{ format_currency(total_expenses) }} &bull; Paid: {{ format_currency(paid_expenses) }} &bull; Pending: {{ format_currency(pending_expenses) }}</div>
+</div>
+
+<!-- Expense summary by category -->
+{% if expense_by_category %}
+<div class="sub-label">Expense Summary by Category</div>
+<table class="data-tbl" style="margin-bottom:16px;">
+    <col style="width:40%;"><col style="width:30%;"><col style="width:30%;">
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th class="th-r">Amount</th>
+            <th class="th-r">% of Total Expenses</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for cat_name, cat_amount in expense_by_category %}
+        {% set cat_pct = (cat_amount / total_expenses * 100) if total_expenses > 0 else 0 %}
+        <tr>
+            <td style="font-weight:600;">{{ cat_name }}</td>
+            <td class="td-r" style="font-weight:700;color:#dc2626;">{{ format_currency(cat_amount) }}</td>
+            <td class="td-r" style="color:#64748b;">{{ "%.1f"|format(cat_pct) }}%</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td>Total Expenses</td>
+            <td class="td-r">{{ format_currency(total_expenses) }}</td>
+            <td class="td-r">100%</td>
+        </tr>
+    </tfoot>
+</table>
+{% endif %}
+
+<!-- Full expense detail -->
+<div class="sub-label">Expense Detail Ledger</div>
+<table class="data-tbl">
+    <col style="width:11%;"><col style="width:26%;"><col style="width:17%;"><col style="width:14%;"><col style="width:10%;"><col style="width:22%;">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th>Type</th>
+            <th class="th-c">Status</th>
+            <th class="th-r">Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for exp in period_expenses %}
+        <tr>
+            <td style="color:#64748b;">{{ exp.date.strftime('%d %b %Y') }}</td>
+            <td style="font-weight:600;">{{ exp.title }}</td>
+            <td style="color:#475569;">{{ exp.category.name if exp.category else '—' }}</td>
+            <td style="color:#64748b;">{{ exp.expense_type.value if exp.expense_type else '—' }}</td>
+            <td class="td-c">
+                {% if exp.status.value == 'Paid' %}
+                <span class="badge-paid">Paid</span>
+                {% else %}
+                <span class="badge-pending">Pending</span>
+                {% endif %}
+            </td>
+            <td class="td-r" style="font-weight:700;color:#dc2626;">{{ format_currency(exp.amount) }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6" class="td-c" style="color:#94a3b8;padding:16px;">No expenses recorded for this period.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    {% if period_expenses %}
+    <tfoot>
+        <tr>
+            <td colspan="4">Period Expense Totals</td>
+            <td class="td-c" style="color:#86efac;">Paid</td>
+            <td class="td-r">{{ format_currency(paid_expenses) }}</td>
+        </tr>
+        <tr>
+            <td colspan="4"></td>
+            <td class="td-c" style="color:#fde68a;">Pending</td>
+            <td class="td-r">{{ format_currency(pending_expenses) }}</td>
+        </tr>
+    </tfoot>
+    {% endif %}
+</table>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 4
+     ════════════════════════════════════════════════════ -->
+<div class="page-break"></div>
+
+<!-- ════════════════════════════════════════════════════
+     SECTION 6 — INVENTORY SNAPSHOT
+     ════════════════════════════════════════════════════ -->
+<div class="section-heading">
+    <div class="section-heading-left">
+        <span class="section-number">Section 06</span>
+        <span class="section-label">Inventory Snapshot</span>
+        <hr class="section-divider-line">
+    </div>
+    <div class="section-heading-right">Current stock as of {{ generated_at }}</div>
+</div>
+
+<!-- Inventory summary strip -->
+<div class="inv-summary">
+    <div class="inv-cell">
+        <span class="inv-label">Total Products</span>
+        <span class="inv-value">{{ total_products }}</span>
+    </div>
+    <div class="inv-cell">
+        <span class="inv-label">Units in Stock</span>
+        <span class="inv-value">{{ inventory_qty }}</span>
+    </div>
+    <div class="inv-cell">
+        <span class="inv-label">Low Stock Items</span>
+        <span class="inv-value" style="color:#d97706;">{{ low_stock_count }}</span>
+    </div>
+    <div class="inv-cell">
+        <span class="inv-label">Cost Value</span>
+        <span class="inv-value" style="color:#475569;">{{ format_currency(inventory_cost) }}</span>
+    </div>
+    <div class="inv-cell">
+        <span class="inv-label">Retail Value</span>
+        <span class="inv-value" style="color:#1e3a5f;">{{ format_currency(inventory_retail) }}</span>
+    </div>
+    <div class="inv-cell">
+        <span class="inv-label">Potential Profit</span>
+        <span class="inv-value" style="color:#16a34a;">{{ format_currency(inventory_profit) }}</span>
+    </div>
+</div>
+
+<!-- Category breakdown -->
+<div class="sub-label">Inventory by Category</div>
+<table class="data-tbl">
+    <col style="width:26%;"><col style="width:11%;"><col style="width:11%;"><col style="width:20%;"><col style="width:20%;"><col style="width:12%;">
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th class="th-c">Products</th>
+            <th class="th-c">Units</th>
+            <th class="th-r">Cost Value</th>
+            <th class="th-r">Retail Value</th>
+            <th class="th-r">Margin</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for cat_name, cat_data in inventory_by_category %}
+        {% set cat_margin = ((cat_data.retail - cat_data.cost) / cat_data.cost * 100) if cat_data.cost > 0 else 0 %}
+        <tr>
+            <td style="font-weight:600;">{{ cat_name }}</td>
+            <td class="td-c">{{ cat_data.products }}</td>
+            <td class="td-c">{{ cat_data.units }}</td>
+            <td class="td-r" style="color:#475569;">{{ format_currency(cat_data.cost) }}</td>
+            <td class="td-r" style="font-weight:700;color:#1e3a5f;">{{ format_currency(cat_data.retail) }}</td>
+            <td class="td-r" style="color:#16a34a;">{{ "%.0f"|format(cat_margin) }}%</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="td-c" style="color:#94a3b8;padding:14px;">No inventory data.</td></tr>
+        {% endfor %}
+    </tbody>
+    {% if inventory_by_category %}
+    <tfoot>
+        <tr>
+            <td>Total Inventory</td>
+            <td class="td-c">{{ total_products }}</td>
+            <td class="td-c">{{ inventory_qty }}</td>
+            <td class="td-r">{{ format_currency(inventory_cost) }}</td>
+            <td class="td-r">{{ format_currency(inventory_retail) }}</td>
+            <td class="td-r">{{ "%.0f"|format(inventory_profit / inventory_cost * 100 if inventory_cost > 0 else 0) }}%</td>
+        </tr>
+    </tfoot>
+    {% endif %}
+</table>
+
+<!-- ════════════════════════════════════════════════════
+     DOCUMENT FOOTER
+     ════════════════════════════════════════════════════ -->
+<div class="doc-footer">
+    <div class="doc-footer-left">
+        {{ company_name }} &mdash; Confidential &bull; Internal Use Only &bull; Not for external distribution.
+    </div>
+    <div class="doc-footer-right">
+        Exported {{ generated_at }} &bull; {{ report_type|capitalize }} Report
+    </div>
+</div>
+
+<!-- Revenue bar widths (data-bar attribute → JS sets style.width) -->
+<script>
+document.querySelectorAll('.bar-fill[data-bar]').forEach(function(el) {
+    el.style.width = el.getAttribute('data-bar') + '%';
+});
+</script>
+
 </body>
-
 </html>

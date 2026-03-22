@@ -39,16 +39,23 @@
     .invoice-footer .total-label { font-weight:600; color:var(--gray-700); }
     .invoice-footer .total-val { font-weight:700; font-size:1rem; color:var(--red-600); }
     .note-strip { padding:0.625rem 1.25rem; border-top:var(--border); font-size:0.75rem; color:var(--gray-400); font-style:italic; }
+
+    .currency-toggle { display:flex; border:var(--border); border-radius:6px; overflow:hidden; }
+    .currency-toggle label { flex:1; text-align:center; padding:0.4rem 0.75rem; font-size:0.8125rem; font-weight:600; cursor:pointer; color:var(--gray-600); background:#fff; transition:background 0.15s,color 0.15s; }
+    .currency-toggle input[type=radio] { display:none; }
+    .currency-toggle input[type=radio]:checked + label { background:var(--blue-600); color:#fff; }
+    .slsh-preview { background:var(--blue-50); border:1px solid var(--blue-200); border-radius:6px; padding:0.5rem 0.75rem; font-size:0.8125rem; color:var(--blue-700); display:none; margin-top:0.375rem; }
+    .slsh-preview.visible { display:block; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="breadcrumb-nav" style="margin-bottom:1rem;">
-    <a href="{{ url_for('customers.index') }}">Customers</a>
-    <i class="fas fa-chevron-right" style="font-size:0.5rem;"></i>
+<div class="bc-nav">
+    <a href="{{ url_for('customers.index') }}"><i class="fas fa-users" style="font-size:0.7rem;"></i> Customers</a>
+    <i class="fas fa-chevron-right bc-sep"></i>
     <a href="{{ url_for('customers.profile', customer_id=customer.id) }}">{{ customer.full_name }}</a>
-    <i class="fas fa-chevron-right" style="font-size:0.5rem;"></i>
-    <span>Receive Payment</span>
+    <i class="fas fa-chevron-right bc-sep"></i>
+    <span class="bc-cur">Receive Payment</span>
 </div>
 <h1 style="font-size:1.375rem;font-weight:700;color:var(--gray-900);margin:0 0 1.25rem;letter-spacing:-0.01em;">
     <i class="fas fa-money-bill-wave me-2" style="color:var(--green-600);font-size:1.1rem;"></i>Receive Payment
@@ -74,10 +81,21 @@
                     <input type="text" class="form-control" value="{{ customer.full_name }}" readonly style="background:var(--gray-50);color:var(--gray-500);">
                 </div>
 
+                <div class="form-group">
+                    <label class="form-label">Currency <span class="req">*</span></label>
+                    <div class="currency-toggle" id="currencyToggle">
+                        <input type="radio" name="currency" id="cur_usd" value="USD" checked>
+                        <label for="cur_usd">USD $</label>
+                        <input type="radio" name="currency" id="cur_slsh" value="SLSH">
+                        <label for="cur_slsh">SLSH</label>
+                    </div>
+                </div>
+
                 <div class="field-row">
                     <div class="form-group">
                         <label class="form-label">Amount Received <span class="req">*</span></label>
-                        <input type="number" class="form-control" name="amount" step="0.01" min="0.01" required autofocus placeholder="0.00">
+                        <input type="number" class="form-control" id="amountInput" name="amount" step="0.01" min="0.01" required autofocus placeholder="0.00">
+                        <div class="slsh-preview" id="slshPreview"></div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Date <span class="req">*</span></label>
@@ -87,11 +105,12 @@
 
                 <div class="form-group">
                     <label class="form-label">Payment Method <span class="req">*</span></label>
-                    <select class="form-select" name="method" required>
+                    <select class="form-select" name="method" id="methodSelect" required>
                         <option value="Cash">Cash</option>
-                        <option value="Card">Card</option>
+                        <option value="Card">Card (USD only)</option>
                         <option value="E-Dahab">E-Dahab</option>
                         <option value="Zaad">Zaad</option>
+                        <option value="Mobile Money">Mobile Money</option>
                     </select>
                 </div>
 
@@ -153,4 +172,54 @@
         <div class="note-strip">Payment will be applied to the oldest invoices first.</div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var RATE = {{ exchange_rate | float }};
+    var methodSel = document.getElementById('methodSelect');
+    var amountInput = document.getElementById('amountInput');
+    var slshPreview = document.getElementById('slshPreview');
+    var usdRadio = document.getElementById('cur_usd');
+    var slshRadio = document.getElementById('cur_slsh');
+
+    function getCurrency() {
+        return slshRadio.checked ? 'SLSH' : 'USD';
+    }
+
+    function updatePreview() {
+        var cur = getCurrency();
+        var val = parseFloat(amountInput.value) || 0;
+        if (cur === 'SLSH' && val > 0) {
+            var usd = (val / RATE).toFixed(2);
+            slshPreview.textContent = '\u2248 $' + usd + ' USD at rate ' + Math.round(RATE).toLocaleString() + ' SLSH/USD';
+            slshPreview.classList.add('visible');
+            amountInput.placeholder = 'Amount in SLSH';
+        } else {
+            slshPreview.classList.remove('visible');
+            amountInput.placeholder = '0.00';
+        }
+    }
+
+    function enforceCardUSD() {
+        if (methodSel.value === 'Card') {
+            usdRadio.checked = true;
+            slshRadio.disabled = true;
+            updatePreview();
+        } else {
+            slshRadio.disabled = false;
+        }
+    }
+
+    document.querySelectorAll('input[name="currency"]').forEach(function(r) {
+        r.addEventListener('change', updatePreview);
+    });
+    amountInput.addEventListener('input', updatePreview);
+    methodSel.addEventListener('change', enforceCardUSD);
+
+    enforceCardUSD();
+    updatePreview();
+})();
+</script>
 {% endblock %}

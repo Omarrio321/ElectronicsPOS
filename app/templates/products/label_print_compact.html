@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  /* -----------------------------------------------------------------------
+   * Compact label sheet  —  4 labels per row  (~47 × 27 mm each)
+   *
+   * Layout (top → bottom):
+   *   Product name  (single line, ellipsis)
+   *   Barcode image (full width, write_text=False — pure bars)
+   *   Barcode number (HTML text, monospace)
+   *   Footer row: SKU (left) | Price (right)
+   *   Company name (centered, optional)
+   * ----------------------------------------------------------------------- */
+
+  @page { size: A4; margin: 8mm 5mm; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; background: #fff; }
+
+  /* ── Outer grid: 4 labels per row ── */
+  table.grid {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 1.5mm 1.5mm;
+    table-layout: fixed;
+  }
+  tr { page-break-inside: avoid; }
+  td.cell {
+    width: 25%;
+    vertical-align: top;
+    padding: 0;
+  }
+
+  /* ── Label wrapper — fixed 27 mm height ── */
+  .lbl {
+    border: 0.6pt dashed #aaa;
+    padding: 1.5mm;
+    height: 27mm;
+    overflow: hidden;
+  }
+
+  /* ── Product name ── */
+  .lbl-name {
+    display: block;
+    font-size: 5.5pt;
+    font-weight: 700;
+    color: #1a1a2e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 1mm;
+    line-height: 1.2;
+  }
+
+  /* ── Barcode image ── */
+  .lbl-bc-img {
+    display: block;
+    width: 100%;
+    max-height: 14mm;
+    height: auto;
+  }
+
+  /* ── Human-readable barcode number ── */
+  .lbl-bc-num {
+    display: block;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 4.5pt;
+    color: #333;
+    text-align: center;
+    letter-spacing: 0.4pt;
+    margin-top: 0.5mm;
+    margin-bottom: 0.75mm;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Barcode fallback ── */
+  .lbl-bc-text {
+    display: block;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 4.5pt;
+    color: #555;
+    text-align: center;
+    border: 0.5pt dashed #ccc;
+    padding: 1mm;
+    margin-bottom: 0.75mm;
+  }
+  .lbl-bc-none {
+    display: block;
+    font-size: 4pt;
+    color: #ccc;
+    font-style: italic;
+    text-align: center;
+    margin-bottom: 0.75mm;
+  }
+
+  /* ── Footer: SKU left | Price right ── */
+  .lbl-footer {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+    border-top: 0.3pt solid #e5e7eb;
+    padding-top: 0.5mm;
+  }
+  .lbl-footer-sku {
+    display: table-cell;
+    width: 55%;
+    vertical-align: middle;
+    font-size: 4pt;
+    color: #555;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+  }
+  .lbl-footer-price {
+    display: table-cell;
+    width: 45%;
+    vertical-align: middle;
+    font-size: 4pt;
+    font-weight: 700;
+    color: #000;
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  /* ── Company name ── */
+  .lbl-company {
+    display: block;
+    font-size: 3.5pt;
+    color: #777;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 0.4mm;
+  }
+</style>
+</head>
+<body>
+
+<table class="grid">
+{% for row in labels|batch(4, none) %}
+<tr>
+  {% for label in row %}
+  {% if label %}
+  <td class="cell">
+    <div class="lbl">
+
+      <span class="lbl-name">{{ label.product_name }}</span>
+
+      {% if label.barcode_b64 %}
+        <img class="lbl-bc-img"
+             src="data:image/png;base64,{{ label.barcode_b64 }}"
+             alt="{{ label.barcode_value }}">
+        <span class="lbl-bc-num">{{ label.barcode_value }}</span>
+      {% elif label.barcode_value %}
+        <span class="lbl-bc-text">{{ label.barcode_value }}</span>
+      {% else %}
+        <span class="lbl-bc-none">No barcode</span>
+      {% endif %}
+
+      <div class="lbl-footer">
+        <div class="lbl-footer-sku">{% if label.sku %}{{ label.sku }}{% endif %}</div>
+        <div class="lbl-footer-price">{% if label.price_str %}{{ label.price_str }}{% endif %}</div>
+      </div>
+      {% if label.company_name %}<span class="lbl-company">{{ label.company_name }}</span>{% endif %}
+
+    </div>
+  </td>
+  {% else %}
+  <td class="cell"></td>
+  {% endif %}
+  {% endfor %}
+</tr>
+{% endfor %}
+</table>
+
+</body>
+</html>

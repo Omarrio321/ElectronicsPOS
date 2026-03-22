@@ -4,10 +4,20 @@
 
 {% block head %}
 <style>
-    .page-header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.5rem; }
+    .page-header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap; }
     .page-header h1 { font-size:1.375rem; font-weight:700; color:var(--gray-900); margin:0; letter-spacing:-0.01em; }
     .page-header .sub { font-size:0.8125rem; color:var(--gray-500); margin-top:2px; }
-    .page-actions { display:flex; gap:0.5rem; align-items:center; flex-shrink:0; }
+    .page-actions { display:flex; gap:0.5rem; align-items:center; flex-shrink:0; flex-wrap:wrap; }
+    @media (max-width: 600px) {
+        .page-header { flex-direction:column; }
+        .page-actions { width:100%; }
+        .page-actions .btn { flex:1 1 auto; justify-content:center; font-size:0.75rem; min-height:40px; }
+        .filter-bar { flex-direction:column; align-items:stretch !important; }
+        .filter-bar .filter-input-wrap,
+        .filter-bar .filter-input { width:100% !important; }
+        .filter-bar .filter-select { width:100% !important; }
+        .filter-bar .btn { width:100%; justify-content:center; }
+    }
 
     .panel { background:#fff; border:var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; }
     .panel-header { padding:0.875rem 1.25rem; border-bottom:var(--border); display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap; }
@@ -59,6 +69,10 @@
 {% endblock %}
 
 {% block content %}
+<div class="bc-nav">
+    <i class="fas fa-box" style="font-size:0.7rem;color:var(--blue-600);"></i>
+    <span class="bc-cur">Inventory</span>
+</div>
 <div class="page-header">
     <div>
         <h1><i class="fas fa-box me-2" style="color:var(--blue-600);font-size:1.1rem;"></i>Inventory</h1>
@@ -80,6 +94,9 @@
         </a>
         <a href="{{ url_for('products.categories') }}" class="btn btn-light" style="border:var(--border);">
             <i class="fas fa-tags" style="font-size:0.75rem;"></i> Categories
+        </a>
+        <a href="{{ url_for('products.batch_print_labels') }}" class="btn btn-light" style="border:var(--border);">
+            <i class="fas fa-print" style="font-size:0.75rem;"></i> Print Labels
         </a>
         <a href="{{ url_for('products.add') }}" class="btn btn-primary">
             <i class="fas fa-plus" style="font-size:0.75rem;"></i> Add Product
@@ -111,17 +128,18 @@
         </form>
     </div>
 
+    <div class="table-responsive-cards">
     <table class="data-table">
         <thead>
             <tr>
                 <th style="width:52px;"></th>
                 <th>Product</th>
-                <th>Category</th>
-                <th>SKU</th>
+                <th class="mobile-hide">Category</th>
+                <th class="mobile-hide">SKU</th>
                 <th style="text-align:right;">Retail</th>
-                <th style="text-align:right;">Wholesale</th>
+                <th style="text-align:right;" class="mobile-hide">Wholesale</th>
                 <th style="text-align:center;">Stock</th>
-                <th style="text-align:center;">Status</th>
+                <th style="text-align:center;" class="mobile-hide">Status</th>
                 {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
                 <th style="text-align:right;">Actions</th>
                 {% endif %}
@@ -130,7 +148,7 @@
         <tbody>
             {% for product in products.items %}
             <tr>
-                <td>
+                <td class="mobile-hide" style="width:52px;">
                     {% if product.image_filename %}
                     <img src="{{ url_for('static', filename='uploads/products/' + product.image_filename) }}"
                          alt="{{ product.name }}" class="product-img">
@@ -138,14 +156,21 @@
                     <div class="product-img-placeholder"><i class="fas fa-box"></i></div>
                     {% endif %}
                 </td>
-                <td>
-                    <div style="font-weight:600;color:var(--gray-900);">{{ product.name }}</div>
-                    {% if product.barcode %}<div style="font-size:0.6875rem;color:var(--gray-400);">{{ product.barcode }}</div>{% endif %}
+                <td class="td-primary">
+                    <span style="display:flex;align-items:center;gap:0.5rem;min-width:0;">
+                        <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ product.name }}</span>
+                    </span>
+                    <span style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
+                        {% if product.is_low_stock %}
+                        <span class="stock-pill stock-low" style="font-size:0.5rem;">Low</span>
+                        {% endif %}
+                        <span style="font-size:0.75rem;font-weight:700;">{{ format_currency(product.selling_price) }}</span>
+                    </span>
                 </td>
-                <td style="color:var(--gray-500);">{{ product.category.name if product.category else '—' }}</td>
-                <td style="color:var(--gray-500);font-family:monospace;font-size:0.75rem;">{{ product.sku }}</td>
-                <td style="text-align:right;font-weight:600;">{{ format_currency(product.selling_price) }}</td>
-                <td style="text-align:right;color:var(--gray-500);">
+                <td data-label="Category" class="mobile-hide" style="color:var(--gray-500);">{{ product.category.name if product.category else '—' }}</td>
+                <td data-label="SKU" class="mobile-hide" style="color:var(--gray-500);font-family:monospace;font-size:0.75rem;">{{ product.sku }}</td>
+                <td data-label="Price" style="font-weight:600;" class="mobile-hide">{{ format_currency(product.selling_price) }}</td>
+                <td data-label="Wholesale" class="mobile-hide" style="color:var(--gray-500);">
                     {% if product.allow_wholesale and product.wholesale_price %}
                         {{ format_currency(product.wholesale_price) }}
                         <div style="font-size:0.6875rem;color:var(--gray-400);">Min {{ product.min_wholesale_qty }}</div>
@@ -153,11 +178,11 @@
                         <span style="color:var(--gray-300);">—</span>
                     {% endif %}
                 </td>
-                <td style="text-align:center;font-weight:600;"
+                <td data-label="Stock" style="font-weight:600;"
                     data-stock-state="{% if product.quantity_in_stock == 0 %}zero{% elif product.is_low_stock %}low{% else %}ok{% endif %}">
-                    {{ product.quantity_in_stock }}
+                    {{ product.quantity_in_stock }} units
                 </td>
-                <td style="text-align:center;">
+                <td data-label="Status" class="mobile-hide" style="text-align:center;">
                     {% if product.is_low_stock %}
                     <span class="stock-pill stock-low">Low Stock</span>
                     {% else %}
@@ -165,8 +190,12 @@
                     {% endif %}
                 </td>
                 {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
-                <td style="text-align:right;">
-                    <div style="display:flex;gap:0.25rem;justify-content:flex-end;">
+                <td class="td-actions">
+                    <div style="display:flex;gap:0.375rem;justify-content:flex-end;flex-wrap:wrap;">
+                        <a href="{{ url_for('products.print_label', product_id=product.id) }}"
+                           target="_blank" class="act-btn" title="Print Label">
+                            <i class="fas fa-print"></i>
+                        </a>
                         <a href="{{ url_for('products.edit', product_id=product.id) }}" class="act-btn" title="Edit">
                             <i class="fas fa-pencil-alt"></i>
                         </a>
@@ -186,6 +215,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 
     {% if products.pages > 1 %}
     <div class="pagination-bar">

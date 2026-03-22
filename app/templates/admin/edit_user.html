@@ -35,11 +35,15 @@
 {% endblock %}
 
 {% block content %}
+<div class="bc-nav">
+    <a href="{{ url_for('admin.settings') }}"><i class="fas fa-shield-alt" style="font-size:0.7rem;"></i> Administration</a>
+    <i class="fas fa-chevron-right bc-sep"></i>
+    <a href="{{ url_for('admin.users') }}">Users</a>
+    <i class="fas fa-chevron-right bc-sep"></i>
+    <span class="bc-cur">{{ user.username }}</span>
+</div>
 <div class="form-page">
     <div class="page-header">
-        <a href="{{ url_for('admin.users') }}" style="color:var(--gray-400);text-decoration:none;font-size:0.8125rem;display:flex;align-items:center;gap:0.25rem;">
-            <i class="fas fa-chevron-left" style="font-size:0.625rem;"></i> Users
-        </a>
         <h1 style="font-size:1.375rem;font-weight:700;color:var(--gray-900);margin:0;">Edit User</h1>
     </div>
 

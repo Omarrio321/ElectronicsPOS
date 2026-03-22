@@ -26,14 +26,27 @@
 {% endblock %}
 
 {% block content %}
+<div class="bc-nav">
+    <a href="{{ url_for('products.index') }}"><i class="fas fa-box" style="font-size:0.7rem;"></i> Inventory</a>
+    <i class="fas fa-chevron-right bc-sep"></i>
+    <span class="bc-cur">Low Stock Report</span>
+</div>
 <div class="page-header">
     <div>
         <h1><i class="fas fa-exclamation-triangle me-2" style="color:var(--amber-600);font-size:1.1rem;"></i>Low Stock</h1>
         <div class="sub">Products that need restocking</div>
     </div>
-    <a href="{{ url_for('products.index') }}" class="btn btn-light" style="border:var(--border);">
-        <i class="fas fa-arrow-left" style="font-size:0.75rem;"></i> Back to Inventory
-    </a>
+    <div style="display:flex;gap:0.5rem;align-items:center;">
+        {% if products %}
+        <a href="{{ url_for('products.low_stock_pdf') }}" class="btn btn-light"
+           style="border:var(--border);color:var(--red-600);" title="Print Low Stock Report">
+            <i class="fas fa-file-pdf" style="font-size:0.75rem;"></i> Print Report
+        </a>
+        {% endif %}
+        <a href="{{ url_for('products.index') }}" class="btn btn-light" style="border:var(--border);">
+            <i class="fas fa-arrow-left" style="font-size:0.75rem;"></i> Back to Inventory
+        </a>
+    </div>
 </div>
 
 <div class="panel">
